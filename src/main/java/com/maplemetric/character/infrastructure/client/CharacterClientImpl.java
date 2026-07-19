@@ -1,8 +1,12 @@
 package com.maplemetric.character.infrastructure.client;
 
+import com.maplemetric.character.domain.exception.CharacterErrorCode;
+import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 @Component
@@ -20,21 +24,33 @@ public class CharacterClientImpl implements CharacterClient {
 
     @Override
     public String getOcid(String characterName) {
-        OcidResponse response = nexonRestClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(CHARACTER_OCID_PATH)
-                        .queryParam("character_name", characterName)
-                        .build()
-                )
-                .retrieve()
-                .body(OcidResponse.class);
+        try {
+            OcidResponse response = nexonRestClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path(CHARACTER_OCID_PATH)
+                            .queryParam("character_name", characterName)
+                            .build()
+                    )
+                    .retrieve()
+                    .body(OcidResponse.class);
 
-        if (response == null || response.ocid() == null) {
-            throw new IllegalStateException(
-                    "넥슨 API에서 캐릭터 OCID를 조회하지 못했습니다."
+            if (response == null || response.ocid() == null) {
+                throw new CharacterException(
+                        CharacterErrorCode.CHARACTER_NOT_FOUND
+                );
+            }
+
+            return response.ocid();
+
+        } catch (HttpClientErrorException.NotFound exception) {
+            throw new CharacterException(
+                    CharacterErrorCode.CHARACTER_NOT_FOUND
+            );
+
+        } catch (HttpServerErrorException exception) {
+            throw new CharacterException(
+                    CharacterErrorCode.CHARACTER_API_ERROR
             );
         }
-
-        return response.ocid();
     }
 }
