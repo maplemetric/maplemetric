@@ -1,13 +1,45 @@
 services:
   postgres:
-    image: 'postgres:latest'
+    image: postgres:17-alpine
+    container_name: maplemetric-postgres
+    restart: unless-stopped
+
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+
     ports:
-      - '5432'
+      - "${DB_PORT}:5432"
+
+    volumes:
+      - maplemetric-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   redis:
-    image: 'redis:latest'
+    image: redis:7-alpine
+    container_name: maplemetric-redis
+    restart: unless-stopped
+
     ports:
-      - '6379'
+      - "${REDIS_PORT}:6379"
+
+    volumes:
+      - maplemetric-redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  maplemetric-postgres-data:
+  maplemetric-redis-data:
