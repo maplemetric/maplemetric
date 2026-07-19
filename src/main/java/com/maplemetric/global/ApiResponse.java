@@ -18,4 +18,13 @@ public record ApiResponse<T>(
                 data
         );
     }
+
+    public static ApiResponse<Void> error(ErrorCode errorCode) {
+        return new ApiResponse<>(
+                false,
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                null
+        );
+    }
 }
