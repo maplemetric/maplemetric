@@ -42,11 +42,14 @@ public class CharacterClientImpl implements CharacterClient {
 
             return response.ocid();
 
+        } catch (HttpClientErrorException.BadRequest exception) {
+            throw new CharacterException(
+                    CharacterErrorCode.CHARACTER_NOT_FOUND
+            );
         } catch (HttpClientErrorException.NotFound exception) {
             throw new CharacterException(
                     CharacterErrorCode.CHARACTER_NOT_FOUND
             );
-
         } catch (HttpServerErrorException exception) {
             throw new CharacterException(
                     CharacterErrorCode.CHARACTER_API_ERROR
