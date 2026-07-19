@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 @Component
 public class CharacterClientImpl implements CharacterClient {
@@ -42,11 +43,11 @@ public class CharacterClientImpl implements CharacterClient {
 
             return response.ocid();
 
-        } catch (HttpClientErrorException.BadRequest exception) {
-            throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
         } catch (HttpClientErrorException.NotFound exception) {
             throw new CharacterException(CharacterErrorCode.CHARACTER_NOT_FOUND);
-        } catch (HttpServerErrorException exception) {
+        } catch (HttpClientErrorException.BadRequest exception) {
+            throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
+        } catch (RestClientException exception) {
             throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
         }
     }
