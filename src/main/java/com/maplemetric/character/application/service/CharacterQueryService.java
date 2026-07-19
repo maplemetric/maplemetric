@@ -16,10 +16,9 @@ public class CharacterQueryService {
     }
 
     public GetCharacterResult getCharacter(String characterName) {
+        String ocid = characterClient.getOcid(characterName);
 
-        characterClient.getOcid(characterName);
-
-        return GetCharacterResult.from(characterName);
+        return GetCharacterResult.of(characterName, ocid);
     }
 
 
