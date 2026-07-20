@@ -10,9 +10,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
@@ -46,6 +51,12 @@ class CharacterClientImplTest {
     private static final String OCID =
             "test-ocid";
 
+    private static final String MASKED_OCID =
+            "test...ocid";
+
+    private static final String NEXON_API_KEY =
+            "test-nexon-api-key";
+
     private static final String CHARACTER_OCID_PATH =
             "/maplestory/v1/id";
 
@@ -57,6 +68,21 @@ class CharacterClientImplTest {
 
     private static final String CHARACTER_SYMBOL_PATH =
             "/maplestory/v1/character/symbol-equipment";
+
+    private static final String CHARACTER_SKILL_PATH =
+            "/maplestory/v1/character/skill";
+
+    private static final String CHARACTER_LINK_SKILL_PATH =
+            "/maplestory/v1/character/link-skill";
+
+    private static final String CHARACTER_V_MATRIX_PATH =
+            "/maplestory/v1/character/vmatrix";
+
+    private static final String CHARACTER_HEXA_MATRIX_PATH =
+            "/maplestory/v1/character/hexamatrix";
+
+    private static final String CHARACTER_HEXA_MATRIX_STAT_PATH =
+            "/maplestory/v1/character/hexamatrix-stat";
 
     private static final String RANKING_OVERALL_PATH =
             "/maplestory/v1/ranking/overall";
@@ -77,7 +103,11 @@ class CharacterClientImplTest {
 
         RestClient.Builder restClientBuilder =
                 RestClient.builder()
-                        .baseUrl(BASE_URL);
+                        .baseUrl(BASE_URL)
+                        .defaultHeader(
+                                "x-nxopen-api-key",
+                                NEXON_API_KEY
+                        );
 
         mockServer =
                 MockRestServiceServer
@@ -265,11 +295,13 @@ class CharacterClientImplTest {
                           "symbol": [
                             {
                               "symbol_name": "아케인심볼 : 소멸의 여로",
-                              "symbol_level": 20
+                              "symbol_level": 20,
+                              "symbol_icon": "arcane-icon"
                             },
                             {
                               "symbol_name": "그랜드 어센틱심볼 : 탈라하트",
-                              "symbol_level": 5
+                              "symbol_level": 5,
+                              "symbol_icon": "authentic-icon"
                             }
                           ]
                         }
@@ -290,11 +322,235 @@ class CharacterClientImplTest {
         assertThat(result.symbol())
                 .extracting(
                         symbol -> symbol.symbolName(),
-                        symbol -> symbol.symbolLevel()
+                        symbol -> symbol.symbolLevel(),
+                        symbol -> symbol.symbolIcon()
                 )
                 .containsExactly(
-                        tuple("아케인심볼 : 소멸의 여로", 20),
-                        tuple("그랜드 어센틱심볼 : 탈라하트", 5)
+                        tuple(
+                                "아케인심볼 : 소멸의 여로",
+                                20,
+                                "arcane-icon"
+                        ),
+                        tuple(
+                                "그랜드 어센틱심볼 : 탈라하트",
+                                5,
+                                "authentic-icon"
+                        )
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터5차와6차스킬정보를스킬등급으로조회한다() {
+        expectGetRequest(
+                CHARACTER_SKILL_PATH,
+                Map.of(
+                        "ocid", OCID,
+                        "character_skill_grade", "5"
+                ),
+                withSuccess(
+                        createSkillResponseJson("5", "조커"),
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        expectGetRequest(
+                CHARACTER_SKILL_PATH,
+                Map.of(
+                        "ocid", OCID,
+                        "character_skill_grade", "6"
+                ),
+                withSuccess(
+                        createSkillResponseJson(
+                                "6",
+                                "템페스트 오브 카드 VI"
+                        ),
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterSkillResponse fifthSkill =
+                characterClient.getCharacterSkill(OCID, "5");
+
+        CharacterSkillResponse sixthSkill =
+                characterClient.getCharacterSkill(OCID, "6");
+
+        assertThat(fifthSkill.characterSkillGrade())
+                .isEqualTo("5");
+
+        assertThat(fifthSkill.characterSkill().get(0).skillName())
+                .isEqualTo("조커");
+
+        assertThat(sixthSkill.characterSkillGrade())
+                .isEqualTo("6");
+
+        assertThat(sixthSkill.characterSkill().get(0).skillName())
+                .isEqualTo("템페스트 오브 카드 VI");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 링크스킬프리셋숫자필드를역직렬화한다() {
+        expectGetRequest(
+                CHARACTER_LINK_SKILL_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "character_link_skill": [],
+                          "character_link_skill_preset_1": [
+                            {
+                              "skill_name": "데들리 인스팅트",
+                              "skill_level": 2,
+                              "skill_icon": "link-icon"
+                            }
+                          ],
+                          "character_link_skill_preset_2": [],
+                          "character_link_skill_preset_3": []
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterLinkSkillResponse result =
+                characterClient.getCharacterLinkSkill(OCID);
+
+        assertThat(result.characterLinkSkillPreset1())
+                .extracting(
+                        skill -> skill.skillName(),
+                        skill -> skill.skillLevel(),
+                        skill -> skill.skillIcon()
+                )
+                .containsExactly(
+                        tuple(
+                                "데들리 인스팅트",
+                                2,
+                                "link-icon"
+                        )
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void V매트릭스정보를조회한다() {
+        expectGetRequest(
+                CHARACTER_V_MATRIX_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "character_class": "팬텀",
+                          "character_v_core_equipment": [
+                            {
+                              "v_core_name": "조커",
+                              "v_core_type": "직업 코어",
+                              "v_core_level": 30
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterVMatrixResponse result =
+                characterClient.getCharacterVMatrix(OCID);
+
+        assertThat(result.characterVCoreEquipment())
+                .extracting(
+                        core -> core.vCoreName(),
+                        core -> core.vCoreType(),
+                        core -> core.vCoreLevel()
+                )
+                .containsExactly(
+                        tuple("조커", "직업 코어", 30)
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void HEXA코어정보를조회한다() {
+        expectGetRequest(
+                CHARACTER_HEXA_MATRIX_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "character_hexa_core_equipment": [
+                            {
+                              "hexa_core_name": "템페스트 오브 카드 VI",
+                              "hexa_core_level": 18,
+                              "hexa_core_type": "마스터리 코어",
+                              "linked_skill": [
+                                {
+                                  "hexa_skill_id": "템페스트 오브 카드 VI"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterHexaMatrixResponse result =
+                characterClient.getCharacterHexaMatrix(OCID);
+
+        assertThat(result.characterHexaCoreEquipment().get(0).linkedSkill())
+                .extracting(skill -> skill.hexaSkillId())
+                .containsExactly("템페스트 오브 카드 VI");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void HEXA스탯숫자필드를역직렬화한다() {
+        expectGetRequest(
+                CHARACTER_HEXA_MATRIX_STAT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "character_hexa_stat_core": [],
+                          "character_hexa_stat_core_2": [
+                            {
+                              "slot_id": "0",
+                              "main_stat_name": "공격력 증가",
+                              "sub_stat_name_1": "크리티컬 데미지 증가",
+                              "sub_stat_name_2": "주력 스탯 증가",
+                              "main_stat_level": 6,
+                              "sub_stat_level_1": 6,
+                              "sub_stat_level_2": 8
+                            }
+                          ],
+                          "character_hexa_stat_core_3": []
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterHexaMatrixStatResponse result =
+                characterClient.getCharacterHexaMatrixStat(OCID);
+
+        assertThat(result.characterHexaStatCore2())
+                .extracting(
+                        stat -> stat.slotId(),
+                        stat -> stat.subStatName1(),
+                        stat -> stat.subStatLevel1()
+                )
+                .containsExactly(
+                        tuple("0", "크리티컬 데미지 증가", 6)
                 );
 
         mockServer.verify();
@@ -511,7 +767,9 @@ class CharacterClientImplTest {
     }
 
     @Test
-    void 랭킹조회응답본문이비어있으면잘못된응답오류를반환한다() {
+    void 랭킹조회응답본문이비어있으면잘못된응답오류를반환한다(
+            CapturedOutput output
+    ) {
         expectGetRequest(
                 RANKING_OVERALL_PATH,
                 Map.of(
@@ -535,11 +793,15 @@ class CharacterClientImplTest {
                         CharacterErrorCode.NEXON_API_RESPONSE_INVALID
                 );
 
+        assertSensitiveValuesAreNotLogged(output);
+
         mockServer.verify();
     }
 
     @Test
-    void 랭킹조회404응답은빈목록으로변환하지않는다() {
+    void 랭킹조회404응답은빈목록으로변환하지않는다(
+            CapturedOutput output
+    ) {
         expectGetRequest(
                 RANKING_OVERALL_PATH,
                 Map.of(
@@ -563,11 +825,15 @@ class CharacterClientImplTest {
                         CharacterErrorCode.CHARACTER_NOT_FOUND
                 );
 
+        assertSensitiveValuesAreNotLogged(output);
+
         mockServer.verify();
     }
 
     @Test
-    void 랭킹조회일반4xx응답은클라이언트오류로변환한다() {
+    void 랭킹조회일반4xx응답은클라이언트오류로변환한다(
+            CapturedOutput output
+    ) {
         expectGetRequest(
                 RANKING_OVERALL_PATH,
                 Map.of(
@@ -601,6 +867,8 @@ class CharacterClientImplTest {
                 .isEqualTo(
                         CharacterErrorCode.NEXON_API_CLIENT_ERROR
                 );
+
+        assertSensitiveValuesAreNotLogged(output);
 
         mockServer.verify();
     }
@@ -653,14 +921,17 @@ class CharacterClientImplTest {
                 .contains("400 BAD_REQUEST")
                 .contains("OPENAPI00004")
                 .contains("Please input valid parameter")
-                .contains("ocid=" + OCID)
-                .doesNotContain("x-nxopen-api-key");
+                .contains("ocid=" + MASKED_OCID);
+
+        assertSensitiveValuesAreNotLogged(output);
 
         mockServer.verify();
     }
 
     @Test
-    void 요청제한응답이면재시도후성공응답을반환한다() {
+    void 요청제한응답이면재시도후성공응답을반환한다(
+            CapturedOutput output
+    ) {
         LinkedHashMap<String, String> queryParameters =
                 new LinkedHashMap<>();
 
@@ -716,11 +987,65 @@ class CharacterClientImplTest {
         assertThat(result.ranking().get(0).ranking())
                 .isEqualTo(1588);
 
+        assertThat(output)
+                .contains("OPENAPI00007")
+                .contains("retryCount=1");
+
+        assertSensitiveValuesAreNotLogged(output);
+
         mockServer.verify();
     }
 
     @Test
-    void 랭킹조회타임아웃은타임아웃오류로변환한다() {
+    void 요청제한재시도횟수를소진하면클라이언트오류로변환한다(
+            CapturedOutput output
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("class", "팬텀-전체 전직");
+        queryParameters.put("ocid", OCID);
+
+        for (int requestCount = 0;
+             requestCount < 4;
+             requestCount++) {
+            expectGetRequest(
+                    RANKING_OVERALL_PATH,
+                    queryParameters,
+                    createRateLimitResponse()
+            );
+        }
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterClient.getClassRanking(
+                                OCID,
+                                "팬텀-전체 전직",
+                                RANKING_DATE
+                        ),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        assertThat(output)
+                .contains("retryCount=1")
+                .contains("retryCount=2")
+                .contains("retryCount=3");
+
+        assertSensitiveValuesAreNotLogged(output);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 랭킹조회타임아웃은타임아웃오류로변환한다(
+            CapturedOutput output
+    ) {
         CharacterClientImpl timeoutClient =
                 createFailingClient(
                         new SocketTimeoutException(
@@ -741,14 +1066,18 @@ class CharacterClientImplTest {
                 .isEqualTo(
                         CharacterErrorCode.NEXON_API_TIMEOUT
                 );
+
+        assertSensitiveValuesAreNotLogged(output);
     }
 
     @Test
-    void 오류응답파싱에실패하면클라이언트오류로변환한다() {
+    void 오류응답파싱에실패하면클라이언트오류로변환한다(
+            CapturedOutput output
+    ) {
         expectGetRequest(
-                CHARACTER_OCID_PATH,
-                "character_name",
-                CHARACTER_NAME,
+                CHARACTER_BASIC_PATH,
+                "ocid",
+                OCID,
                 withStatus(HttpStatus.BAD_REQUEST)
                         .contentType(MediaType.TEXT_PLAIN)
                         .body("invalid-error-response")
@@ -756,9 +1085,7 @@ class CharacterClientImplTest {
 
         CharacterException exception =
                 catchThrowableOfType(
-                        () -> characterClient.getOcid(
-                                CHARACTER_NAME
-                        ),
+                        () -> characterClient.getCharacterBasic(OCID),
                         CharacterException.class
                 );
 
@@ -767,11 +1094,18 @@ class CharacterClientImplTest {
                         CharacterErrorCode.NEXON_API_CLIENT_ERROR
                 );
 
+        assertThat(output)
+                .contains("오류 응답 파싱에 실패했습니다.");
+
+        assertSensitiveValuesAreNotLogged(output);
+
         mockServer.verify();
     }
 
     @Test
-    void 서버5xx응답은서버오류로변환한다() {
+    void 서버5xx응답은서버오류로변환한다(
+            CapturedOutput output
+    ) {
         expectGetRequest(
                 CHARACTER_BASIC_PATH,
                 "ocid",
@@ -792,6 +1126,38 @@ class CharacterClientImplTest {
                 .isEqualTo(
                         CharacterErrorCode.NEXON_API_SERVER_ERROR
                 );
+
+        assertSensitiveValuesAreNotLogged(output);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 응답역직렬화에실패하면잘못된응답오류로변환한다(
+            CapturedOutput output
+    ) {
+        expectGetRequest(
+                CHARACTER_BASIC_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        "{invalid-json",
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterClient.getCharacterBasic(OCID),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.NEXON_API_RESPONSE_INVALID
+                );
+
+        assertSensitiveValuesAreNotLogged(output);
 
         mockServer.verify();
     }
@@ -905,7 +1271,9 @@ class CharacterClientImplTest {
     }
 
     @Test
-    void 일반통신오류는서버오류로변환한다() {
+    void 일반통신오류는서버오류로변환한다(
+            CapturedOutput output
+    ) {
         CharacterClientImpl connectionFailureClient =
                 createFailingClient(
                         new ConnectException(
@@ -915,9 +1283,8 @@ class CharacterClientImplTest {
 
         CharacterException exception =
                 catchThrowableOfType(
-                        () -> connectionFailureClient.getOcid(
-                                CHARACTER_NAME
-                        ),
+                        () -> connectionFailureClient
+                                .getCharacterBasic(OCID),
                         CharacterException.class
                 );
 
@@ -925,6 +1292,55 @@ class CharacterClientImplTest {
                 .isEqualTo(
                         CharacterErrorCode.NEXON_API_SERVER_ERROR
                 );
+
+        assertSensitiveValuesAreNotLogged(output);
+    }
+
+    private String createSkillResponseJson(
+            String skillGrade,
+            String skillName
+    ) {
+        return """
+                {
+                  "character_class": "팬텀",
+                  "character_skill_grade": "%s",
+                  "character_skill": [
+                    {
+                      "skill_name": "%s",
+                      "skill_level": 30,
+                      "skill_icon": "skill-icon"
+                    }
+                  ]
+                }
+                """.formatted(
+                skillGrade,
+                skillName
+        );
+    }
+
+    private ResponseCreator createRateLimitResponse() {
+        return withStatus(HttpStatus.TOO_MANY_REQUESTS)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(
+                        """
+                        {
+                          "error": {
+                            "name": "OPENAPI00007",
+                            "message": "Please try again later"
+                          }
+                        }
+                        """
+                );
+    }
+
+    private void assertSensitiveValuesAreNotLogged(
+            CapturedOutput output
+    ) {
+        assertThat(output)
+                .contains("ocid=" + MASKED_OCID)
+                .doesNotContain(OCID)
+                .doesNotContain(NEXON_API_KEY)
+                .doesNotContain("x-nxopen-api-key");
     }
 
     private void expectGetRequest(
@@ -993,6 +1409,10 @@ class CharacterClientImplTest {
         RestClient restClient =
                 RestClient.builder()
                         .baseUrl(BASE_URL)
+                        .defaultHeader(
+                                "x-nxopen-api-key",
+                                NEXON_API_KEY
+                        )
                         .requestFactory(requestFactory)
                         .build();
 

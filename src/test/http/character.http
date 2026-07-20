@@ -4,7 +4,7 @@
 @invalidCharacterName = 없는캐릭터이름123456
 
 ### 정상 캐릭터 종합 검색
-# basic, stat, ranking, union, symbols, equipment 조회
+# basic, stat, ranking, union, symbols, skills, hexa, equipment 조회
 GET {{host}}/api/v1/characters/search?characterName={{validCharacterName}}
 Accept: application/json
 
@@ -77,6 +77,18 @@ Accept: application/json
             );
 
             client.assert(
+                data.skills !== null
+                && data.skills !== undefined,
+                "skills 정보가 없습니다."
+            );
+
+            client.assert(
+                data.hexa !== null
+                && data.hexa !== undefined,
+                "hexa 정보가 없습니다."
+            );
+
+            client.assert(
                 data.equipment !== null
                 && data.equipment !== undefined,
                 "equipment 정보가 없습니다."
@@ -123,6 +135,67 @@ Accept: application/json
                     data.symbols.authenticSymbols
                 ),
                 "authenticSymbols가 배열이 아닙니다."
+            );
+
+            const symbols = [
+                ...data.symbols.arcaneSymbols,
+                ...data.symbols.authenticSymbols
+            ];
+
+            client.assert(
+                symbols.every(symbol =>
+                    symbol !== null
+                    && "symbolIcon" in symbol
+                ),
+                "symbolIcon 필드가 없는 심볼이 있습니다."
+            );
+        });
+
+        client.test("스킬 응답 구조가 올바르다", function () {
+            client.assert(
+                Array.isArray(data.skills.vMatrix.cores),
+                "V매트릭스 코어가 배열이 아닙니다."
+            );
+
+            client.assert(
+                Array.isArray(
+                    data.skills.linkSkills.currentSkills
+                ),
+                "현재 링크 스킬이 배열이 아닙니다."
+            );
+
+            client.assert(
+                Array.isArray(
+                    data.skills.linkSkills.matchedPresetNos
+                ),
+                "일치 프리셋 번호가 배열이 아닙니다."
+            );
+
+            client.assert(
+                Array.isArray(data.skills.linkSkills.presets)
+                && data.skills.linkSkills.presets.length === 3,
+                "링크 스킬 프리셋 1·2·3이 모두 포함되지 않았습니다."
+            );
+        });
+
+        client.test("HEXA 응답 구조가 올바르다", function () {
+            client.assert(
+                Array.isArray(data.hexa.cores),
+                "HEXA 코어가 배열이 아닙니다."
+            );
+
+            client.assert(
+                Array.isArray(data.hexa.stats),
+                "HEXA 스탯이 배열이 아닙니다."
+            );
+
+            client.assert(
+                data.hexa.stats.every(stat =>
+                    stat.statCoreNo >= 1
+                    && stat.statCoreNo <= 3
+                    && stat.slotNo >= 1
+                ),
+                "HEXA 스탯 코어 또는 슬롯 번호가 올바르지 않습니다."
             );
         });
 
@@ -206,6 +279,28 @@ Accept: application/json
             + JSON.stringify(
                 data.symbols.authenticSymbols
             )
+        );
+
+        client.log(
+            "V매트릭스 코어 수: "
+            + data.skills.vMatrix.cores.length
+        );
+
+        client.log(
+            "일치 링크 프리셋: "
+            + JSON.stringify(
+                data.skills.linkSkills.matchedPresetNos
+            )
+        );
+
+        client.log(
+            "HEXA 코어 수: "
+            + data.hexa.cores.length
+        );
+
+        client.log(
+            "HEXA 스탯 수: "
+            + data.hexa.stats.length
         );
 
         const finalStat =
