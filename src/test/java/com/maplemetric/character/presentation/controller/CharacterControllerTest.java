@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
+import com.maplemetric.character.application.result.GetCharacterRankingResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
@@ -45,6 +46,26 @@ class CharacterControllerTest {
                 .andExpect(
                         jsonPath("$.code")
                                 .value("CHARACTER_SEARCH_SUCCESS")
+                )
+                .andExpect(
+                        jsonPath("$.data.ranking.overallRank")
+                                .value(58333)
+                )
+                .andExpect(
+                        jsonPath("$.data.ranking.worldRank")
+                                .value(10244)
+                )
+                .andExpect(
+                        jsonPath("$.data.ranking.classRank")
+                                .value(1588)
+                )
+                .andExpect(
+                        jsonPath("$.data.ranking.worldClassRank")
+                                .value(321)
+                )
+                .andExpect(
+                        jsonPath("$.data.ranking.dojangFloor")
+                                .value(57)
                 )
                 .andExpect(
                         jsonPath("$.data.union.unionLevel")
@@ -146,6 +167,7 @@ class CharacterControllerTest {
         return GetCharacterSummaryResult.of(
                 createBasicResult(),
                 createStatResult(),
+                createRankingResult(),
                 createUnionResult(),
                 createSymbolResult(),
                 createEquipmentResult()
@@ -177,6 +199,16 @@ class CharacterControllerTest {
                 "116871666",
                 0,
                 List.of()
+        );
+    }
+
+    private GetCharacterRankingResult createRankingResult() {
+        return new GetCharacterRankingResult(
+                58333,
+                10244,
+                1588,
+                321,
+                57
         );
     }
 

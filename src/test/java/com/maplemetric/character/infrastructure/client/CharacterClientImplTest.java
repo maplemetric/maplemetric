@@ -9,13 +9,23 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
+import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,6 +34,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestClient;
 
+@ExtendWith(OutputCaptureExtension.class)
 class CharacterClientImplTest {
 
     private static final String BASE_URL =
@@ -46,6 +57,15 @@ class CharacterClientImplTest {
 
     private static final String CHARACTER_SYMBOL_PATH =
             "/maplestory/v1/character/symbol-equipment";
+
+    private static final String RANKING_OVERALL_PATH =
+            "/maplestory/v1/ranking/overall";
+
+    private static final String CHARACTER_DOJANG_PATH =
+            "/maplestory/v1/character/dojang";
+
+    private static final LocalDate RANKING_DATE =
+            LocalDate.of(2026, 7, 19);
 
     private ObjectMapper objectMapper;
     private MockRestServiceServer mockServer;
@@ -281,6 +301,449 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 종합랭킹정보를조회한다() {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("ocid", OCID);
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withSuccess(
+                        """
+                        {
+                          "ranking": [
+                            {
+                              "ranking": 58333,
+                              "character_name": "감점",
+                              "world_name": "루나",
+                              "class_name": "팬텀",
+                              "sub_class_name": ""
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterRankingResponse result =
+                characterClient.getOverallRanking(
+                        OCID,
+                        RANKING_DATE
+                );
+
+        assertThat(result.ranking())
+                .hasSize(1);
+
+        assertThat(result.ranking().get(0).ranking())
+                .isEqualTo(58333);
+
+        assertThat(result.ranking().get(0).characterName())
+                .isEqualTo("감점");
+
+        assertThat(result.ranking().get(0).subClassName())
+                .isEmpty();
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 월드랭킹정보는worldName파라미터로조회한다() {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("world_name", "루나");
+        queryParameters.put("ocid", OCID);
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withSuccess(
+                        """
+                        {
+                          "ranking": []
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterRankingResponse result =
+                characterClient.getWorldRanking(
+                        OCID,
+                        "루나",
+                        RANKING_DATE
+                );
+
+        assertThat(result.ranking())
+                .isEmpty();
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 직업랭킹정보는class파라미터로조회한다() {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("class", "팬텀-전체 전직");
+        queryParameters.put("ocid", OCID);
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withSuccess(
+                        """
+                        {
+                          "ranking": [
+                            {
+                              "ranking": 1588,
+                              "character_name": "감점",
+                              "world_name": "루나",
+                              "class_name": "팬텀",
+                              "sub_class_name": ""
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterRankingResponse result =
+                characterClient.getClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                );
+
+        assertThat(result.ranking().get(0).ranking())
+                .isEqualTo(1588);
+
+        assertThat(result.ranking().get(0).className())
+                .isEqualTo("팬텀");
+
+        assertThat(result.ranking().get(0).subClassName())
+                .isEmpty();
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 월드내직업랭킹정보는worldName과class파라미터로조회한다() {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("world_name", "루나");
+        queryParameters.put("class", "팬텀-전체 전직");
+        queryParameters.put("ocid", OCID);
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withSuccess(
+                        """
+                        {
+                          "ranking": [
+                            {
+                              "ranking": 321,
+                              "character_name": "감점",
+                              "world_name": "루나",
+                              "class_name": "팬텀",
+                              "sub_class_name": ""
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterRankingResponse result =
+                characterClient.getWorldClassRanking(
+                        OCID,
+                        "루나",
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                );
+
+        assertThat(result.ranking())
+                .hasSize(1);
+
+        assertThat(result.ranking().get(0).ranking())
+                .isEqualTo(321);
+
+        assertThat(result.ranking().get(0).characterName())
+                .isEqualTo("감점");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 무릉최고기록정보는date없이ocid로조회한다() {
+        expectGetRequest(
+                CHARACTER_DOJANG_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "dojang_best_floor": 57
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterDojangResponse result =
+                characterClient.getCharacterDojang(OCID);
+
+        assertThat(result.dojangBestFloor())
+                .isEqualTo(57);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 랭킹조회응답본문이비어있으면잘못된응답오류를반환한다() {
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "ocid", OCID
+                ),
+                withStatus(HttpStatus.OK)
+        );
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterClient.getOverallRanking(
+                                OCID,
+                                RANKING_DATE
+                        ),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.NEXON_API_RESPONSE_INVALID
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 랭킹조회404응답은빈목록으로변환하지않는다() {
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "ocid", OCID
+                ),
+                withStatus(HttpStatus.NOT_FOUND)
+        );
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterClient.getOverallRanking(
+                                OCID,
+                                RANKING_DATE
+                        ),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.CHARACTER_NOT_FOUND
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 랭킹조회일반4xx응답은클라이언트오류로변환한다() {
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "ocid", OCID
+                ),
+                withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(
+                                """
+                                {
+                                  "error": {
+                                    "name": "OPENAPI00002",
+                                    "message": "권한이 없습니다."
+                                  }
+                                }
+                                """
+                        )
+        );
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterClient.getOverallRanking(
+                                OCID,
+                                RANKING_DATE
+                        ),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 직업랭킹조회4xx로그에요청정보와넥슨오류내용을남긴다(
+            CapturedOutput output
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("class", "팬텀-전체 전직");
+        queryParameters.put("ocid", OCID);
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(
+                                """
+                                {
+                                  "error": {
+                                    "name": "OPENAPI00004",
+                                    "message": "Please input valid parameter"
+                                  }
+                                }
+                                """
+                        )
+        );
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterClient.getClassRanking(
+                                OCID,
+                                "팬텀-전체 전직",
+                                RANKING_DATE
+                        ),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        assertThat(output)
+                .contains("캐릭터 직업 랭킹 정보")
+                .contains("400 BAD_REQUEST")
+                .contains("OPENAPI00004")
+                .contains("Please input valid parameter")
+                .contains("ocid=" + OCID)
+                .doesNotContain("x-nxopen-api-key");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 요청제한응답이면재시도후성공응답을반환한다() {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", "2026-07-19");
+        queryParameters.put("class", "팬텀-전체 전직");
+        queryParameters.put("ocid", OCID);
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withStatus(HttpStatus.TOO_MANY_REQUESTS)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(
+                                """
+                                {
+                                  "error": {
+                                    "name": "OPENAPI00007",
+                                    "message": "Please try again later"
+                                  }
+                                }
+                                """
+                        )
+        );
+
+        expectGetRequest(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                withSuccess(
+                        """
+                        {
+                          "ranking": [
+                            {
+                              "ranking": 1588,
+                              "character_name": "감점",
+                              "world_name": "루나",
+                              "class_name": "팬텀",
+                              "sub_class_name": ""
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterRankingResponse result =
+                characterClient.getClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                );
+
+        assertThat(result.ranking().get(0).ranking())
+                .isEqualTo(1588);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 랭킹조회타임아웃은타임아웃오류로변환한다() {
+        CharacterClientImpl timeoutClient =
+                createFailingClient(
+                        new SocketTimeoutException(
+                                "read timeout"
+                        )
+                );
+
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> timeoutClient.getOverallRanking(
+                                OCID,
+                                RANKING_DATE
+                        ),
+                        CharacterException.class
+                );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        CharacterErrorCode.NEXON_API_TIMEOUT
+                );
+    }
+
+    @Test
     void 오류응답파싱에실패하면클라이언트오류로변환한다() {
         expectGetRequest(
                 CHARACTER_OCID_PATH,
@@ -482,6 +945,38 @@ class CharacterClientImplTest {
                                     queryParameterName
                                             + "="
                                             + queryParameterValue
+                            );
+                })
+                .andRespond(responseCreator);
+    }
+
+    private void expectGetRequest(
+            String path,
+            Map<String, String> queryParameters,
+            ResponseCreator responseCreator
+    ) {
+        mockServer.expect(request -> {
+                    assertThat(request.getMethod())
+                            .isEqualTo(HttpMethod.GET);
+
+                    assertThat(request.getURI().getPath())
+                            .isEqualTo(path);
+
+                    String query =
+                            URLDecoder.decode(
+                                    request.getURI().getRawQuery(),
+                                    StandardCharsets.UTF_8
+                            );
+
+                    assertThat(query.split("&"))
+                            .containsExactlyInAnyOrderElementsOf(
+                                    queryParameters.entrySet()
+                                            .stream()
+                                            .map(entry -> entry.getKey()
+                                                    + "="
+                                                    + entry.getValue()
+                                            )
+                                            .toList()
                             );
                 })
                 .andRespond(responseCreator);
