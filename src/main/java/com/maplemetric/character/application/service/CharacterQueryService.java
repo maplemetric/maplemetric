@@ -2,14 +2,18 @@ package com.maplemetric.character.application.service;
 
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
+import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
+import com.maplemetric.character.application.result.GetCharacterUnionResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -69,12 +73,20 @@ public class CharacterQueryService {
         CharacterStatResponse statResponse =
                 characterClient.getCharacterStat(ocid);
 
+        CharacterUnionResponse unionResponse =
+                characterClient.getCharacterUnion(ocid);
+
+        CharacterSymbolResponse symbolResponse =
+                characterClient.getCharacterSymbol(ocid);
+
         CharacterEquipmentResponse equipmentResponse =
                 characterClient.getCharacterEquipment(ocid);
 
         return GetCharacterSummaryResult.of(
                 GetCharacterBasicResult.from(basicResponse),
                 GetCharacterStatResult.from(statResponse),
+                GetCharacterUnionResult.from(unionResponse),
+                GetCharacterSymbolResult.from(symbolResponse),
                 GetCharacterEquipmentResult.from(equipmentResponse)
         );
     }
