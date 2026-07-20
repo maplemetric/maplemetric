@@ -9,23 +9,17 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterBasicRespons
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional(readOnly = true)
 public class CharacterQueryService {
 
     private final CharacterClient characterClient;
 
-    public CharacterQueryService(
-            CharacterClient characterClient
-    ) {
+    public CharacterQueryService(CharacterClient characterClient) {
         this.characterClient = characterClient;
     }
 
-    public GetCharacterBasicResult getCharacterBasic(
-            String characterName
-    ) {
+    public GetCharacterBasicResult getCharacterBasic(String characterName) {
         String ocid = characterClient.getOcid(characterName);
 
         CharacterBasicResponse basicResponse =
@@ -34,9 +28,7 @@ public class CharacterQueryService {
         return GetCharacterBasicResult.from(basicResponse);
     }
 
-    public GetCharacterEquipmentResult getCharacterEquipment(
-            String characterName
-    ) {
+    public GetCharacterEquipmentResult getCharacterEquipment(String characterName) {
         String ocid = characterClient.getOcid(characterName);
 
         CharacterEquipmentResponse equipmentResponse =
@@ -45,9 +37,7 @@ public class CharacterQueryService {
         return GetCharacterEquipmentResult.from(equipmentResponse);
     }
 
-    public GetCharacterSummaryResult getCharacterSummary(
-            String characterName
-    ) {
+    public GetCharacterSummaryResult getCharacterSummary(String characterName) {
         String ocid = characterClient.getOcid(characterName);
 
         CharacterBasicResponse basicResponse =
