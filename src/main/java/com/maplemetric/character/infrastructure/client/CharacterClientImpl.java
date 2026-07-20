@@ -7,7 +7,6 @@ import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -15,6 +14,7 @@ import org.springframework.web.client.RestClientException;
 public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_OCID_PATH = "/maplestory/v1/id";
+    private static final String CHARACTER_BASIC_PATH = "/maplestory/v1/character/basic";
 
     private final RestClient restClient;
 
@@ -56,13 +56,22 @@ public class CharacterClientImpl implements CharacterClient {
     @Override
     public CharacterBasicResponse getCharacterBasic(String ocid) {
         try {
-            return restClient.get()
+            CharacterBasicResponse response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/maplestory/v1/character/basic")
+                            .path(CHARACTER_BASIC_PATH)
                             .queryParam("ocid", ocid)
-                            .build())
+                            .build()
+                    )
                     .retrieve()
                     .body(CharacterBasicResponse.class);
+
+            if (response == null) {
+                throw new CharacterException(
+                        CharacterErrorCode.CHARACTER_API_ERROR
+                );
+            }
+
+            return response;
 
         } catch (HttpClientErrorException.NotFound exception) {
             throw new CharacterException(CharacterErrorCode.CHARACTER_NOT_FOUND);
