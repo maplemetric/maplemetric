@@ -3,6 +3,7 @@ package com.maplemetric.character.application.service;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterResult;
+import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
@@ -39,6 +40,18 @@ public class CharacterQueryService {
         CharacterEquipmentResponse equipmentResponse = characterClient.getCharacterEquipment(ocid);
 
         return GetCharacterEquipmentResult.from(equipmentResponse);
+    }
+
+    public GetCharacterSummaryResult getCharacterSummary(String characterName) {
+        String ocid = characterClient.getOcid(characterName);
+
+        CharacterBasicResponse basicResponse = characterClient.getCharacterBasic(ocid);
+        CharacterEquipmentResponse equipmentResponse = characterClient.getCharacterEquipment(ocid);
+
+        return GetCharacterSummaryResult.of(
+                GetCharacterBasicResult.from(basicResponse),
+                GetCharacterEquipmentResult.from(equipmentResponse)
+        );
     }
 
 }
