@@ -11,7 +11,7 @@ public record CharacterBasicResponse(
         String characterGender,
         String characterClass,
         String characterClassLevel,
-        Integer characterLever,
+        Integer characterLevel,
         Long characterExp,
         String characterExpRate,
         String characterGuildName,
