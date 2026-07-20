@@ -1,9 +1,9 @@
 @host = http://localhost:8080
 
-### 존재하지 않는 캐릭터 조회
-GET {{host}}/api/v1/characters?characterName=없는캐릭터이름123456
+### 존재하지 않는 캐릭터 검색
+GET {{host}}/api/v1/characters/search?characterName=없는캐릭터이름123456
 Accept: application/json
 
-### 캐릭터 통합 정보 조회
-GET {{host}}/api/v1/characters?characterName=감점
+### 캐릭터 종합 검색
+GET {{host}}/api/v1/characters/search?characterName=감점
 Accept: application/json
