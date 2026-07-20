@@ -1,126 +1,253 @@
 @host = http://localhost:8080
-@validCharacterName = 배분
+@validCharacterName = 감점
 @notFoundCharacterName = 텅빈챕터
 @invalidCharacterName = 없는캐릭터이름123456
 
 ### 정상 캐릭터 종합 검색
-# basic, stat, union, symbols, equipment 조회
+# basic, stat, ranking, union, symbols, equipment 조회
 GET {{host}}/api/v1/characters/search?characterName={{validCharacterName}}
 Accept: application/json
 
 > {%
+    const body = response.body || {};
+    const data = body.data;
+
     client.test("캐릭터 종합 검색에 성공한다", function () {
         client.assert(
             response.status === 200,
-            "응답 상태가 200이 아닙니다."
+            "응답 상태가 200이 아닙니다. 실제 상태: "
+            + response.status
         );
 
         client.assert(
-            response.body.success === true,
-            "success가 true가 아닙니다."
+            body.success === true,
+            "success가 true가 아닙니다. code="
+            + body.code
+            + ", message="
+            + body.message
         );
 
         client.assert(
-            response.body.code === "CHARACTER_SEARCH_SUCCESS",
-            "성공 코드가 올바르지 않습니다."
+            body.code === "CHARACTER_SEARCH_SUCCESS",
+            "성공 코드가 올바르지 않습니다. 실제 코드: "
+            + body.code
         );
 
         client.assert(
-            response.body.data.basic !== null,
-            "basic 정보가 없습니다."
-        );
-
-        client.assert(
-            response.body.data.stat !== null,
-            "stat 정보가 없습니다."
-        );
-
-        client.assert(
-            response.body.data.union !== null,
-            "union 정보가 없습니다."
-        );
-
-        client.assert(
-            response.body.data.symbols !== null,
-            "symbols 정보가 없습니다."
-        );
-
-        client.assert(
-            response.body.data.equipment !== null,
-            "equipment 정보가 없습니다."
-        );
-
-        client.assert(
-            Array.isArray(
-                response.body.data.symbols.arcaneSymbols
-            ),
-            "arcaneSymbols가 배열이 아닙니다."
-        );
-
-        client.assert(
-            Array.isArray(
-                response.body.data.symbols.authenticSymbols
-            ),
-            "authenticSymbols가 배열이 아닙니다."
+            data !== null && data !== undefined,
+            "응답 data가 없습니다."
         );
     });
 
-    const data = response.body.data;
+    if (
+        response.status === 200
+        && body.success === true
+        && data !== null
+        && data !== undefined
+    ) {
+        client.test("캐릭터 종합 정보가 모두 포함된다", function () {
+            client.assert(
+                data.basic !== null
+                && data.basic !== undefined,
+                "basic 정보가 없습니다."
+            );
 
-    client.log(
-        "유니온 레벨: "
-        + data.union.unionLevel
-    );
+            client.assert(
+                data.stat !== null
+                && data.stat !== undefined,
+                "stat 정보가 없습니다."
+            );
 
-    client.log(
-        "유니온 아티팩트 레벨: "
-        + data.union.unionArtifactLevel
-    );
+            client.assert(
+                data.ranking !== null
+                && data.ranking !== undefined,
+                "ranking 정보가 없습니다."
+            );
 
-    client.log(
-        "아케인심볼: "
-        + JSON.stringify(
-            data.symbols.arcaneSymbols
-        )
-    );
+            client.assert(
+                data.union !== null
+                && data.union !== undefined,
+                "union 정보가 없습니다."
+            );
 
-    client.log(
-        "어센틱심볼: "
-        + JSON.stringify(
-            data.symbols.authenticSymbols
-        )
-    );
+            client.assert(
+                data.symbols !== null
+                && data.symbols !== undefined,
+                "symbols 정보가 없습니다."
+            );
 
-    const finalStat =
-        Array.isArray(data.stat.finalStat)
-            ? data.stat.finalStat
-            : [];
+            client.assert(
+                data.equipment !== null
+                && data.equipment !== undefined,
+                "equipment 정보가 없습니다."
+            );
+        });
 
-    const arcaneForce = finalStat.find(
-        stat => stat.statName === "아케인포스"
-    );
+        client.test("랭킹 응답 필드가 모두 포함된다", function () {
+            client.assert(
+                "overallRank" in data.ranking,
+                "overallRank 필드가 없습니다."
+            );
 
-    const authenticForce = finalStat.find(
-        stat => stat.statName === "어센틱포스"
-    );
+            client.assert(
+                "worldRank" in data.ranking,
+                "worldRank 필드가 없습니다."
+            );
 
-    client.log(
-        "아케인포스: "
-        + (
-            arcaneForce
-                ? arcaneForce.statValue
-                : "없음"
-        )
-    );
+            client.assert(
+                "classRank" in data.ranking,
+                "classRank 필드가 없습니다."
+            );
 
-    client.log(
-        "어센틱포스: "
-        + (
-            authenticForce
-                ? authenticForce.statValue
-                : "없음"
-        )
-    );
+            client.assert(
+                "worldClassRank" in data.ranking,
+                "worldClassRank 필드가 없습니다."
+            );
+
+            client.assert(
+                "dojangFloor" in data.ranking,
+                "dojangFloor 필드가 없습니다."
+            );
+        });
+
+        client.test("장착 심볼 응답이 배열로 반환된다", function () {
+            client.assert(
+                Array.isArray(
+                    data.symbols.arcaneSymbols
+                ),
+                "arcaneSymbols가 배열이 아닙니다."
+            );
+
+            client.assert(
+                Array.isArray(
+                    data.symbols.authenticSymbols
+                ),
+                "authenticSymbols가 배열이 아닙니다."
+            );
+        });
+
+        client.log(
+            "캐릭터명: "
+            + data.basic.characterName
+        );
+
+        client.log(
+            "전체 랭킹: "
+            + (
+                data.ranking.overallRank !== null
+                    ? data.ranking.overallRank
+                    : "조회 결과 없음"
+            )
+        );
+
+        client.log(
+            "월드 랭킹: "
+            + (
+                data.ranking.worldRank !== null
+                    ? data.ranking.worldRank
+                    : "조회 결과 없음"
+            )
+        );
+
+        client.log(
+            "직업 랭킹: "
+            + (
+                data.ranking.classRank !== null
+                    ? data.ranking.classRank
+                    : "조회 결과 없음"
+            )
+        );
+
+        client.log(
+            "월드 내 직업 랭킹: "
+            + (
+                data.ranking.worldClassRank !== null
+                    ? data.ranking.worldClassRank
+                    : "조회 결과 없음"
+            )
+        );
+
+        client.log(
+            "무릉 최고 층수: "
+            + (
+                data.ranking.dojangFloor !== null
+                    ? data.ranking.dojangFloor
+                    : "기록 없음"
+            )
+        );
+
+        client.log(
+            "유니온 레벨: "
+            + (
+                data.union.unionLevel !== null
+                    ? data.union.unionLevel
+                    : "조회 결과 없음"
+            )
+        );
+
+        client.log(
+            "유니온 아티팩트 레벨: "
+            + (
+                data.union.unionArtifactLevel !== null
+                    ? data.union.unionArtifactLevel
+                    : "조회 결과 없음"
+            )
+        );
+
+        client.log(
+            "아케인심볼: "
+            + JSON.stringify(
+                data.symbols.arcaneSymbols
+            )
+        );
+
+        client.log(
+            "어센틱심볼: "
+            + JSON.stringify(
+                data.symbols.authenticSymbols
+            )
+        );
+
+        const finalStat =
+            Array.isArray(data.stat.finalStat)
+                ? data.stat.finalStat
+                : [];
+
+        const arcaneForce = finalStat.find(
+            stat =>
+                stat !== null
+                && stat.statName === "아케인포스"
+        );
+
+        const authenticForce = finalStat.find(
+            stat =>
+                stat !== null
+                && stat.statName === "어센틱포스"
+        );
+
+        client.log(
+            "아케인포스: "
+            + (
+                arcaneForce
+                    ? arcaneForce.statValue
+                    : "없음"
+            )
+        );
+
+        client.log(
+            "어센틱포스: "
+            + (
+                authenticForce
+                    ? authenticForce.statValue
+                    : "없음"
+            )
+        );
+    } else {
+        client.log(
+            "캐릭터 종합 검색 실패 응답: "
+            + JSON.stringify(body)
+        );
+    }
 %}
 
 ### 형식은 정상이지만 존재하지 않는 캐릭터
@@ -129,20 +256,24 @@ GET {{host}}/api/v1/characters/search?characterName={{notFoundCharacterName}}
 Accept: application/json
 
 > {%
+    const body = response.body || {};
+
     client.test("존재하지 않는 캐릭터는 404를 반환한다", function () {
         client.assert(
             response.status === 404,
-            "응답 상태가 404가 아닙니다."
+            "응답 상태가 404가 아닙니다. 실제 상태: "
+            + response.status
         );
 
         client.assert(
-            response.body.success === false,
+            body.success === false,
             "success가 false가 아닙니다."
         );
 
         client.assert(
-            response.body.code === "CHARACTER_001",
-            "에러 코드가 CHARACTER_001이 아닙니다."
+            body.code === "CHARACTER_001",
+            "에러 코드가 CHARACTER_001이 아닙니다. 실제 코드: "
+            + body.code
         );
     });
 %}
@@ -153,20 +284,24 @@ GET {{host}}/api/v1/characters/search?characterName={{invalidCharacterName}}
 Accept: application/json
 
 > {%
+    const body = response.body || {};
+
     client.test("잘못된 캐릭터명은 400을 반환한다", function () {
         client.assert(
             response.status === 400,
-            "응답 상태가 400이 아닙니다."
+            "응답 상태가 400이 아닙니다. 실제 상태: "
+            + response.status
         );
 
         client.assert(
-            response.body.success === false,
+            body.success === false,
             "success가 false가 아닙니다."
         );
 
         client.assert(
-            response.body.code === "CHARACTER_006",
-            "에러 코드가 CHARACTER_006이 아닙니다."
+            body.code === "CHARACTER_006",
+            "에러 코드가 CHARACTER_006이 아닙니다. 실제 코드: "
+            + body.code
         );
     });
 %}
@@ -177,15 +312,24 @@ GET {{host}}/api/v1/characters/search?characterName=%20
 Accept: application/json
 
 > {%
+    const body = response.body || {};
+
     client.test("공백 캐릭터명은 400을 반환한다", function () {
         client.assert(
             response.status === 400,
-            "응답 상태가 400이 아닙니다."
+            "응답 상태가 400이 아닙니다. 실제 상태: "
+            + response.status
         );
 
         client.assert(
-            response.body.code === "GLOBAL_001",
-            "에러 코드가 GLOBAL_001이 아닙니다."
+            body.success === false,
+            "success가 false가 아닙니다."
+        );
+
+        client.assert(
+            body.code === "GLOBAL_001",
+            "에러 코드가 GLOBAL_001이 아닙니다. 실제 코드: "
+            + body.code
         );
     });
 %}
@@ -196,15 +340,24 @@ GET {{host}}/api/v1/characters/search
 Accept: application/json
 
 > {%
+    const body = response.body || {};
+
     client.test("캐릭터명 누락은 400을 반환한다", function () {
         client.assert(
             response.status === 400,
-            "응답 상태가 400이 아닙니다."
+            "응답 상태가 400이 아닙니다. 실제 상태: "
+            + response.status
         );
 
         client.assert(
-            response.body.code === "GLOBAL_001",
-            "에러 코드가 GLOBAL_001이 아닙니다."
+            body.success === false,
+            "success가 false가 아닙니다."
+        );
+
+        client.assert(
+            body.code === "GLOBAL_001",
+            "에러 코드가 GLOBAL_001이 아닙니다. 실제 코드: "
+            + body.code
         );
     });
 %}

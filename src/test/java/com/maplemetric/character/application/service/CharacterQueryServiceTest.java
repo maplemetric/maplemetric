@@ -4,21 +4,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.maplemetric.character.application.result.GetCharacterRankingResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.FinalStat;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +41,8 @@ class CharacterQueryServiceTest {
 
     private static final String CHARACTER_NAME = "감점";
     private static final String OCID = "test-ocid";
+    private static final LocalDate RANKING_DATE =
+            LocalDate.of(2026, 7, 19);
 
     @Mock
     private CharacterClient characterClient;
@@ -39,8 +51,17 @@ class CharacterQueryServiceTest {
 
     @BeforeEach
     void setUp() {
+        Clock clock =
+                Clock.fixed(
+                        Instant.parse("2026-07-20T00:00:00Z"),
+                        ZoneId.of("Asia/Seoul")
+                );
+
         characterQueryService =
-                new CharacterQueryService(characterClient);
+                new CharacterQueryService(
+                        characterClient,
+                        clock
+                );
     }
 
     @Test
@@ -72,6 +93,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        givenRankingResponses(RANKING_DATE);
+
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
@@ -97,6 +120,21 @@ class CharacterQueryServiceTest {
 
         assertThat(result.stat().combatPower())
                 .isEqualTo("116871666");
+
+        assertThat(result.ranking().overallRank())
+                .isEqualTo(58333);
+
+        assertThat(result.ranking().worldRank())
+                .isEqualTo(10244);
+
+        assertThat(result.ranking().classRank())
+                .isEqualTo(1588);
+
+        assertThat(result.ranking().worldClassRank())
+                .isEqualTo(321);
+
+        assertThat(result.ranking().dojangFloor())
+                .isEqualTo(57);
 
         assertThat(result.union().unionLevel())
                 .isEqualTo(9000);
@@ -129,6 +167,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
@@ -164,6 +203,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        givenRankingResponses(RANKING_DATE);
+
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
@@ -186,6 +227,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
@@ -205,6 +247,8 @@ class CharacterQueryServiceTest {
 
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
+
+        givenRankingResponses(RANKING_DATE);
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -231,6 +275,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
@@ -258,6 +303,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        givenRankingResponses(RANKING_DATE);
+
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
@@ -283,6 +330,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
@@ -304,6 +352,8 @@ class CharacterQueryServiceTest {
                 .willReturn(
                         createStatResponse(List.of())
                 );
+
+        givenRankingResponses(RANKING_DATE);
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -334,6 +384,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
@@ -369,6 +420,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        givenRankingResponses(RANKING_DATE);
+
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
@@ -402,10 +455,204 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
+    }
+
+    @Test
+    void 랭킹기준일은KST오전9시29분이면전일이다() {
+        CharacterQueryService service =
+                new CharacterQueryService(
+                        characterClient,
+                        Clock.fixed(
+                                Instant.parse(
+                                        "2026-07-21T00:29:00Z"
+                                ),
+                                ZoneId.of("Asia/Seoul")
+                        )
+                );
+
+        LocalDate expectedRankingDate =
+                LocalDate.of(2026, 7, 20);
+
+        givenSummaryResponses(expectedRankingDate);
+
+        service.getCharacterSummary(CHARACTER_NAME);
+
+        verifyRankingCalls(expectedRankingDate);
+    }
+
+    @Test
+    void 랭킹기준일은KST오전9시30분이면당일이다() {
+        CharacterQueryService service =
+                new CharacterQueryService(
+                        characterClient,
+                        Clock.fixed(
+                                Instant.parse(
+                                        "2026-07-21T00:30:00Z"
+                                ),
+                                ZoneId.of("Asia/Seoul")
+                        )
+                );
+
+        LocalDate expectedRankingDate =
+                LocalDate.of(2026, 7, 21);
+
+        givenSummaryResponses(expectedRankingDate);
+
+        service.getCharacterSummary(CHARACTER_NAME);
+
+        verifyRankingCalls(expectedRankingDate);
+    }
+
+    @Test
+    void 직업랭킹필터를구할수없으면직업랭킹을조회하지않는다() {
+        CharacterRankingResponse emptyRankingResponse =
+                new CharacterRankingResponse(List.of());
+
+        given(characterClient.getOcid(CHARACTER_NAME))
+                .willReturn(OCID);
+
+        given(characterClient.getCharacterBasic(OCID))
+                .willReturn(createBasicResponse());
+
+        given(characterClient.getCharacterStat(OCID))
+                .willReturn(createStatResponse(List.of()));
+
+        given(characterClient.getOverallRanking(
+                OCID,
+                RANKING_DATE
+        )).willReturn(emptyRankingResponse);
+
+        given(characterClient.getWorldRanking(
+                OCID,
+                "루나",
+                RANKING_DATE
+        )).willReturn(emptyRankingResponse);
+
+        given(characterClient.getCharacterDojang(OCID))
+                .willReturn(new CharacterDojangResponse(null));
+
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
+        given(characterClient.getCharacterEquipment(OCID))
+                .willReturn(createEquipmentResponse(List.of()));
+
+        GetCharacterSummaryResult result =
+                characterQueryService.getCharacterSummary(
+                        CHARACTER_NAME
+                );
+
+        assertThat(result.ranking().classRank())
+                .isNull();
+
+        assertThat(result.ranking().worldClassRank())
+                .isNull();
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterBasic(OCID);
+        verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getOverallRanking(OCID, RANKING_DATE);
+        verify(characterClient).getWorldRanking(OCID, "루나", RANKING_DATE);
+        verify(characterClient, never())
+                .getClassRanking(
+                        anyString(),
+                        anyString(),
+                        any(LocalDate.class)
+                );
+
+        verify(characterClient, never())
+                .getWorldClassRanking(
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(LocalDate.class)
+                );
+        verify(characterClient).getCharacterDojang(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
+    }
+
+    @Test
+    void 랭킹목록에서대상캐릭터명과일치하는순위를선택한다() {
+        CharacterRankingResponse response =
+                new CharacterRankingResponse(
+                        List.of(
+                                new CharacterRankingResponse.Ranking(
+                                        1,
+                                        "다른캐릭터",
+                                        "루나",
+                                        "팬텀",
+                                        null
+                                ),
+                                new CharacterRankingResponse.Ranking(
+                                        58333,
+                                        CHARACTER_NAME,
+                                        "루나",
+                                        "팬텀",
+                                        null
+                                )
+                        )
+                );
+
+        GetCharacterRankingResult result =
+                GetCharacterRankingResult.of(
+                        CHARACTER_NAME,
+                        response,
+                        response,
+                        response,
+                        response,
+                        new CharacterDojangResponse(57)
+                );
+
+        assertThat(result.overallRank())
+                .isEqualTo(58333);
+
+        assertThat(result.worldRank())
+                .isEqualTo(58333);
+
+        assertThat(result.classRank())
+                .isEqualTo(58333);
+
+        assertThat(result.worldClassRank())
+                .isEqualTo(58333);
+    }
+
+    @Test
+    void 랭킹응답이200이지만목록이비어있으면순위는null이다() {
+        CharacterRankingResponse response =
+                new CharacterRankingResponse(List.of());
+
+        GetCharacterRankingResult result =
+                GetCharacterRankingResult.of(
+                        CHARACTER_NAME,
+                        response,
+                        response,
+                        response,
+                        response,
+                        new CharacterDojangResponse(57)
+                );
+
+        assertThat(result.overallRank())
+                .isNull();
+
+        assertThat(result.worldRank())
+                .isNull();
+
+        assertThat(result.classRank())
+                .isNull();
+
+        assertThat(result.worldClassRank())
+                .isNull();
     }
 
     @Test
@@ -447,6 +694,123 @@ class CharacterQueryServiceTest {
                 );
 
         verifyNoInteractions(characterClient);
+    }
+
+    private void givenSummaryResponses(
+            LocalDate rankingDate
+    ) {
+        given(characterClient.getOcid(CHARACTER_NAME))
+                .willReturn(OCID);
+
+        given(characterClient.getCharacterBasic(OCID))
+                .willReturn(createBasicResponse());
+
+        given(characterClient.getCharacterStat(OCID))
+                .willReturn(createStatResponse(List.of()));
+
+        givenRankingResponses(rankingDate);
+
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
+        given(characterClient.getCharacterEquipment(OCID))
+                .willReturn(createEquipmentResponse(List.of()));
+    }
+
+    private void givenRankingResponses(
+            LocalDate rankingDate
+    ) {
+        given(characterClient.getOverallRanking(OCID, rankingDate))
+                .willReturn(createRankingResponse(
+                        CHARACTER_NAME,
+                        58333,
+                        "팬텀",
+                        null
+                ));
+
+        given(characterClient.getWorldRanking(OCID, "루나", rankingDate))
+                .willReturn(createRankingResponse(
+                        CHARACTER_NAME,
+                        10244,
+                        "팬텀",
+                        null
+                ));
+
+        given(characterClient.getClassRanking(
+                OCID,
+                "팬텀-전체 전직",
+                rankingDate
+        )).willReturn(createRankingResponse(
+                CHARACTER_NAME,
+                1588,
+                "팬텀",
+                null
+        ));
+
+        given(characterClient.getWorldClassRanking(
+                OCID,
+                "루나",
+                "팬텀-전체 전직",
+                rankingDate
+        )).willReturn(createRankingResponse(
+                CHARACTER_NAME,
+                321,
+                "팬텀",
+                null
+        ));
+
+        given(characterClient.getCharacterDojang(OCID))
+                .willReturn(new CharacterDojangResponse(57));
+    }
+
+    private void verifyRankingCalls(
+            LocalDate rankingDate
+    ) {
+        verify(characterClient)
+                .getOverallRanking(OCID, rankingDate);
+
+        verify(characterClient)
+                .getWorldRanking(OCID, "루나", rankingDate);
+
+        verify(characterClient)
+                .getClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        rankingDate
+                );
+
+        verify(characterClient)
+                .getWorldClassRanking(
+                        OCID,
+                        "루나",
+                        "팬텀-전체 전직",
+                        rankingDate
+                );
+
+        verify(characterClient)
+                .getCharacterDojang(OCID);
+    }
+
+    private CharacterRankingResponse createRankingResponse(
+            String characterName,
+            Integer ranking,
+            String className,
+            String subClassName
+    ) {
+        return new CharacterRankingResponse(
+                List.of(
+                        new CharacterRankingResponse.Ranking(
+                                ranking,
+                                characterName,
+                                "루나",
+                                className,
+                                subClassName
+                        )
+                )
+        );
     }
 
     private CharacterBasicResponse createBasicResponse() {

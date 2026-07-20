@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
@@ -13,6 +15,9 @@ import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -39,6 +44,10 @@ public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_SYMBOL_PATH = "/maplestory/v1/character/symbol-equipment";
 
+    private static final String RANKING_OVERALL_PATH = "/maplestory/v1/ranking/overall";
+
+    private static final String CHARACTER_DOJANG_PATH = "/maplestory/v1/character/dojang";
+
     private static final String CHARACTER_OCID_API = "캐릭터 식별자";
 
     private static final String CHARACTER_BASIC_API = "캐릭터 기본 정보";
@@ -51,9 +60,25 @@ public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_SYMBOL_API = "캐릭터 장착 심볼 정보";
 
+    private static final String CHARACTER_OVERALL_RANKING_API = "캐릭터 종합 랭킹 정보";
+
+    private static final String CHARACTER_WORLD_RANKING_API = "캐릭터 월드 랭킹 정보";
+
+    private static final String CHARACTER_WORLD_CLASS_RANKING_API = "캐릭터 월드 내 직업 랭킹 정보";
+
+    private static final String CHARACTER_CLASS_RANKING_API = "캐릭터 직업 랭킹 정보";
+
+    private static final String CHARACTER_DOJANG_API = "캐릭터 무릉도장 정보";
+
     private static final String INVALID_IDENTIFIER_ERROR_CODE = "OPENAPI00003";
 
     private static final String INVALID_PARAMETER_ERROR_CODE = "OPENAPI00004";
+
+    private static final String RATE_LIMIT_ERROR_CODE = "OPENAPI00007";
+
+    private static final int MAX_RATE_LIMIT_RETRY_COUNT = 3;
+
+    private static final long RATE_LIMIT_RETRY_DELAY_MILLIS = 1_000L;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -169,6 +194,112 @@ public class CharacterClientImpl implements CharacterClient {
         );
     }
 
+    @Override
+    public CharacterRankingResponse getOverallRanking(
+            String ocid,
+            LocalDate date
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", date.toString());
+        queryParameters.put("ocid", ocid);
+
+        return request(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                CharacterRankingResponse.class,
+                CHARACTER_OVERALL_RANKING_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterRankingResponse getWorldRanking(
+            String ocid,
+            String worldName,
+            LocalDate date
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", date.toString());
+        queryParameters.put("world_name", worldName);
+        queryParameters.put("ocid", ocid);
+
+        return request(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                CharacterRankingResponse.class,
+                CHARACTER_WORLD_RANKING_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterRankingResponse getWorldClassRanking(
+            String ocid,
+            String worldName,
+            String classRankingFilter,
+            LocalDate date
+    ) {
+        LinkedHashMap<String, String> queryParameters = new LinkedHashMap<>();
+
+        queryParameters.put("date", date.toString());
+        queryParameters.put("world_name", worldName);
+        queryParameters.put("class", classRankingFilter);
+        queryParameters.put("ocid", ocid);
+
+        return request(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                CharacterRankingResponse.class,
+                CHARACTER_WORLD_CLASS_RANKING_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterRankingResponse getClassRanking(
+            String ocid,
+            String classRankingFilter,
+            LocalDate date
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", date.toString());
+        queryParameters.put("class", classRankingFilter);
+        queryParameters.put("ocid", ocid);
+
+        return request(
+                RANKING_OVERALL_PATH,
+                queryParameters,
+                CharacterRankingResponse.class,
+                CHARACTER_CLASS_RANKING_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterDojangResponse getCharacterDojang(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_DOJANG_PATH,
+                "ocid",
+                ocid,
+                CharacterDojangResponse.class,
+                CHARACTER_DOJANG_API,
+                "ocid",
+                ocid
+        );
+    }
+
     private <T> T request(
             String path,
             String queryParameterName,
@@ -178,16 +309,55 @@ public class CharacterClientImpl implements CharacterClient {
             String identifierName,
             String identifierValue
     ) {
+        return request(
+                path,
+                Map.of(queryParameterName, queryParameterValue),
+                responseType,
+                apiName,
+                identifierName,
+                identifierValue
+        );
+    }
+
+    private <T> T request(
+            String path,
+            Map<String, String> queryParameters,
+            Class<T> responseType,
+            String apiName,
+            String identifierName,
+            String identifierValue
+    ) {
+        return request(
+                path,
+                queryParameters,
+                responseType,
+                apiName,
+                identifierName,
+                identifierValue,
+                0
+        );
+    }
+
+    private <T> T request(
+            String path,
+            Map<String, String> queryParameters,
+            Class<T> responseType,
+            String apiName,
+            String identifierName,
+            String identifierValue,
+            int rateLimitRetryCount
+    ) {
         try {
             T response = restClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(path)
-                            .queryParam(
-                                    queryParameterName,
-                                    queryParameterValue
-                            )
-                            .build()
-                    )
+                    .uri(uriBuilder -> {
+                        uriBuilder.path(path);
+
+                        queryParameters.forEach(
+                                (name, value) -> uriBuilder.queryParam(name, value)
+                        );
+
+                        return uriBuilder.build();
+                    })
                     .retrieve()
                     .body(responseType);
 
@@ -207,9 +377,20 @@ public class CharacterClientImpl implements CharacterClient {
             return response;
 
         } catch (HttpClientErrorException.NotFound exception) {
+            NexonApiErrorResponse.NexonApiError nexonError =
+                    getNexonError(
+                            apiName,
+                            exception
+                    );
+
             log.info(
-                    "넥슨 API 조회 결과가 없습니다. api={}, {}={}",
+                    "넥슨 API 조회 결과가 없습니다. "
+                            + "api={}, status={}, nexonErrorCode={}, "
+                            + "nexonErrorMessage={}, {}={}",
                     apiName,
+                    exception.getStatusCode(),
+                    getNexonErrorCode(nexonError),
+                    getNexonErrorMessage(nexonError),
                     identifierName,
                     identifierValue
             );
@@ -219,11 +400,56 @@ public class CharacterClientImpl implements CharacterClient {
             );
 
         } catch (HttpClientErrorException exception) {
+            NexonApiErrorResponse.NexonApiError nexonError =
+                    getNexonError(
+                            apiName,
+                            exception
+                    );
+
+            if (shouldRetryRateLimit(
+                    exception,
+                    nexonError,
+                    rateLimitRetryCount
+            )) {
+                long retryDelayMillis =
+                        getRateLimitRetryDelayMillis(
+                                rateLimitRetryCount
+                        );
+
+                log.warn(
+                        "넥슨 API 요청 제한 응답으로 재시도합니다. "
+                                + "api={}, status={}, nexonErrorCode={}, "
+                                + "nexonErrorMessage={}, {}={}, "
+                                + "retryCount={}, retryDelayMillis={}",
+                        apiName,
+                        exception.getStatusCode(),
+                        getNexonErrorCode(nexonError),
+                        getNexonErrorMessage(nexonError),
+                        identifierName,
+                        identifierValue,
+                        rateLimitRetryCount + 1,
+                        retryDelayMillis
+                );
+
+                sleepBeforeRetry(retryDelayMillis);
+
+                return request(
+                        path,
+                        queryParameters,
+                        responseType,
+                        apiName,
+                        identifierName,
+                        identifierValue,
+                        rateLimitRetryCount + 1
+                );
+            }
+
             throw convertClientErrorException(
                     exception,
                     apiName,
                     identifierName,
-                    identifierValue
+                    identifierValue,
+                    nexonError
             );
 
         } catch (HttpServerErrorException exception) {
@@ -270,10 +496,34 @@ public class CharacterClientImpl implements CharacterClient {
             String identifierName,
             String identifierValue
     ) {
-        String nexonErrorCode = getNexonErrorCode(
+        NexonApiErrorResponse.NexonApiError nexonError =
+                getNexonError(
+                        apiName,
+                        exception
+                );
+
+        return convertClientErrorException(
+                exception,
                 apiName,
-                exception
+                identifierName,
+                identifierValue,
+                nexonError
         );
+    }
+
+    private CharacterException convertClientErrorException(
+            HttpClientErrorException exception,
+            String apiName,
+            String identifierName,
+            String identifierValue,
+            NexonApiErrorResponse.NexonApiError nexonError
+    ) {
+
+        String nexonErrorCode =
+                getNexonErrorCode(nexonError);
+
+        String nexonErrorMessage =
+                getNexonErrorMessage(nexonError);
 
         if (isCharacterNotFound(
                 apiName,
@@ -281,9 +531,14 @@ public class CharacterClientImpl implements CharacterClient {
         )) {
             log.info(
                     "넥슨 API 캐릭터 조회 결과가 없습니다. "
-                            + "characterName={}, nexonErrorCode={}",
-                    identifierValue,
-                    nexonErrorCode
+                            + "api={}, status={}, nexonErrorCode={}, "
+                            + "nexonErrorMessage={}, {}={}",
+                    apiName,
+                    exception.getStatusCode(),
+                    nexonErrorCode,
+                    nexonErrorMessage,
+                    identifierName,
+                    identifierValue
             );
 
             return new CharacterException(
@@ -293,10 +548,12 @@ public class CharacterClientImpl implements CharacterClient {
 
         log.warn(
                 "넥슨 API 요청 오류가 발생했습니다. "
-                        + "api={}, status={}, nexonErrorCode={}, {}={}",
+                        + "api={}, status={}, nexonErrorCode={}, "
+                        + "nexonErrorMessage={}, {}={}",
                 apiName,
                 exception.getStatusCode(),
                 nexonErrorCode,
+                nexonErrorMessage,
                 identifierName,
                 identifierValue
         );
@@ -304,6 +561,43 @@ public class CharacterClientImpl implements CharacterClient {
         return new CharacterException(
                 CharacterErrorCode.NEXON_API_CLIENT_ERROR
         );
+    }
+
+    private boolean shouldRetryRateLimit(
+            HttpClientErrorException exception,
+            NexonApiErrorResponse.NexonApiError nexonError,
+            int rateLimitRetryCount
+    ) {
+        if (rateLimitRetryCount >= MAX_RATE_LIMIT_RETRY_COUNT) {
+            return false;
+        }
+
+        return exception.getStatusCode().value() == 429
+                && RATE_LIMIT_ERROR_CODE.equals(
+                getNexonErrorCode(nexonError)
+        );
+    }
+
+    private long getRateLimitRetryDelayMillis(
+            int rateLimitRetryCount
+    ) {
+        return RATE_LIMIT_RETRY_DELAY_MILLIS
+                * (rateLimitRetryCount + 1);
+    }
+
+    private void sleepBeforeRetry(
+            long retryDelayMillis
+    ) {
+        try {
+            Thread.sleep(retryDelayMillis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread()
+                    .interrupt();
+
+            throw new CharacterException(
+                    CharacterErrorCode.NEXON_API_SERVER_ERROR
+            );
+        }
     }
 
     private CharacterException convertResourceAccessException(
@@ -354,7 +648,7 @@ public class CharacterClientImpl implements CharacterClient {
         );
     }
 
-    private String getNexonErrorCode(
+    private NexonApiErrorResponse.NexonApiError getNexonError(
             String apiName,
             HttpClientErrorException exception
     ) {
@@ -380,7 +674,7 @@ public class CharacterClientImpl implements CharacterClient {
                 return null;
             }
 
-            return errorResponse.error().name();
+            return errorResponse.error();
 
         } catch (IOException parsingException) {
             log.warn(
@@ -393,6 +687,22 @@ public class CharacterClientImpl implements CharacterClient {
 
             return null;
         }
+    }
+
+    private String getNexonErrorCode(
+            NexonApiErrorResponse.NexonApiError nexonError
+    ) {
+        return nexonError == null
+                ? null
+                : nexonError.name();
+    }
+
+    private String getNexonErrorMessage(
+            NexonApiErrorResponse.NexonApiError nexonError
+    ) {
+        return nexonError == null
+                ? null
+                : nexonError.message();
     }
 
     private boolean isTimeout(
