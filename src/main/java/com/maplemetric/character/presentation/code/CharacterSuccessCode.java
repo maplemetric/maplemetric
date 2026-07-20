@@ -8,7 +8,8 @@ import org.springframework.http.HttpStatus;
 public enum CharacterSuccessCode implements SuccessCode {
 
     CHARACTER_READ_SUCCESS("CHARACTER_READ_SUCCESS", "캐릭터 조회에 성공했습니다."),
-    GET_CHARACTER_BASIC_SUCCESS("CHARACTER_BASIC_200", "캐릭터 기본 정보 조회에 성공했습니다.");
+    GET_CHARACTER_BASIC_SUCCESS("CHARACTER_BASIC_200", "캐릭터 기본 정보 조회에 성공했습니다."),
+    GET_CHARACTER_EQUIPMENT_SUCCESS("CHARACTER_2004", "캐릭터 장비 정보 조회에 성공했습니다.");
 
     private final String code;
     private final String message;
