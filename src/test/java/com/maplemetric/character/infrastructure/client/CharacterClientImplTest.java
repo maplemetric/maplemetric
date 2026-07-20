@@ -2,12 +2,15 @@ package com.maplemetric.character.infrastructure.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
@@ -37,6 +40,12 @@ class CharacterClientImplTest {
 
     private static final String CHARACTER_BASIC_PATH =
             "/maplestory/v1/character/basic";
+
+    private static final String CHARACTER_UNION_PATH =
+            "/maplestory/v1/user/union";
+
+    private static final String CHARACTER_SYMBOL_PATH =
+            "/maplestory/v1/character/symbol-equipment";
 
     private ObjectMapper objectMapper;
     private MockRestServiceServer mockServer;
@@ -188,6 +197,84 @@ class CharacterClientImplTest {
         assertThat(exception.getErrorCode())
                 .isEqualTo(
                         CharacterErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 유니온정보를조회한다() {
+        expectGetRequest(
+                CHARACTER_UNION_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "union_level": 9000,
+                          "union_artifact_level": 50
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterUnionResponse result =
+                characterClient.getCharacterUnion(OCID);
+
+        assertThat(result.unionLevel())
+                .isEqualTo(9000);
+
+        assertThat(result.unionArtifactLevel())
+                .isEqualTo(50);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 장착심볼정보를조회한다() {
+        expectGetRequest(
+                CHARACTER_SYMBOL_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "date": null,
+                          "character_class": "팬텀",
+                          "symbol": [
+                            {
+                              "symbol_name": "아케인심볼 : 소멸의 여로",
+                              "symbol_level": 20
+                            },
+                            {
+                              "symbol_name": "그랜드 어센틱심볼 : 탈라하트",
+                              "symbol_level": 5
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterSymbolResponse result =
+                characterClient.getCharacterSymbol(OCID);
+
+        assertThat(result.characterClass())
+                .isEqualTo("팬텀");
+
+        assertThat(result.symbol())
+                .hasSize(2);
+
+        assertThat(result.symbol())
+                .extracting(
+                        symbol -> symbol.symbolName(),
+                        symbol -> symbol.symbolLevel()
+                )
+                .containsExactly(
+                        tuple("아케인심볼 : 소멸의 여로", 20),
+                        tuple("그랜드 어센틱심볼 : 탈라하트", 5)
                 );
 
         mockServer.verify();

@@ -2,18 +2,22 @@ package com.maplemetric.character.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.FinalStat;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +72,12 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(equipmentResponse);
 
@@ -88,12 +98,39 @@ class CharacterQueryServiceTest {
         assertThat(result.stat().combatPower())
                 .isEqualTo("116871666");
 
+        assertThat(result.union().unionLevel())
+                .isEqualTo(9000);
+
+        assertThat(result.union().unionArtifactLevel())
+                .isEqualTo(50);
+
+        assertThat(result.symbols().arcaneSymbols())
+                .extracting(
+                        symbol -> symbol.symbolName(),
+                        symbol -> symbol.symbolLevel()
+                )
+                .containsExactly(
+                        tuple("아케인심볼 : 소멸의 여로", 20)
+                );
+
+        assertThat(result.symbols().authenticSymbols())
+                .extracting(
+                        symbol -> symbol.symbolName(),
+                        symbol -> symbol.symbolLevel()
+                )
+                .containsExactly(
+                        tuple("어센틱심볼 : 세르니움", 11),
+                        tuple("그랜드 어센틱심볼 : 탈라하트", 5)
+                );
+
         assertThat(result.equipment().presetNo())
                 .isEqualTo(2);
 
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -127,6 +164,12 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -139,6 +182,14 @@ class CharacterQueryServiceTest {
 
         assertThat(result.stat().combatPower())
                 .isEqualTo("116871666");
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterBasic(OCID);
+        verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
     }
 
     @Test
@@ -155,6 +206,12 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -170,6 +227,14 @@ class CharacterQueryServiceTest {
 
         assertThat(result.stat().finalStat())
                 .isEmpty();
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterBasic(OCID);
+        verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
     }
 
     @Test
@@ -193,6 +258,12 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -208,6 +279,14 @@ class CharacterQueryServiceTest {
 
         assertThat(result.stat().finalStat())
                 .hasSize(1);
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterBasic(OCID);
+        verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
     }
 
     @Test
@@ -225,6 +304,12 @@ class CharacterQueryServiceTest {
                 .willReturn(
                         createStatResponse(List.of())
                 );
+
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
 
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(equipmentResponse);
@@ -244,6 +329,101 @@ class CharacterQueryServiceTest {
                 .isEmpty();
 
         assertThat(result.equipment().itemEquipmentPreset3())
+                .isEmpty();
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterBasic(OCID);
+        verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
+    }
+
+    @Test
+    void 포스스탯은최종스탯목록에그대로유지한다() {
+        CharacterStatResponse statResponse =
+                createStatResponse(
+                        List.of(
+                                new FinalStat(
+                                        "전투력",
+                                        "116871666"
+                                ),
+                                new FinalStat(
+                                        "아케인포스",
+                                        "1320"
+                                ),
+                                new FinalStat(
+                                        "어센틱포스",
+                                        "660"
+                                )
+                        )
+                );
+
+        given(characterClient.getOcid(CHARACTER_NAME))
+                .willReturn(OCID);
+
+        given(characterClient.getCharacterBasic(OCID))
+                .willReturn(createBasicResponse());
+
+        given(characterClient.getCharacterStat(OCID))
+                .willReturn(statResponse);
+
+        given(characterClient.getCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+
+        given(characterClient.getCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+
+        given(characterClient.getCharacterEquipment(OCID))
+                .willReturn(
+                        createEquipmentResponse(List.of())
+                );
+
+        GetCharacterSummaryResult result =
+                characterQueryService.getCharacterSummary(
+                        CHARACTER_NAME
+                );
+
+        assertThat(result.stat().finalStat())
+                .extracting(
+                        finalStat -> finalStat.statName(),
+                        finalStat -> finalStat.statValue()
+                )
+                .containsExactly(
+                        tuple("전투력", "116871666"),
+                        tuple("아케인포스", "1320"),
+                        tuple("어센틱포스", "660")
+                );
+
+        assertThat(result.stat().combatPower())
+                .isEqualTo("116871666");
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterBasic(OCID);
+        verify(characterClient).getCharacterStat(OCID);
+        verify(characterClient).getCharacterUnion(OCID);
+        verify(characterClient).getCharacterSymbol(OCID);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
+    }
+
+    @Test
+    void 심볼목록이없으면빈목록을반환한다() {
+        CharacterSymbolResponse response =
+                new CharacterSymbolResponse(
+                        null,
+                        "팬텀",
+                        null
+                );
+
+        GetCharacterSymbolResult result =
+                GetCharacterSymbolResult.from(response);
+
+        assertThat(result.arcaneSymbols())
+                .isEmpty();
+
+        assertThat(result.authenticSymbols())
                 .isEmpty();
     }
 
@@ -296,6 +476,34 @@ class CharacterQueryServiceTest {
                 "팬텀",
                 finalStat,
                 0
+        );
+    }
+
+    private CharacterUnionResponse createUnionResponse() {
+        return new CharacterUnionResponse(
+                9000,
+                50
+        );
+    }
+
+    private CharacterSymbolResponse createSymbolResponse() {
+        return new CharacterSymbolResponse(
+                null,
+                "팬텀",
+                List.of(
+                        new CharacterSymbolResponse.Symbol(
+                                "아케인심볼 : 소멸의 여로",
+                                20
+                        ),
+                        new CharacterSymbolResponse.Symbol(
+                                "어센틱심볼 : 세르니움",
+                                11
+                        ),
+                        new CharacterSymbolResponse.Symbol(
+                                "그랜드 어센틱심볼 : 탈라하트",
+                                5
+                        )
+                )
         );
     }
 

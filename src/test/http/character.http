@@ -1,10 +1,210 @@
 @host = http://localhost:8080
+@validCharacterName = 배분
+@notFoundCharacterName = 텅빈챕터
+@invalidCharacterName = 없는캐릭터이름123456
 
-### 형식 오류 — CHARACTER_006
-GET http://localhost:8080/api/v1/characters/search?characterName=없는캐릭터이름123456
+### 정상 캐릭터 종합 검색
+# basic, stat, union, symbols, equipment 조회
+GET {{host}}/api/v1/characters/search?characterName={{validCharacterName}}
+Accept: application/json
 
-### 형식은 정상이지만 미존재 — CHARACTER_001
-GET http://localhost:8080/api/v1/characters/search?characterName=텅빈챕터
+> {%
+    client.test("캐릭터 종합 검색에 성공한다", function () {
+        client.assert(
+            response.status === 200,
+            "응답 상태가 200이 아닙니다."
+        );
 
-### 정상 — CHARACTER_SEARCH_SUCCESS
-GET http://localhost:8080/api/v1/characters/search?characterName=감점
+        client.assert(
+            response.body.success === true,
+            "success가 true가 아닙니다."
+        );
+
+        client.assert(
+            response.body.code === "CHARACTER_SEARCH_SUCCESS",
+            "성공 코드가 올바르지 않습니다."
+        );
+
+        client.assert(
+            response.body.data.basic !== null,
+            "basic 정보가 없습니다."
+        );
+
+        client.assert(
+            response.body.data.stat !== null,
+            "stat 정보가 없습니다."
+        );
+
+        client.assert(
+            response.body.data.union !== null,
+            "union 정보가 없습니다."
+        );
+
+        client.assert(
+            response.body.data.symbols !== null,
+            "symbols 정보가 없습니다."
+        );
+
+        client.assert(
+            response.body.data.equipment !== null,
+            "equipment 정보가 없습니다."
+        );
+
+        client.assert(
+            Array.isArray(
+                response.body.data.symbols.arcaneSymbols
+            ),
+            "arcaneSymbols가 배열이 아닙니다."
+        );
+
+        client.assert(
+            Array.isArray(
+                response.body.data.symbols.authenticSymbols
+            ),
+            "authenticSymbols가 배열이 아닙니다."
+        );
+    });
+
+    const data = response.body.data;
+
+    client.log(
+        "유니온 레벨: "
+        + data.union.unionLevel
+    );
+
+    client.log(
+        "유니온 아티팩트 레벨: "
+        + data.union.unionArtifactLevel
+    );
+
+    client.log(
+        "아케인심볼: "
+        + JSON.stringify(
+            data.symbols.arcaneSymbols
+        )
+    );
+
+    client.log(
+        "어센틱심볼: "
+        + JSON.stringify(
+            data.symbols.authenticSymbols
+        )
+    );
+
+    const finalStat =
+        Array.isArray(data.stat.finalStat)
+            ? data.stat.finalStat
+            : [];
+
+    const arcaneForce = finalStat.find(
+        stat => stat.statName === "아케인포스"
+    );
+
+    const authenticForce = finalStat.find(
+        stat => stat.statName === "어센틱포스"
+    );
+
+    client.log(
+        "아케인포스: "
+        + (
+            arcaneForce
+                ? arcaneForce.statValue
+                : "없음"
+        )
+    );
+
+    client.log(
+        "어센틱포스: "
+        + (
+            authenticForce
+                ? authenticForce.statValue
+                : "없음"
+        )
+    );
+%}
+
+### 형식은 정상이지만 존재하지 않는 캐릭터
+# CHARACTER_001
+GET {{host}}/api/v1/characters/search?characterName={{notFoundCharacterName}}
+Accept: application/json
+
+> {%
+    client.test("존재하지 않는 캐릭터는 404를 반환한다", function () {
+        client.assert(
+            response.status === 404,
+            "응답 상태가 404가 아닙니다."
+        );
+
+        client.assert(
+            response.body.success === false,
+            "success가 false가 아닙니다."
+        );
+
+        client.assert(
+            response.body.code === "CHARACTER_001",
+            "에러 코드가 CHARACTER_001이 아닙니다."
+        );
+    });
+%}
+
+### 형식이 올바르지 않은 캐릭터명
+# CHARACTER_006
+GET {{host}}/api/v1/characters/search?characterName={{invalidCharacterName}}
+Accept: application/json
+
+> {%
+    client.test("잘못된 캐릭터명은 400을 반환한다", function () {
+        client.assert(
+            response.status === 400,
+            "응답 상태가 400이 아닙니다."
+        );
+
+        client.assert(
+            response.body.success === false,
+            "success가 false가 아닙니다."
+        );
+
+        client.assert(
+            response.body.code === "CHARACTER_006",
+            "에러 코드가 CHARACTER_006이 아닙니다."
+        );
+    });
+%}
+
+### 공백 캐릭터명
+# GLOBAL_001
+GET {{host}}/api/v1/characters/search?characterName=%20
+Accept: application/json
+
+> {%
+    client.test("공백 캐릭터명은 400을 반환한다", function () {
+        client.assert(
+            response.status === 400,
+            "응답 상태가 400이 아닙니다."
+        );
+
+        client.assert(
+            response.body.code === "GLOBAL_001",
+            "에러 코드가 GLOBAL_001이 아닙니다."
+        );
+    });
+%}
+
+### 캐릭터명 파라미터 누락
+# GLOBAL_001
+GET {{host}}/api/v1/characters/search
+Accept: application/json
+
+> {%
+    client.test("캐릭터명 누락은 400을 반환한다", function () {
+        client.assert(
+            response.status === 400,
+            "응답 상태가 400이 아닙니다."
+        );
+
+        client.assert(
+            response.body.code === "GLOBAL_001",
+            "에러 코드가 GLOBAL_001이 아닙니다."
+        );
+    });
+%}
