@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
+import com.maplemetric.character.application.result.GetCharacterHexaResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
+import com.maplemetric.character.application.result.GetCharacterSkillsResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
@@ -89,6 +91,12 @@ class CharacterControllerTest {
                 )
                 .andExpect(
                         jsonPath(
+                                "$.data.symbols.arcaneSymbols[0].symbolIcon"
+                        )
+                                .value("arcane-icon")
+                )
+                .andExpect(
+                        jsonPath(
                                 "$.data.symbols.arcaneSymbols[0].symbolForce"
                         )
                                 .doesNotExist()
@@ -122,6 +130,48 @@ class CharacterControllerTest {
                                 "$.data.symbols.authenticSymbols[1].symbolForce"
                         )
                                 .doesNotExist()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.symbols.authenticSymbols[0].symbolIcon"
+                        )
+                                .value("authentic-icon")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.skills.vMatrix.cores[0].coreName"
+                        )
+                                .value("조커")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.skills.linkSkills.currentSkills[0].skillName"
+                        )
+                                .value("데들리 인스팅트")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.skills.linkSkills.matchedPresetNos[0]"
+                        )
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.skills.linkSkills.presets.length()"
+                        )
+                                .value(3)
+                )
+                .andExpect(
+                        jsonPath("$.data.hexa.cores[0].coreName")
+                                .value("템페스트 오브 카드 VI")
+                )
+                .andExpect(
+                        jsonPath("$.data.hexa.stats[0].statCoreNo")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.data.hexa.stats[0].slotNo")
+                                .value(1)
                 );
 
         verify(characterQueryService)
@@ -170,6 +220,8 @@ class CharacterControllerTest {
                 createRankingResult(),
                 createUnionResult(),
                 createSymbolResult(),
+                createSkillsResult(),
+                createHexaResult(),
                 createEquipmentResult()
         );
     }
@@ -224,17 +276,97 @@ class CharacterControllerTest {
                 List.of(
                         new GetCharacterSymbolResult.SymbolResult(
                                 "아케인심볼 : 소멸의 여로",
-                                20
+                                20,
+                                "arcane-icon"
                         )
                 ),
                 List.of(
                         new GetCharacterSymbolResult.SymbolResult(
                                 "어센틱심볼 : 세르니움",
-                                11
+                                11,
+                                "authentic-icon"
                         ),
                         new GetCharacterSymbolResult.SymbolResult(
                                 "그랜드 어센틱심볼 : 탈라하트",
-                                5
+                                5,
+                                "grand-authentic-icon"
+                        )
+                )
+        );
+    }
+
+    private GetCharacterSkillsResult createSkillsResult() {
+        GetCharacterSkillsResult.LinkSkillResult linkSkill =
+                new GetCharacterSkillsResult.LinkSkillResult(
+                        "데들리 인스팅트",
+                        2,
+                        "link-icon"
+                );
+
+        return new GetCharacterSkillsResult(
+                new GetCharacterSkillsResult.VMatrixResult(
+                        List.of(
+                                new GetCharacterSkillsResult.VCoreResult(
+                                        "조커",
+                                        "직업 코어",
+                                        30,
+                                        List.of(
+                                                new GetCharacterSkillsResult.SkillResult(
+                                                        "조커",
+                                                        "joker-icon"
+                                                )
+                                        )
+                                )
+                        )
+                ),
+                new GetCharacterSkillsResult.LinkSkillsResult(
+                        List.of(linkSkill),
+                        List.of(2),
+                        List.of(
+                                new GetCharacterSkillsResult.LinkPresetResult(
+                                        1,
+                                        List.of()
+                                ),
+                                new GetCharacterSkillsResult.LinkPresetResult(
+                                        2,
+                                        List.of(linkSkill)
+                                ),
+                                new GetCharacterSkillsResult.LinkPresetResult(
+                                        3,
+                                        List.of()
+                                )
+                        )
+                )
+        );
+    }
+
+    private GetCharacterHexaResult createHexaResult() {
+        return new GetCharacterHexaResult(
+                List.of(
+                        new GetCharacterHexaResult.HexaCoreResult(
+                                "템페스트 오브 카드 VI",
+                                "마스터리 코어",
+                                18,
+                                List.of(
+                                        new GetCharacterHexaResult.LinkedSkillResult(
+                                                "템페스트 오브 카드 VI",
+                                                "tempest-icon"
+                                        )
+                                )
+                        )
+                ),
+                List.of(
+                        new GetCharacterHexaResult.HexaStatResult(
+                                1,
+                                1,
+                                "크리티컬 데미지 증가",
+                                4,
+                                List.of(
+                                        new GetCharacterHexaResult.SubStatResult(
+                                                "공격력 증가",
+                                                8
+                                        )
+                                )
                         )
                 )
         );

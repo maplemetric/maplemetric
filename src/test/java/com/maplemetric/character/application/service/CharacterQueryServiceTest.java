@@ -20,10 +20,15 @@ import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.FinalStat;
 import java.time.Clock;
 import java.time.Instant;
@@ -101,6 +106,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(equipmentResponse);
 
@@ -154,11 +161,50 @@ class CharacterQueryServiceTest {
         assertThat(result.symbols().authenticSymbols())
                 .extracting(
                         symbol -> symbol.symbolName(),
-                        symbol -> symbol.symbolLevel()
+                        symbol -> symbol.symbolLevel(),
+                        symbol -> symbol.symbolIcon()
                 )
                 .containsExactly(
-                        tuple("어센틱심볼 : 세르니움", 11),
-                        tuple("그랜드 어센틱심볼 : 탈라하트", 5)
+                        tuple(
+                                "어센틱심볼 : 세르니움",
+                                11,
+                                "https://example.com/cernium.png"
+                        ),
+                        tuple(
+                                "그랜드 어센틱심볼 : 탈라하트",
+                                5,
+                                "https://example.com/tallahart.png"
+                        )
+                );
+
+        assertThat(result.skills().vMatrix().cores())
+                .extracting(
+                        core -> core.coreName(),
+                        core -> core.coreLevel()
+                )
+                .containsExactly(
+                        tuple("조커", 30)
+                );
+
+        assertThat(result.skills().linkSkills().matchedPresetNos())
+                .containsExactly(1);
+
+        assertThat(result.hexa().cores())
+                .extracting(
+                        core -> core.coreName(),
+                        core -> core.coreLevel()
+                )
+                .containsExactly(
+                        tuple("템페스트 오브 카드 VI", 18)
+                );
+
+        assertThat(result.hexa().stats())
+                .extracting(
+                        stat -> stat.statCoreNo(),
+                        stat -> stat.slotNo()
+                )
+                .containsExactly(
+                        tuple(1, 1)
                 );
 
         assertThat(result.equipment().presetNo())
@@ -170,6 +216,7 @@ class CharacterQueryServiceTest {
         verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -211,6 +258,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -230,6 +279,7 @@ class CharacterQueryServiceTest {
         verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -256,6 +306,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -278,6 +330,7 @@ class CharacterQueryServiceTest {
         verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -311,6 +364,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -333,6 +388,7 @@ class CharacterQueryServiceTest {
         verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -361,6 +417,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(equipmentResponse);
 
@@ -387,6 +445,7 @@ class CharacterQueryServiceTest {
         verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -428,6 +487,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
@@ -458,6 +519,7 @@ class CharacterQueryServiceTest {
         verifyRankingCalls(RANKING_DATE);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -483,6 +545,7 @@ class CharacterQueryServiceTest {
         service.getCharacterSummary(CHARACTER_NAME);
 
         verifyRankingCalls(expectedRankingDate);
+        verifySkillHexaCalls();
     }
 
     @Test
@@ -506,6 +569,7 @@ class CharacterQueryServiceTest {
         service.getCharacterSummary(CHARACTER_NAME);
 
         verifyRankingCalls(expectedRankingDate);
+        verifySkillHexaCalls();
     }
 
     @Test
@@ -541,6 +605,8 @@ class CharacterQueryServiceTest {
 
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
+
+        givenSkillHexaResponses();
 
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(createEquipmentResponse(List.of()));
@@ -578,6 +644,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterDojang(OCID);
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
+        verifySkillHexaCalls();
         verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
     }
@@ -716,6 +783,8 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
+        givenSkillHexaResponses();
+
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(createEquipmentResponse(List.of()));
     }
@@ -794,6 +863,46 @@ class CharacterQueryServiceTest {
                 .getCharacterDojang(OCID);
     }
 
+    private void givenSkillHexaResponses() {
+        given(characterClient.getCharacterSkill(OCID, "5"))
+                .willReturn(createFifthSkillResponse());
+
+        given(characterClient.getCharacterVMatrix(OCID))
+                .willReturn(createVMatrixResponse());
+
+        given(characterClient.getCharacterLinkSkill(OCID))
+                .willReturn(createLinkSkillResponse());
+
+        given(characterClient.getCharacterSkill(OCID, "6"))
+                .willReturn(createSixthSkillResponse());
+
+        given(characterClient.getCharacterHexaMatrix(OCID))
+                .willReturn(createHexaMatrixResponse());
+
+        given(characterClient.getCharacterHexaMatrixStat(OCID))
+                .willReturn(createHexaMatrixStatResponse());
+    }
+
+    private void verifySkillHexaCalls() {
+        verify(characterClient)
+                .getCharacterSkill(OCID, "5");
+
+        verify(characterClient)
+                .getCharacterVMatrix(OCID);
+
+        verify(characterClient)
+                .getCharacterLinkSkill(OCID);
+
+        verify(characterClient)
+                .getCharacterSkill(OCID, "6");
+
+        verify(characterClient)
+                .getCharacterHexaMatrix(OCID);
+
+        verify(characterClient)
+                .getCharacterHexaMatrixStat(OCID);
+    }
+
     private CharacterRankingResponse createRankingResponse(
             String characterName,
             Integer ranking,
@@ -857,17 +966,120 @@ class CharacterQueryServiceTest {
                 List.of(
                         new CharacterSymbolResponse.Symbol(
                                 "아케인심볼 : 소멸의 여로",
-                                20
+                                20,
+                                "https://example.com/vanishing.png"
                         ),
                         new CharacterSymbolResponse.Symbol(
                                 "어센틱심볼 : 세르니움",
-                                11
+                                11,
+                                "https://example.com/cernium.png"
                         ),
                         new CharacterSymbolResponse.Symbol(
                                 "그랜드 어센틱심볼 : 탈라하트",
-                                5
+                                5,
+                                "https://example.com/tallahart.png"
                         )
                 )
+        );
+    }
+
+    private CharacterSkillResponse createFifthSkillResponse() {
+        return new CharacterSkillResponse(
+                null,
+                "팬텀",
+                "5",
+                List.of(
+                        new CharacterSkillResponse.Skill(
+                                "조커",
+                                30,
+                                "https://example.com/joker.png"
+                        )
+                )
+        );
+    }
+
+    private CharacterVMatrixResponse createVMatrixResponse() {
+        return new CharacterVMatrixResponse(
+                null,
+                "팬텀",
+                List.of(
+                        new CharacterVMatrixResponse.VCore(
+                                "조커",
+                                "직업 코어",
+                                30
+                        )
+                )
+        );
+    }
+
+    private CharacterLinkSkillResponse createLinkSkillResponse() {
+        CharacterLinkSkillResponse.LinkSkill linkSkill =
+                new CharacterLinkSkillResponse.LinkSkill(
+                        "데들리 인스팅트",
+                        2,
+                        "https://example.com/deadly-instinct.png"
+                );
+
+        return new CharacterLinkSkillResponse(
+                null,
+                "팬텀",
+                List.of(linkSkill),
+                List.of(linkSkill),
+                List.of(),
+                List.of()
+        );
+    }
+
+    private CharacterSkillResponse createSixthSkillResponse() {
+        return new CharacterSkillResponse(
+                null,
+                "팬텀",
+                "6",
+                List.of(
+                        new CharacterSkillResponse.Skill(
+                                "템페스트 오브 카드 VI",
+                                18,
+                                "https://example.com/tempest-vi.png"
+                        )
+                )
+        );
+    }
+
+    private CharacterHexaMatrixResponse createHexaMatrixResponse() {
+        return new CharacterHexaMatrixResponse(
+                null,
+                List.of(
+                        new CharacterHexaMatrixResponse.HexaCore(
+                                "템페스트 오브 카드 VI",
+                                18,
+                                "마스터리 코어",
+                                List.of(
+                                        new CharacterHexaMatrixResponse.LinkedSkill(
+                                                "템페스트 오브 카드 VI"
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private CharacterHexaMatrixStatResponse createHexaMatrixStatResponse() {
+        return new CharacterHexaMatrixStatResponse(
+                null,
+                "팬텀",
+                List.of(
+                        new CharacterHexaMatrixStatResponse.HexaStatCore(
+                                "0",
+                                "크리티컬 데미지 증가",
+                                "공격력 증가",
+                                "주력 스탯 증가",
+                                4,
+                                8,
+                                8
+                        )
+                ),
+                List.of(),
+                List.of()
         );
     }
 

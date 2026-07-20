@@ -6,6 +6,8 @@ public record GetCharacterSummaryResult(
         GetCharacterRankingResult ranking,
         GetCharacterUnionResult union,
         GetCharacterSymbolResult symbols,
+        GetCharacterSkillsResult skills,
+        GetCharacterHexaResult hexa,
         GetCharacterEquipmentResult equipment
 ) {
 
@@ -15,6 +17,8 @@ public record GetCharacterSummaryResult(
             GetCharacterRankingResult ranking,
             GetCharacterUnionResult union,
             GetCharacterSymbolResult symbols,
+            GetCharacterSkillsResult skills,
+            GetCharacterHexaResult hexa,
             GetCharacterEquipmentResult equipment
     ) {
         return new GetCharacterSummaryResult(
@@ -23,6 +27,8 @@ public record GetCharacterSummaryResult(
                 ranking,
                 union,
                 symbols,
+                skills,
+                hexa,
                 equipment
         );
     }

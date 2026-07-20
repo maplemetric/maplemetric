@@ -8,6 +8,8 @@ public record GetCharacterSummaryResponse(
         GetCharacterRankingResponse ranking,
         GetCharacterUnionResponse union,
         GetCharacterSymbolResponse symbols,
+        GetCharacterSkillsResponse skills,
+        GetCharacterHexaResponse hexa,
         GetCharacterEquipmentResponse equipment
 ) {
 
@@ -20,6 +22,8 @@ public record GetCharacterSummaryResponse(
                 GetCharacterRankingResponse.from(result.ranking()),
                 GetCharacterUnionResponse.from(result.union()),
                 GetCharacterSymbolResponse.from(result.symbols()),
+                GetCharacterSkillsResponse.from(result.skills()),
+                GetCharacterHexaResponse.from(result.hexa()),
                 GetCharacterEquipmentResponse.from(result.equipment())
         );
     }

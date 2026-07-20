@@ -5,17 +5,18 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record CharacterSymbolResponse(
+public record CharacterSkillResponse(
         String date,
         String characterClass,
-        List<Symbol> symbol
+        String characterSkillGrade,
+        List<Skill> characterSkill
 ) {
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Symbol(
-            String symbolName,
-            Integer symbolLevel,
-            String symbolIcon
+    public record Skill(
+            String skillName,
+            Integer skillLevel,
+            String skillIcon
     ) {
     }
 }
