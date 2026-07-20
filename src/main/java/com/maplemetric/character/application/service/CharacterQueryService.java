@@ -1,7 +1,9 @@
 package com.maplemetric.character.application.service;
 
+import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterResult;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
+import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,14 @@ public class CharacterQueryService {
         String ocid = characterClient.getOcid(characterName);
 
         return GetCharacterResult.of(characterName, ocid);
+    }
+
+    public GetCharacterBasicResult getCharacterBasic(String characterName) {
+        String ocid = characterClient.getOcid(characterName);
+
+        CharacterBasicResponse basicResponse = characterClient.getCharacterBasic(ocid);
+
+        return GetCharacterBasicResult.from(basicResponse);
     }
 
 
