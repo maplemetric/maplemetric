@@ -123,17 +123,17 @@ public record GetCharacterEquipmentResult(
             String maxHp,
             String maxMp,
             String attackPower,
-            String megicPower,
+            String magicPower,
             String armor,
             String speed,
             String jump,
-            String bossDemage,
+            String bossDamage,
             String ignoreMonsterArmor,
             String allStat,
-            String demage,
+            String damage,
             Integer equipmentLevelDecrease,
             String maxHpRate,
-            String amxMpRate
+            String maxMpRate
     ) {
 
         public static ItemOptionResult from(CharacterEquipmentResponse.ItemOption option) {
