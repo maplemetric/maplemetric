@@ -14,7 +14,8 @@ public record CharacterSymbolResponse(
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Symbol(
             String symbolName,
-            Integer symbolLevel
+            Integer symbolLevel,
+            String symbolIcon
     ) {
     }
 }

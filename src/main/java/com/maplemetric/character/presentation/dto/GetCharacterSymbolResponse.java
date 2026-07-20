@@ -31,7 +31,8 @@ public record GetCharacterSymbolResponse(
 
     public record SymbolResponse(
             String symbolName,
-            Integer symbolLevel
+            Integer symbolLevel,
+            String symbolIcon
     ) {
 
         public static SymbolResponse from(
@@ -39,7 +40,8 @@ public record GetCharacterSymbolResponse(
         ) {
             return new SymbolResponse(
                     symbol.symbolName(),
-                    symbol.symbolLevel()
+                    symbol.symbolLevel(),
+                    symbol.symbolIcon()
             );
         }
     }

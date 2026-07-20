@@ -59,7 +59,8 @@ public record GetCharacterSymbolResult(
 
     public record SymbolResult(
             String symbolName,
-            Integer symbolLevel
+            Integer symbolLevel,
+            String symbolIcon
     ) {
 
         public static SymbolResult from(
@@ -67,7 +68,8 @@ public record GetCharacterSymbolResult(
         ) {
             return new SymbolResult(
                     symbol.symbolName(),
-                    symbol.symbolLevel()
+                    symbol.symbolLevel(),
+                    symbol.symbolIcon()
             );
         }
     }
