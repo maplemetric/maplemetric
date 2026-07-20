@@ -25,10 +25,25 @@ class CharacterControllerTest {
     @Test
     void 캐릭터명이공백이면400응답을반환한다() throws Exception {
         mockMvc.perform(
-                        get(
-                                "/api/v1/characters/{characterName}/summary",
-                                " "
-                        )
+                        get("/api/v1/characters/search")
+                                .param("characterName", " ")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("GLOBAL_001"))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("요청값이 올바르지 않습니다.")
+                )
+                .andExpect(jsonPath("$.data").value(nullValue()));
+
+        verifyNoInteractions(characterQueryService);
+    }
+
+    @Test
+    void 캐릭터명파라미터가없으면400응답을반환한다() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/characters/search")
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))

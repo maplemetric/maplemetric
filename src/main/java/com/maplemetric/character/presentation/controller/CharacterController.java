@@ -6,13 +6,11 @@ import com.maplemetric.character.presentation.code.CharacterSuccessCode;
 import com.maplemetric.character.presentation.dto.GetCharacterSummaryResponse;
 import com.maplemetric.global.ApiResponse;
 import jakarta.validation.constraints.NotBlank;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@Validated
 @RestController
 @RequestMapping("/api/v1/characters")
 public class CharacterController {
@@ -28,6 +26,9 @@ public class CharacterController {
         GetCharacterSummaryResult result =
                 characterQueryService.getCharacterSummary(characterName);
 
-        return ApiResponse.ok(CharacterSuccessCode.CHARACTER_SEARCH_SUCCESS, GetCharacterSummaryResponse.from(result));
+        return ApiResponse.ok(
+                CharacterSuccessCode.CHARACTER_SEARCH_SUCCESS,
+                GetCharacterSummaryResponse.from(result)
+        );
     }
 }
