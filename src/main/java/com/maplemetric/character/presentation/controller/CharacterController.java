@@ -1,8 +1,10 @@
 package com.maplemetric.character.presentation.controller;
 
+import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterResult;
 import com.maplemetric.character.application.service.CharacterQueryService;
 import com.maplemetric.character.presentation.code.CharacterSuccessCode;
+import com.maplemetric.character.presentation.dto.GetCharacterBasicResponse;
 import com.maplemetric.character.presentation.dto.GetCharacterResponse;
 import com.maplemetric.global.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,5 +31,12 @@ public class CharacterController {
 
         return ApiResponse.ok(
                 CharacterSuccessCode.CHARACTER_READ_SUCCESS, GetCharacterResponse.from(result));
+    }
+
+    @GetMapping("/basic")
+    public ApiResponse<GetCharacterBasicResponse> getCharacterBasic(@RequestParam String characterName) {
+        GetCharacterBasicResult result = characterQueryService.getCharacterBasic(characterName);
+
+        return ApiResponse.ok(CharacterSuccessCode.GET_CHARACTER_BASIC_SUCCESS, GetCharacterBasicResponse.from(result));
     }
 }
