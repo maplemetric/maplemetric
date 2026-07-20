@@ -5,7 +5,9 @@ import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.NexonApiErrorResponse;
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import java.io.IOException;
@@ -33,6 +35,10 @@ public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_STAT_PATH = "/maplestory/v1/character/stat";
 
+    private static final String CHARACTER_UNION_PATH = "/maplestory/v1/user/union";
+
+    private static final String CHARACTER_SYMBOL_PATH = "/maplestory/v1/character/symbol-equipment";
+
     private static final String CHARACTER_OCID_API = "캐릭터 식별자";
 
     private static final String CHARACTER_BASIC_API = "캐릭터 기본 정보";
@@ -40,6 +46,10 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_EQUIPMENT_API = "캐릭터 장비 정보";
 
     private static final String CHARACTER_STAT_API = "캐릭터 스탯 정보";
+
+    private static final String CHARACTER_UNION_API = "캐릭터 유니온 정보";
+
+    private static final String CHARACTER_SYMBOL_API = "캐릭터 장착 심볼 정보";
 
     private static final String INVALID_IDENTIFIER_ERROR_CODE = "OPENAPI00003";
 
@@ -124,6 +134,36 @@ public class CharacterClientImpl implements CharacterClient {
                 ocid,
                 CharacterStatResponse.class,
                 CHARACTER_STAT_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterUnionResponse getCharacterUnion(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_UNION_PATH,
+                "ocid",
+                ocid,
+                CharacterUnionResponse.class,
+                CHARACTER_UNION_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterSymbolResponse getCharacterSymbol(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_SYMBOL_PATH,
+                "ocid",
+                ocid,
+                CharacterSymbolResponse.class,
+                CHARACTER_SYMBOL_API,
                 "ocid",
                 ocid
         );
