@@ -6,10 +6,8 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixRe
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.util.StringUtils;
 
@@ -24,7 +22,9 @@ public record GetCharacterHexaResult(
             CharacterSkillResponse sixthSkillResponse
     ) {
         Map<String, CharacterSkillResponse.Skill> sixthSkills =
-                createSkillMap(sixthSkillResponse);
+                CharacterSkillResultMapper.createSkillMap(
+                        sixthSkillResponse
+                );
 
         List<HexaStatResult> stats =
                 new ArrayList<>();
@@ -51,28 +51,6 @@ public record GetCharacterHexaResult(
                 ),
                 List.copyOf(stats)
         );
-    }
-
-    private static Map<String, CharacterSkillResponse.Skill> createSkillMap(
-            CharacterSkillResponse response
-    ) {
-        if (response == null
-                || response.characterSkill() == null) {
-            return Map.of();
-        }
-
-        return response.characterSkill()
-                .stream()
-                .filter(skill -> skill != null)
-                .filter(skill -> StringUtils.hasText(
-                        skill.skillName()
-                ))
-                .collect(Collectors.toMap(
-                        skill -> skill.skillName(),
-                        skill -> skill,
-                        (firstSkill, ignoredSkill) -> firstSkill,
-                        () -> new LinkedHashMap<>()
-                ));
     }
 
     private static List<HexaCoreResult> convertCores(

@@ -3,11 +3,9 @@ package com.maplemetric.character.application.result;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.springframework.util.StringUtils;
 
 public record GetCharacterSkillsResult(
         VMatrixResult vMatrix,
@@ -20,7 +18,9 @@ public record GetCharacterSkillsResult(
             CharacterLinkSkillResponse linkSkillResponse
     ) {
         Map<String, CharacterSkillResponse.Skill> fifthSkills =
-                createSkillMap(fifthSkillResponse);
+                CharacterSkillResultMapper.createSkillMap(
+                        fifthSkillResponse
+                );
 
         List<LinkPresetResult> presets = List.of(
                 createPreset(
@@ -60,28 +60,6 @@ public record GetCharacterSkillsResult(
         );
     }
 
-    private static Map<String, CharacterSkillResponse.Skill> createSkillMap(
-            CharacterSkillResponse response
-    ) {
-        if (response == null
-                || response.characterSkill() == null) {
-            return Map.of();
-        }
-
-        return response.characterSkill()
-                .stream()
-                .filter(skill -> skill != null)
-                .filter(skill -> StringUtils.hasText(
-                        skill.skillName()
-                ))
-                .collect(Collectors.toMap(
-                        skill -> skill.skillName(),
-                        skill -> skill,
-                        (firstSkill, ignoredSkill) -> firstSkill,
-                        () -> new LinkedHashMap<>()
-                ));
-    }
-
     private static List<VCoreResult> convertVCores(
             List<CharacterVMatrixResponse.VCore> cores,
             Map<String, CharacterSkillResponse.Skill> fifthSkills
@@ -100,11 +78,11 @@ public record GetCharacterSkillsResult(
                             skill == null
                                     ? List.of()
                                     : List.of(
-                                            new SkillResult(
-                                                    skill.skillName(),
-                                                    skill.skillIcon()
-                                            )
-                                    );
+                                    new SkillResult(
+                                            skill.skillName(),
+                                            skill.skillIcon()
+                                    )
+                            );
 
                     return new VCoreResult(
                             core.vCoreName(),
