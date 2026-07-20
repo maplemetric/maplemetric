@@ -1,8 +1,8 @@
 @host = http://localhost:8080
 
-### 캐릭터 OCID 조회 - 성공
-GET {{host}}/api/v1/characters?characterName=감점
-Accept: application/json
+#### 캐릭터 OCID 조회 - 성공
+#GET {{host}}/api/v1/characters?characterName=감점
+#Accept: application/json
 
 ###
 
@@ -16,4 +16,8 @@ Accept: application/json
 
 ### 캐릭터 장비 조회
 GET {{host}}/api/v1/characters/equipment?characterName=감점
+Accept: application/json
+
+### 캐릭터 통합 정보 조회
+GET {{host}}/api/v1/characters?characterName=감점
 Accept: application/json
