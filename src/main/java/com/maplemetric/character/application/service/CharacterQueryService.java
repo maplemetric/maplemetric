@@ -2,7 +2,6 @@ package com.maplemetric.character.application.service;
 
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
-import com.maplemetric.character.application.result.GetCharacterResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
@@ -20,11 +19,11 @@ public class CharacterQueryService {
         this.characterClient = characterClient;
     }
 
-    public GetCharacterResult getCharacter(String characterName) {
+    /*public GetCharacterResult getCharacter(String characterName) {
         String ocid = characterClient.getOcid(characterName);
 
         return GetCharacterResult.of(characterName, ocid);
-    }
+    }*/
 
     public GetCharacterBasicResult getCharacterBasic(String characterName) {
         String ocid = characterClient.getOcid(characterName);
