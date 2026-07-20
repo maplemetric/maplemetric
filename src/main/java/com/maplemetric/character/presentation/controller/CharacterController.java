@@ -26,32 +26,6 @@ public class CharacterController {
         this.characterQueryService = characterQueryService;
     }
 
-    /*@GetMapping
-    public ApiResponse<GetCharacterResponse> getCharacter(@RequestParam String characterName) {
-        GetCharacterResult result =
-                characterQueryService.getCharacter(characterName);
-
-        return ApiResponse.ok(
-                CharacterSuccessCode.CHARACTER_READ_SUCCESS, GetCharacterResponse.from(result));
-    }*/
-
-    @GetMapping("/basic")
-    public ApiResponse<GetCharacterBasicResponse> getCharacterBasic(@RequestParam String characterName) {
-        GetCharacterBasicResult result = characterQueryService.getCharacterBasic(characterName);
-
-        return ApiResponse.ok(CharacterSuccessCode.GET_CHARACTER_BASIC_SUCCESS, GetCharacterBasicResponse.from(result));
-    }
-
-    @GetMapping("/equipment")
-    public ApiResponse<GetCharacterEquipmentResponse> getCharacterEquipment(@RequestParam String characterName) {
-        GetCharacterEquipmentResult result = characterQueryService.getCharacterEquipment(characterName);
-
-        return ApiResponse.ok(
-                CharacterSuccessCode.GET_CHARACTER_EQUIPMENT_SUCCESS,
-                GetCharacterEquipmentResponse.from(result)
-        );
-    }
-
     @GetMapping
     public ApiResponse<GetCharacterSummaryResponse> getCharacterSummary(@RequestParam String characterName) {
         GetCharacterSummaryResult result = characterQueryService.getCharacterSummary(characterName);
