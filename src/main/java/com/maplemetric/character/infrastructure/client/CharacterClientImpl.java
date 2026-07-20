@@ -6,10 +6,15 @@ import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.NexonApiErrorResponse;
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import java.io.IOException;
@@ -44,6 +49,16 @@ public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_SYMBOL_PATH = "/maplestory/v1/character/symbol-equipment";
 
+    private static final String CHARACTER_SKILL_PATH = "/maplestory/v1/character/skill";
+
+    private static final String CHARACTER_LINK_SKILL_PATH = "/maplestory/v1/character/link-skill";
+
+    private static final String CHARACTER_V_MATRIX_PATH = "/maplestory/v1/character/vmatrix";
+
+    private static final String CHARACTER_HEXA_MATRIX_PATH = "/maplestory/v1/character/hexamatrix";
+
+    private static final String CHARACTER_HEXA_MATRIX_STAT_PATH = "/maplestory/v1/character/hexamatrix-stat";
+
     private static final String RANKING_OVERALL_PATH = "/maplestory/v1/ranking/overall";
 
     private static final String CHARACTER_DOJANG_PATH = "/maplestory/v1/character/dojang";
@@ -59,6 +74,14 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_UNION_API = "캐릭터 유니온 정보";
 
     private static final String CHARACTER_SYMBOL_API = "캐릭터 장착 심볼 정보";
+
+    private static final String CHARACTER_LINK_SKILL_API = "캐릭터 링크 스킬 정보";
+
+    private static final String CHARACTER_V_MATRIX_API = "캐릭터 V매트릭스 정보";
+
+    private static final String CHARACTER_HEXA_MATRIX_API = "캐릭터 HEXA 코어 정보";
+
+    private static final String CHARACTER_HEXA_MATRIX_STAT_API = "캐릭터 HEXA 스탯 정보";
 
     private static final String CHARACTER_OVERALL_RANKING_API = "캐릭터 종합 랭킹 정보";
 
@@ -189,6 +212,90 @@ public class CharacterClientImpl implements CharacterClient {
                 ocid,
                 CharacterSymbolResponse.class,
                 CHARACTER_SYMBOL_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterSkillResponse getCharacterSkill(
+            String ocid,
+            String skillGrade
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("ocid", ocid);
+        queryParameters.put(
+                "character_skill_grade",
+                skillGrade
+        );
+
+        return request(
+                CHARACTER_SKILL_PATH,
+                queryParameters,
+                CharacterSkillResponse.class,
+                "캐릭터 " + skillGrade + "차 스킬 정보",
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterLinkSkillResponse getCharacterLinkSkill(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_LINK_SKILL_PATH,
+                "ocid",
+                ocid,
+                CharacterLinkSkillResponse.class,
+                CHARACTER_LINK_SKILL_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterVMatrixResponse getCharacterVMatrix(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_V_MATRIX_PATH,
+                "ocid",
+                ocid,
+                CharacterVMatrixResponse.class,
+                CHARACTER_V_MATRIX_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterHexaMatrixResponse getCharacterHexaMatrix(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_HEXA_MATRIX_PATH,
+                "ocid",
+                ocid,
+                CharacterHexaMatrixResponse.class,
+                CHARACTER_HEXA_MATRIX_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterHexaMatrixStatResponse getCharacterHexaMatrixStat(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_HEXA_MATRIX_STAT_PATH,
+                "ocid",
+                ocid,
+                CharacterHexaMatrixStatResponse.class,
+                CHARACTER_HEXA_MATRIX_STAT_API,
                 "ocid",
                 ocid
         );
@@ -347,6 +454,12 @@ public class CharacterClientImpl implements CharacterClient {
             String identifierValue,
             int rateLimitRetryCount
     ) {
+        String logIdentifierValue =
+                maskIdentifierValue(
+                        identifierName,
+                        identifierValue
+                );
+
         try {
             T response = restClient.get()
                     .uri(uriBuilder -> {
@@ -366,7 +479,7 @@ public class CharacterClientImpl implements CharacterClient {
                         "넥슨 API 응답 본문이 없습니다. api={}, {}={}",
                         apiName,
                         identifierName,
-                        identifierValue
+                        logIdentifierValue
                 );
 
                 throw new CharacterException(
@@ -390,9 +503,13 @@ public class CharacterClientImpl implements CharacterClient {
                     apiName,
                     exception.getStatusCode(),
                     getNexonErrorCode(nexonError),
-                    getNexonErrorMessage(nexonError),
+                    getLogNexonErrorMessage(
+                            nexonError,
+                            identifierName,
+                            identifierValue
+                    ),
                     identifierName,
-                    identifierValue
+                    logIdentifierValue
             );
 
             throw new CharacterException(
@@ -424,9 +541,13 @@ public class CharacterClientImpl implements CharacterClient {
                         apiName,
                         exception.getStatusCode(),
                         getNexonErrorCode(nexonError),
-                        getNexonErrorMessage(nexonError),
+                        getLogNexonErrorMessage(
+                                nexonError,
+                                identifierName,
+                                identifierValue
+                        ),
                         identifierName,
-                        identifierValue,
+                        logIdentifierValue,
                         rateLimitRetryCount + 1,
                         retryDelayMillis
                 );
@@ -455,12 +576,12 @@ public class CharacterClientImpl implements CharacterClient {
         } catch (HttpServerErrorException exception) {
             log.error(
                     "넥슨 API 서버 오류가 발생했습니다. "
-                            + "api={}, status={}, {}={}",
+                            + "api={}, status={}, {}={}, exceptionType={}",
                     apiName,
                     exception.getStatusCode(),
                     identifierName,
-                    identifierValue,
-                    exception
+                    logIdentifierValue,
+                    exception.getClass().getSimpleName()
             );
 
             throw new CharacterException(
@@ -477,11 +598,12 @@ public class CharacterClientImpl implements CharacterClient {
 
         } catch (RestClientException exception) {
             log.error(
-                    "넥슨 API 응답 처리에 실패했습니다. api={}, {}={}",
+                    "넥슨 API 응답 처리에 실패했습니다. "
+                            + "api={}, {}={}, exceptionType={}",
                     apiName,
                     identifierName,
-                    identifierValue,
-                    exception
+                    logIdentifierValue,
+                    exception.getClass().getSimpleName()
             );
 
             throw new CharacterException(
@@ -523,7 +645,17 @@ public class CharacterClientImpl implements CharacterClient {
                 getNexonErrorCode(nexonError);
 
         String nexonErrorMessage =
-                getNexonErrorMessage(nexonError);
+                getLogNexonErrorMessage(
+                        nexonError,
+                        identifierName,
+                        identifierValue
+                );
+
+        String logIdentifierValue =
+                maskIdentifierValue(
+                        identifierName,
+                        identifierValue
+                );
 
         if (isCharacterNotFound(
                 apiName,
@@ -538,7 +670,7 @@ public class CharacterClientImpl implements CharacterClient {
                     nexonErrorCode,
                     nexonErrorMessage,
                     identifierName,
-                    identifierValue
+                    logIdentifierValue
             );
 
             return new CharacterException(
@@ -555,7 +687,7 @@ public class CharacterClientImpl implements CharacterClient {
                 nexonErrorCode,
                 nexonErrorMessage,
                 identifierName,
-                identifierValue
+                logIdentifierValue
         );
 
         return new CharacterException(
@@ -606,13 +738,20 @@ public class CharacterClientImpl implements CharacterClient {
             String identifierName,
             String identifierValue
     ) {
+        String logIdentifierValue =
+                maskIdentifierValue(
+                        identifierName,
+                        identifierValue
+                );
+
         if (isTimeout(exception)) {
             log.error(
-                    "넥슨 API 응답 시간이 초과되었습니다. api={}, {}={}",
+                    "넥슨 API 응답 시간이 초과되었습니다. "
+                            + "api={}, {}={}, exceptionType={}",
                     apiName,
                     identifierName,
-                    identifierValue,
-                    exception
+                    logIdentifierValue,
+                    exception.getClass().getSimpleName()
             );
 
             return new CharacterException(
@@ -621,11 +760,12 @@ public class CharacterClientImpl implements CharacterClient {
         }
 
         log.error(
-                "넥슨 API 통신에 실패했습니다. api={}, {}={}",
+                "넥슨 API 통신에 실패했습니다. "
+                        + "api={}, {}={}, exceptionType={}",
                 apiName,
                 identifierName,
-                identifierValue,
-                exception
+                logIdentifierValue,
+                exception.getClass().getSimpleName()
         );
 
         return new CharacterException(
@@ -679,10 +819,10 @@ public class CharacterClientImpl implements CharacterClient {
         } catch (IOException parsingException) {
             log.warn(
                     "넥슨 API 오류 응답 파싱에 실패했습니다. "
-                            + "api={}, status={}",
+                            + "api={}, status={}, exceptionType={}",
                     apiName,
                     exception.getStatusCode(),
-                    parsingException
+                    parsingException.getClass().getSimpleName()
             );
 
             return null;
@@ -703,6 +843,49 @@ public class CharacterClientImpl implements CharacterClient {
         return nexonError == null
                 ? null
                 : nexonError.message();
+    }
+
+    private String getLogNexonErrorMessage(
+            NexonApiErrorResponse.NexonApiError nexonError,
+            String identifierName,
+            String identifierValue
+    ) {
+        String nexonErrorMessage =
+                getNexonErrorMessage(nexonError);
+
+        if (!"ocid".equals(identifierName)
+                || !StringUtils.hasText(identifierValue)
+                || !StringUtils.hasText(nexonErrorMessage)) {
+            return nexonErrorMessage;
+        }
+
+        return nexonErrorMessage.replace(
+                identifierValue,
+                maskIdentifierValue(
+                        identifierName,
+                        identifierValue
+                )
+        );
+    }
+
+    private String maskIdentifierValue(
+            String identifierName,
+            String identifierValue
+    ) {
+        if (!"ocid".equals(identifierName)
+                || !StringUtils.hasText(identifierValue)) {
+            return identifierValue;
+        }
+
+        if (identifierValue.length() <= 8) {
+            return "***";
+        }
+
+        return identifierValue.substring(0, 4)
+                + "..."
+                + identifierValue.substring(
+                        identifierValue.length() - 4
+                );
     }
 
     private boolean isTimeout(
