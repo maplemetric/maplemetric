@@ -2,7 +2,9 @@ package com.maplemetric.character.application.service;
 
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
+import com.maplemetric.character.application.result.GetCharacterHexaResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
+import com.maplemetric.character.application.result.GetCharacterSkillsResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
@@ -13,10 +15,15 @@ import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -154,6 +161,30 @@ public class CharacterQueryService {
         CharacterSymbolResponse symbolResponse =
                 characterClient.getCharacterSymbol(ocid);
 
+        CharacterSkillResponse fifthSkillResponse =
+                characterClient.getCharacterSkill(
+                        ocid,
+                        "5"
+                );
+
+        CharacterVMatrixResponse vMatrixResponse =
+                characterClient.getCharacterVMatrix(ocid);
+
+        CharacterLinkSkillResponse linkSkillResponse =
+                characterClient.getCharacterLinkSkill(ocid);
+
+        CharacterSkillResponse sixthSkillResponse =
+                characterClient.getCharacterSkill(
+                        ocid,
+                        "6"
+                );
+
+        CharacterHexaMatrixResponse hexaMatrixResponse =
+                characterClient.getCharacterHexaMatrix(ocid);
+
+        CharacterHexaMatrixStatResponse hexaStatResponse =
+                characterClient.getCharacterHexaMatrixStat(ocid);
+
         CharacterEquipmentResponse equipmentResponse =
                 characterClient.getCharacterEquipment(ocid);
 
@@ -170,6 +201,16 @@ public class CharacterQueryService {
                 ),
                 GetCharacterUnionResult.from(unionResponse),
                 GetCharacterSymbolResult.from(symbolResponse),
+                GetCharacterSkillsResult.of(
+                        vMatrixResponse,
+                        fifthSkillResponse,
+                        linkSkillResponse
+                ),
+                GetCharacterHexaResult.of(
+                        hexaMatrixResponse,
+                        hexaStatResponse,
+                        sixthSkillResponse
+                ),
                 GetCharacterEquipmentResult.from(
                         equipmentResponse
                 )
