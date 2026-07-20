@@ -1,5 +1,6 @@
 package com.maplemetric.character.infrastructure.client.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -45,12 +46,25 @@ public record CharacterEquipmentResponse(
             String starforceScrollFlag,
             String potentialOptionGrade,
             String additionalPotentialOptionGrade,
+
+            @JsonProperty("potential_option_1")
             String potentialOption1,
+
+            @JsonProperty("potential_option_2")
             String potentialOption2,
+
+            @JsonProperty("potential_option_3")
             String potentialOption3,
+
+            @JsonProperty("additional_potential_option_1")
             String additionalPotentialOption1,
+
+            @JsonProperty("additional_potential_option_2")
             String additionalPotentialOption2,
+
+            @JsonProperty("additional_potential_option_3")
             String additionalPotentialOption3,
+
             Integer specialRingLevel,
             String dateExpire
     ) {
