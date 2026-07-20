@@ -4,6 +4,7 @@ import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_OCID_PATH = "/maplestory/v1/id";
     private static final String CHARACTER_BASIC_PATH = "/maplestory/v1/character/basic";
     private static final String CHARACTER_EQUIPMENT_PATH = "/maplestory/v1/character/item-equipment";
+    private static final String CHARACTER_STAT_PATH = "/maplestory/v1/character/stat";
 
     private final RestClient restClient;
 
@@ -109,5 +111,32 @@ public class CharacterClientImpl implements CharacterClient {
             throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
         }
 
+    }
+
+    @Override
+    public CharacterStatResponse getCharacterStat(String ocid) {
+        try {
+            CharacterStatResponse response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path(CHARACTER_STAT_PATH)
+                            .queryParam("ocid", ocid)
+                            .build()
+                    )
+                    .retrieve()
+                    .body(CharacterStatResponse.class);
+
+            if (response == null) {
+                throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
+            }
+
+            return response;
+
+        } catch (HttpClientErrorException.NotFound exception) {
+            throw new CharacterException(CharacterErrorCode.CHARACTER_NOT_FOUND);
+        } catch (HttpClientErrorException.BadRequest exception) {
+            throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
+        } catch (RestClientException exception) {
+            throw new CharacterException(CharacterErrorCode.CHARACTER_API_ERROR);
+        }
     }
 }
