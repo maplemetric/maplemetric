@@ -4,6 +4,7 @@ import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 
 public record GetCharacterSummaryResponse(
         GetCharacterBasicResponse basic,
+        GetCharacterStatResponse stat,
         GetCharacterEquipmentResponse equipment
 ) {
 
@@ -12,6 +13,7 @@ public record GetCharacterSummaryResponse(
     ) {
         return new GetCharacterSummaryResponse(
                 GetCharacterBasicResponse.from(result.basic()),
+                GetCharacterStatResponse.from(result.stat()),
                 GetCharacterEquipmentResponse.from(result.equipment())
         );
     }
