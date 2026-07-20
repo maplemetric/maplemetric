@@ -1,9 +1,10 @@
 @host = http://localhost:8080
 
-### 존재하지 않는 캐릭터 검색
-GET {{host}}/api/v1/characters/search?characterName=없는캐릭터이름123456
-Accept: application/json
+### 형식 오류 — CHARACTER_006
+GET http://localhost:8080/api/v1/characters/search?characterName=없는캐릭터이름123456
 
-### 캐릭터 종합 검색
-GET {{host}}/api/v1/characters/search?characterName=감점
-Accept: application/json
+### 형식은 정상이지만 미존재 — CHARACTER_001
+GET http://localhost:8080/api/v1/characters/search?characterName=텅빈챕터
+
+### 정상 — CHARACTER_SEARCH_SUCCESS
+GET http://localhost:8080/api/v1/characters/search?characterName=감점
