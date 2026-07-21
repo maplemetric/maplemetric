@@ -11,6 +11,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.maplemetric.character.application.calculator.AdditionalOptionCalculationPolicyV1;
+import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
+import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
@@ -30,6 +33,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.FinalStat;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -52,6 +56,7 @@ class CharacterQueryServiceTest {
     @Mock
     private CharacterClient characterClient;
 
+    private AdditionalOptionCalculator additionalOptionCalculator;
     private CharacterQueryService characterQueryService;
 
     @BeforeEach
@@ -62,9 +67,15 @@ class CharacterQueryServiceTest {
                         ZoneId.of("Asia/Seoul")
                 );
 
+        additionalOptionCalculator =
+                new AdditionalOptionCalculator(
+                        new AdditionalOptionCalculationPolicyV1()
+                );
+
         characterQueryService =
                 new CharacterQueryService(
                         characterClient,
+                        additionalOptionCalculator,
                         clock
                 );
     }
@@ -529,6 +540,7 @@ class CharacterQueryServiceTest {
         CharacterQueryService service =
                 new CharacterQueryService(
                         characterClient,
+                        additionalOptionCalculator,
                         Clock.fixed(
                                 Instant.parse(
                                         "2026-07-21T00:29:00Z"
@@ -553,6 +565,7 @@ class CharacterQueryServiceTest {
         CharacterQueryService service =
                 new CharacterQueryService(
                         characterClient,
+                        additionalOptionCalculator,
                         Clock.fixed(
                                 Instant.parse(
                                         "2026-07-21T00:30:00Z"
@@ -761,6 +774,83 @@ class CharacterQueryServiceTest {
                 );
 
         verifyNoInteractions(characterClient);
+    }
+
+    @Test
+    void 종합조회장비네목록에추가옵션계산결과를포함한다() {
+        CharacterEquipmentResponse.ItemEquipment item =
+                createItemEquipment();
+
+        givenSummaryResponses(RANKING_DATE);
+
+        given(characterClient.getCharacterEquipment(OCID))
+                .willReturn(
+                        createEquipmentResponse(List.of(item))
+                );
+
+        GetCharacterSummaryResult result =
+                characterQueryService.getCharacterSummary(
+                        CHARACTER_NAME
+                );
+
+        assertThat(result.equipment().itemEquipment())
+                .extracting(itemResult ->
+                        itemResult.additionalOptionEvaluation().score()
+                )
+                .containsExactly(new BigDecimal("158.0"));
+
+        assertThat(
+                result.equipment()
+                        .itemEquipment()
+                        .get(0)
+                        .itemAddOption()
+                        .luk()
+        ).isEqualTo("80");
+
+        assertThat(result.equipment().itemEquipmentPreset1())
+                .extracting(itemResult ->
+                        itemResult.additionalOptionEvaluation().score()
+                )
+                .containsExactly(new BigDecimal("158.0"));
+        assertThat(result.equipment().itemEquipmentPreset2())
+                .extracting(itemResult ->
+                        itemResult.additionalOptionEvaluation().score()
+                )
+                .containsExactly(new BigDecimal("158.0"));
+        assertThat(result.equipment().itemEquipmentPreset3())
+                .extracting(itemResult ->
+                        itemResult.additionalOptionEvaluation().score()
+                )
+                .containsExactly(new BigDecimal("158.0"));
+    }
+
+    @Test
+    void 장비단건조회에도동일한추가옵션계산기를사용한다() {
+        given(characterClient.getOcid(CHARACTER_NAME))
+                .willReturn(OCID);
+
+        given(characterClient.getCharacterEquipment(OCID))
+                .willReturn(
+                        createEquipmentResponse(
+                                List.of(createItemEquipment())
+                        )
+                );
+
+        GetCharacterEquipmentResult result =
+                characterQueryService.getCharacterEquipment(
+                        CHARACTER_NAME
+                );
+
+        assertThat(
+                result.itemEquipment()
+                        .get(0)
+                        .additionalOptionEvaluation()
+                        .score()
+        ).isEqualByComparingTo("158.0");
+
+        verify(characterClient).getOcid(CHARACTER_NAME);
+        verify(characterClient).getCharacterEquipment(OCID);
+        verifyNoMoreInteractions(characterClient);
     }
 
     private void givenSummaryResponses(
@@ -1095,6 +1185,68 @@ class CharacterQueryServiceTest {
                 items,
                 items,
                 items
+        );
+    }
+
+    private CharacterEquipmentResponse.ItemEquipment createItemEquipment() {
+        return new CharacterEquipmentResponse.ItemEquipment(
+                "장갑",
+                "장갑",
+                "테스트 장갑",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                createAdditionalOption(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private CharacterEquipmentResponse.ItemOption createAdditionalOption() {
+        return new CharacterEquipmentResponse.ItemOption(
+                "0",
+                "40",
+                "0",
+                "80",
+                "0",
+                null,
+                "6",
+                "0",
+                null,
+                null,
+                null,
+                null,
+                null,
+                "5",
+                null,
+                null,
+                null,
+                null
         );
     }
 }
