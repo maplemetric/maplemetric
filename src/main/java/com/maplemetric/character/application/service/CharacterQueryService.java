@@ -1,5 +1,6 @@
 package com.maplemetric.character.application.service;
 
+import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterHexaResult;
@@ -52,23 +53,29 @@ public class CharacterQueryService {
     private static final LocalTime RANKING_AVAILABLE_TIME = LocalTime.of(9, 30);
 
     private final CharacterClient characterClient;
+    private final AdditionalOptionCalculator additionalOptionCalculator;
     private final Clock clock;
 
     @Autowired
     public CharacterQueryService(
-            CharacterClient characterClient
+            CharacterClient characterClient,
+            AdditionalOptionCalculator additionalOptionCalculator
     ) {
         this(
                 characterClient,
+                additionalOptionCalculator,
                 Clock.system(KOREA_ZONE_ID)
         );
     }
 
     CharacterQueryService(
             CharacterClient characterClient,
+            AdditionalOptionCalculator additionalOptionCalculator,
             Clock clock
     ) {
         this.characterClient = characterClient;
+        this.additionalOptionCalculator =
+                additionalOptionCalculator;
         this.clock = clock;
     }
 
@@ -92,7 +99,9 @@ public class CharacterQueryService {
                 characterClient.getCharacterEquipment(ocid);
 
         return GetCharacterEquipmentResult.from(
-                equipmentResponse
+                equipmentResponse,
+                equipmentResponse.characterClass(),
+                additionalOptionCalculator
         );
     }
 
@@ -212,7 +221,9 @@ public class CharacterQueryService {
                         sixthSkillResponse
                 ),
                 GetCharacterEquipmentResult.from(
-                        equipmentResponse
+                        equipmentResponse,
+                        basicResponse.characterClass(),
+                        additionalOptionCalculator
                 )
         );
     }

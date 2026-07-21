@@ -1,5 +1,6 @@
 package com.maplemetric.character.application.result;
 
+import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 
 import java.util.List;
@@ -15,26 +16,54 @@ public record GetCharacterEquipmentResult(
         List<ItemEquipmentResult> itemEquipmentPreset3
 ) {
 
-    public static GetCharacterEquipmentResult from(CharacterEquipmentResponse response) {
+    public static GetCharacterEquipmentResult from(
+            CharacterEquipmentResponse response,
+            String characterClass,
+            AdditionalOptionCalculator calculator
+    ) {
         return new GetCharacterEquipmentResult(
                 response.date(),
                 response.characterGender(),
                 response.characterClass(),
                 response.presetNo(),
-                convertItems(response.itemEquipment()),
-                convertItems(response.itemEquipmentPreset1()),
-                convertItems(response.itemEquipmentPreset2()),
-                convertItems(response.itemEquipmentPreset3())
+                convertItems(
+                        response.itemEquipment(),
+                        characterClass,
+                        calculator
+                ),
+                convertItems(
+                        response.itemEquipmentPreset1(),
+                        characterClass,
+                        calculator
+                ),
+                convertItems(
+                        response.itemEquipmentPreset2(),
+                        characterClass,
+                        calculator
+                ),
+                convertItems(
+                        response.itemEquipmentPreset3(),
+                        characterClass,
+                        calculator
+                )
         );
     }
 
-    private static List<ItemEquipmentResult> convertItems(List<CharacterEquipmentResponse.ItemEquipment> items) {
+    private static List<ItemEquipmentResult> convertItems(
+            List<CharacterEquipmentResponse.ItemEquipment> items,
+            String characterClass,
+            AdditionalOptionCalculator calculator
+    ) {
         if (items == null) {
             return null;
         }
 
         return items.stream()
-                .map(item -> ItemEquipmentResult.from(item))
+                .map(item -> ItemEquipmentResult.from(
+                        item,
+                        characterClass,
+                        calculator
+                ))
                 .toList();
     }
 
@@ -60,6 +89,7 @@ public record GetCharacterEquipmentResult(
             String soulName,
             String soulOption,
             ItemOptionResult itemAddOption,
+            AdditionalOptionEvaluationResult additionalOptionEvaluation,
             ItemOptionResult itemEtcOption,
             ItemOptionResult itemStarforceOption,
             String starforce,
@@ -75,7 +105,11 @@ public record GetCharacterEquipmentResult(
             Integer specialRingLevel,
             String dateExpire
     ) {
-        public static ItemEquipmentResult from(CharacterEquipmentResponse.ItemEquipment item) {
+        public static ItemEquipmentResult from(
+                CharacterEquipmentResponse.ItemEquipment item,
+                String characterClass,
+                AdditionalOptionCalculator calculator
+        ) {
             return new ItemEquipmentResult(
                     item.itemEquipmentPart(),
                     item.itemEquipmentSlot(),
@@ -97,6 +131,10 @@ public record GetCharacterEquipmentResult(
                     item.soulName(),
                     item.soulOption(),
                     ItemOptionResult.from(item.itemAddOption()),
+                    calculator.calculate(
+                            characterClass,
+                            item.itemAddOption()
+                    ),
                     ItemOptionResult.from(item.itemEtcOption()),
                     ItemOptionResult.from(item.itemStarforceOption()),
                     item.starforce(),

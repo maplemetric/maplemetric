@@ -63,6 +63,7 @@ public record GetCharacterEquipmentResponse(
             String soulName,
             String soulOption,
             ItemOptionResponse itemAddOption,
+            AdditionalOptionEvaluationResponse additionalOptionEvaluation,
             ItemOptionResponse itemEtcOption,
             ItemOptionResponse itemStarforceOption,
             String starforce,
@@ -103,6 +104,9 @@ public record GetCharacterEquipmentResponse(
                     item.soulName(),
                     item.soulOption(),
                     ItemOptionResponse.from(item.itemAddOption()),
+                    AdditionalOptionEvaluationResponse.from(
+                            item.additionalOptionEvaluation()
+                    ),
                     ItemOptionResponse.from(item.itemEtcOption()),
                     ItemOptionResponse.from(item.itemStarforceOption()),
                     item.starforce(),
