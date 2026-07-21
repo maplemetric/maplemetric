@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.maplemetric.character.application.result.AdditionalOptionEvaluationResult;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterHexaResult;
@@ -18,6 +19,7 @@ import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterUnionResult;
 import com.maplemetric.character.application.service.CharacterQueryService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,6 +174,49 @@ class CharacterControllerTest {
                 .andExpect(
                         jsonPath("$.data.hexa.stats[0].slotNo")
                                 .value(1)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipment[0]"
+                                        + ".additionalOptionEvaluation.calculable"
+                        ).value(true)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipment[0]"
+                                        + ".additionalOptionEvaluation.score"
+                        ).value(158.0)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipment[0]"
+                                        + ".additionalOptionEvaluation.grade"
+                        ).value(150)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipment[0]"
+                                        + ".additionalOptionEvaluation.criteria"
+                                        + ".mainStats[0]"
+                        ).value("LUK")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipmentPreset1[0]"
+                                        + ".additionalOptionEvaluation.score"
+                        ).value(158.0)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipmentPreset2[0]"
+                                        + ".additionalOptionEvaluation.score"
+                        ).value(158.0)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.equipment.itemEquipmentPreset3[0]"
+                                        + ".additionalOptionEvaluation.score"
+                        ).value(158.0)
                 );
 
         verify(characterQueryService)
@@ -373,15 +418,80 @@ class CharacterControllerTest {
     }
 
     private GetCharacterEquipmentResult createEquipmentResult() {
+        GetCharacterEquipmentResult.ItemEquipmentResult item =
+                createItemEquipmentResult();
+
         return new GetCharacterEquipmentResult(
                 null,
                 "남",
                 "팬텀",
                 2,
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of()
+                List.of(item),
+                List.of(item),
+                List.of(item),
+                List.of(item)
+        );
+    }
+
+    private GetCharacterEquipmentResult.ItemEquipmentResult
+    createItemEquipmentResult() {
+        AdditionalOptionEvaluationResult evaluation =
+                new AdditionalOptionEvaluationResult(
+                        true,
+                        new BigDecimal("158.0"),
+                        150,
+                        "v1",
+                        "LUK",
+                        new AdditionalOptionEvaluationResult.CriteriaResult(
+                                List.of("LUK"),
+                                List.of("DEX"),
+                                true,
+                                false,
+                                new BigDecimal("1.0"),
+                                new BigDecimal("0.1"),
+                                new BigDecimal("4.0"),
+                                new BigDecimal("4.0"),
+                                new BigDecimal("10.0")
+                        ),
+                        null
+                );
+
+        return new GetCharacterEquipmentResult.ItemEquipmentResult(
+                "장갑",
+                "장갑",
+                "테스트 장갑",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                evaluation,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 }
