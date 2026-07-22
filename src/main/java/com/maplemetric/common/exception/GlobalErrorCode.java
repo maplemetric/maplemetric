@@ -1,6 +1,6 @@
-package com.maplemetric.global.exception;
+package com.maplemetric.common.exception;
 
-import com.maplemetric.global.ErrorCode;
+import com.maplemetric.common.ErrorCode;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 

@@ -1,8 +1,8 @@
-package com.maplemetric.global.exception;
+package com.maplemetric.common.exception;
 
-import com.maplemetric.global.ApiResponse;
-import com.maplemetric.global.BusinessException;
-import com.maplemetric.global.ErrorCode;
+import com.maplemetric.common.ApiResponse;
+import com.maplemetric.common.BusinessException;
+import com.maplemetric.common.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;

@@ -1,6 +1,6 @@
-package com.maplemetric.global.config;
+package com.maplemetric.common.config;
 
-import com.maplemetric.global.config.properties.NexonApiProperties;
+import com.maplemetric.common.config.properties.NexonApiProperties;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;

@@ -1,6 +1,6 @@
 package com.maplemetric.ranking.presentation.controller;
 
-import com.maplemetric.global.ApiResponse;
+import com.maplemetric.common.ApiResponse;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
 import com.maplemetric.ranking.application.result.GetUnionRankingResult;

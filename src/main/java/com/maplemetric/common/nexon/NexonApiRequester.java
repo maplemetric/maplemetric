@@ -1,7 +1,7 @@
 package com.maplemetric.common.nexon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.global.BusinessException;
+import com.maplemetric.common.BusinessException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;

@@ -1,4 +1,4 @@
-package com.maplemetric.global;
+package com.maplemetric.common;
 
 import org.springframework.http.HttpStatus;
 

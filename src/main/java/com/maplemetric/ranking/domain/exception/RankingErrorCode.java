@@ -1,6 +1,6 @@
 package com.maplemetric.ranking.domain.exception;
 
-import com.maplemetric.global.ErrorCode;
+import com.maplemetric.common.ErrorCode;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 

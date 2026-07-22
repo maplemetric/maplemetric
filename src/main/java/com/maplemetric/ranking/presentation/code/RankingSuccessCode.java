@@ -1,6 +1,6 @@
 package com.maplemetric.ranking.presentation.code;
 
-import com.maplemetric.global.SuccessCode;
+import com.maplemetric.common.SuccessCode;
 import lombok.Getter;
 
 @Getter
