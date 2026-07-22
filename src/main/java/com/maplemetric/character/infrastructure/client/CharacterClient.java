@@ -9,13 +9,11 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
-import java.time.LocalDate;
 
 public interface CharacterClient {
 
@@ -49,27 +47,6 @@ public interface CharacterClient {
     CharacterHexaMatrixResponse getCharacterHexaMatrix(String ocid);
 
     CharacterHexaMatrixStatResponse getCharacterHexaMatrixStat(String ocid);
-
-    CharacterRankingResponse getOverallRanking(String ocid, LocalDate date);
-
-    CharacterRankingResponse getWorldRanking(
-            String ocid,
-            String worldName,
-            LocalDate date
-    );
-
-    CharacterRankingResponse getClassRanking(
-            String ocid,
-            String classRankingFilter,
-            LocalDate date
-    );
-
-    CharacterRankingResponse getWorldClassRanking(
-            String ocid,
-            String worldName,
-            String classRankingFilter,
-            LocalDate date
-    );
 
     CharacterDojangResponse getCharacterDojang(String ocid);
 }

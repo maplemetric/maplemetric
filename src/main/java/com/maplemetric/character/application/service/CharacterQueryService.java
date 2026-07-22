@@ -26,18 +26,16 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
-import com.maplemetric.ranking.RankingDateResolver;
+import com.maplemetric.ranking.CharacterRanking;
+import com.maplemetric.ranking.CharacterRankingQuery;
+import com.maplemetric.ranking.CharacterRankingQueryException;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,28 +54,33 @@ public class CharacterQueryService {
 
     private final CharacterClient characterClient;
     private final AdditionalOptionCalculator additionalOptionCalculator;
+    private final CharacterRankingQuery characterRankingQuery;
     private final Clock clock;
 
     @Autowired
     public CharacterQueryService(
             CharacterClient characterClient,
-            AdditionalOptionCalculator additionalOptionCalculator
+            AdditionalOptionCalculator additionalOptionCalculator,
+            CharacterRankingQuery characterRankingQuery
     ) {
         this(
                 characterClient,
                 additionalOptionCalculator,
-                Clock.system(RankingDateResolver.KOREA_ZONE_ID)
+                characterRankingQuery,
+                Clock.systemUTC()
         );
     }
 
     CharacterQueryService(
             CharacterClient characterClient,
             AdditionalOptionCalculator additionalOptionCalculator,
+            CharacterRankingQuery characterRankingQuery,
             Clock clock
     ) {
         this.characterClient = characterClient;
         this.additionalOptionCalculator =
                 additionalOptionCalculator;
+        this.characterRankingQuery = characterRankingQuery;
         this.clock = clock;
     }
 
@@ -118,50 +121,11 @@ public class CharacterQueryService {
         CharacterStatResponse statResponse =
                 characterClient.getCharacterStat(ocid);
 
-        LocalDate rankingDate =
-                resolveRankingDate();
-
-        CharacterRankingResponse overallRankingResponse =
-                characterClient.getOverallRanking(
+        CharacterRanking characterRanking =
+                getCharacterRanking(
                         ocid,
-                        rankingDate
+                        basicResponse
                 );
-
-        CharacterRankingResponse worldRankingResponse =
-                characterClient.getWorldRanking(
-                        ocid,
-                        basicResponse.worldName(),
-                        rankingDate
-                );
-
-        String classRankingFilter =
-                resolveClassRankingFilter(
-                        basicResponse.characterName(),
-                        overallRankingResponse
-                );
-
-        CharacterRankingResponse classRankingResponse =
-                new CharacterRankingResponse(List.of());
-
-        CharacterRankingResponse worldClassRankingResponse =
-                new CharacterRankingResponse(List.of());
-
-        if (StringUtils.hasText(classRankingFilter)) {
-            classRankingResponse =
-                    characterClient.getClassRanking(
-                            ocid,
-                            classRankingFilter,
-                            rankingDate
-                    );
-
-            worldClassRankingResponse =
-                    characterClient.getWorldClassRanking(
-                            ocid,
-                            basicResponse.worldName(),
-                            classRankingFilter,
-                            rankingDate
-                    );
-        }
 
         CharacterDojangResponse dojangResponse =
                 characterClient.getCharacterDojang(ocid);
@@ -212,11 +176,7 @@ public class CharacterQueryService {
                 GetCharacterBasicResult.from(basicResponse),
                 GetCharacterStatResult.from(statResponse),
                 GetCharacterRankingResult.of(
-                        basicResponse.characterName(),
-                        overallRankingResponse,
-                        worldRankingResponse,
-                        classRankingResponse,
-                        worldClassRankingResponse,
+                        characterRanking,
                         dojangResponse
                 ),
                 GetCharacterUnionResult.from(unionResponse),
@@ -252,53 +212,38 @@ public class CharacterQueryService {
         );
     }
 
-    private LocalDate resolveRankingDate() {
-        return RankingDateResolver.resolve(
-                null,
-                clock
-        );
+    private CharacterRanking getCharacterRanking(
+            String ocid,
+            CharacterBasicResponse basicResponse
+    ) {
+        try {
+            return characterRankingQuery.getCharacterRanking(
+                    ocid,
+                    basicResponse.characterName(),
+                    basicResponse.worldName()
+            );
+        } catch (CharacterRankingQueryException exception) {
+            throw new CharacterException(
+                    resolveCharacterErrorCode(
+                            exception
+                    )
+            );
+        }
     }
 
-    private String resolveClassRankingFilter(
-            String characterName,
-            CharacterRankingResponse response
+    private CharacterErrorCode resolveCharacterErrorCode(
+            CharacterRankingQueryException exception
     ) {
-        if (response == null
-                || response.ranking() == null) {
-            return null;
-        }
-
-        return response.ranking()
-                .stream()
-                .filter(ranking -> ranking != null)
-                .filter(ranking -> Objects.equals(
-                        characterName,
-                        ranking.characterName()
-                ))
-                .findFirst()
-                .map(ranking -> createClassRankingFilter(
-                        ranking.className(),
-                        ranking.subClassName()
-                ))
-                .orElse(null);
-    }
-
-    private String createClassRankingFilter(
-            String className,
-            String subClassName
-    ) {
-        if (!StringUtils.hasText(className)) {
-            return null;
-        }
-
-        if (StringUtils.hasText(subClassName)) {
-            return className
-                    + "-"
-                    + subClassName;
-        }
-
-        return className
-                + "-전체 전직";
+        return switch (exception.getFailure()) {
+            case NOT_FOUND, CLIENT_ERROR ->
+                    CharacterErrorCode.NEXON_API_CLIENT_ERROR;
+            case SERVER_ERROR ->
+                    CharacterErrorCode.NEXON_API_SERVER_ERROR;
+            case TIMEOUT ->
+                    CharacterErrorCode.NEXON_API_TIMEOUT;
+            case RESPONSE_INVALID ->
+                    CharacterErrorCode.NEXON_API_RESPONSE_INVALID;
+        };
     }
 
     private String getValidatedOcid(
