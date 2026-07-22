@@ -2,10 +2,18 @@ package com.maplemetric;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.maplemetric.ranking.CharacterRanking;
+import com.maplemetric.ranking.CharacterRankingQuery;
+import com.maplemetric.ranking.CharacterRankingQueryException;
 import org.junit.jupiter.api.Test;
+import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
 
 class ModulithStructureTest {
+
+    private static final String RANKING_DATE_RESOLVER =
+            "com.maplemetric.ranking.application.service."
+                    + "RankingDateResolver";
 
     private final ApplicationModules modules =
             ApplicationModules.of(
@@ -32,5 +40,30 @@ class ModulithStructureTest {
         assertThat(
                 modules.getModuleByName("global")
         ).isEmpty();
+    }
+
+    @Test
+    void Ranking모듈은계약만공개하고기준일정책은내부에둔다() {
+        ApplicationModule rankingModule =
+                modules.getModuleByName("ranking")
+                        .orElseThrow();
+
+        assertThat(rankingModule.isExposed(CharacterRanking.class))
+                .isTrue();
+
+        assertThat(rankingModule.isExposed(CharacterRankingQuery.class))
+                .isTrue();
+
+        assertThat(rankingModule.isExposed(
+                CharacterRankingQueryException.class
+        )).isTrue();
+
+        assertThat(
+                rankingModule.getType(
+                                RANKING_DATE_RESOLVER
+                        )
+                        .map(type -> rankingModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
     }
 }
