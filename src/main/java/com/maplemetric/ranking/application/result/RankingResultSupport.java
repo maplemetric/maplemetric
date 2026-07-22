@@ -23,12 +23,16 @@ final class RankingResultSupport {
             return requestedDate;
         }
 
-        LocalDate asOf = parseDate(
-                dateExtractor.apply(ranking.get(0))
+        LocalDate asOf = parseRankingDate(
+                ranking.get(0),
+                dateExtractor
         );
 
         boolean hasDifferentDate = ranking.stream()
-                .map(item -> parseDate(dateExtractor.apply(item)))
+                .map(item -> parseRankingDate(
+                        item,
+                        dateExtractor
+                ))
                 .anyMatch(date -> !asOf.equals(date));
 
         if (hasDifferentDate) {
@@ -36,6 +40,17 @@ final class RankingResultSupport {
         }
 
         return asOf;
+    }
+
+    private static <T> LocalDate parseRankingDate(
+            T ranking,
+            Function<T, String> dateExtractor
+    ) {
+        if (ranking == null) {
+            throw invalidResponseException();
+        }
+
+        return parseDate(dateExtractor.apply(ranking));
     }
 
     private static LocalDate parseDate(

@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -370,6 +371,37 @@ class RankingQueryServiceTest {
                                         123_456_789L
                                 )
                         )
+                )
+        );
+
+        RankingException exception = catchThrowableOfType(
+                () -> service.getUnionRanking(
+                        RANKING_DATE,
+                        null,
+                        1
+                ),
+                RankingException.class
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        RankingErrorCode.NEXON_API_RESPONSE_INVALID
+                );
+    }
+
+    @Test
+    void 랭킹항목이null이면응답오류를반환한다() {
+        RankingQueryService service = createService(
+                "2026-07-21T00:30:00Z"
+        );
+
+        given(rankingClient.getUnionRanking(
+                RANKING_DATE,
+                null,
+                1
+        )).willReturn(
+                new UnionRankingResponse(
+                        Collections.singletonList(null)
                 )
         );
 
