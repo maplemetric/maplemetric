@@ -15,6 +15,30 @@ public interface RankingClient {
             int page
     );
 
+    OverallRankingResponse getCharacterOverallRanking(
+            String ocid,
+            LocalDate date
+    );
+
+    OverallRankingResponse getCharacterWorldRanking(
+            String ocid,
+            String worldName,
+            LocalDate date
+    );
+
+    OverallRankingResponse getCharacterClassRanking(
+            String ocid,
+            String classRankingFilter,
+            LocalDate date
+    );
+
+    OverallRankingResponse getCharacterWorldClassRanking(
+            String ocid,
+            String worldName,
+            String classRankingFilter,
+            LocalDate date
+    );
+
     UnionRankingResponse getUnionRanking(
             LocalDate date,
             String worldName,

@@ -12,7 +12,6 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
@@ -21,7 +20,6 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixRespo
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
-import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -62,8 +60,6 @@ public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_HEXA_MATRIX_STAT_PATH = "/maplestory/v1/character/hexamatrix-stat";
 
-    private static final String RANKING_OVERALL_PATH = "/maplestory/v1/ranking/overall";
-
     private static final String CHARACTER_DOJANG_PATH = "/maplestory/v1/character/dojang";
 
     private static final String CHARACTER_OCID_API = "캐릭터 식별자";
@@ -85,14 +81,6 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_HEXA_MATRIX_API = "캐릭터 HEXA 코어 정보";
 
     private static final String CHARACTER_HEXA_MATRIX_STAT_API = "캐릭터 HEXA 스탯 정보";
-
-    private static final String CHARACTER_OVERALL_RANKING_API = "캐릭터 종합 랭킹 정보";
-
-    private static final String CHARACTER_WORLD_RANKING_API = "캐릭터 월드 랭킹 정보";
-
-    private static final String CHARACTER_WORLD_CLASS_RANKING_API = "캐릭터 월드 내 직업 랭킹 정보";
-
-    private static final String CHARACTER_CLASS_RANKING_API = "캐릭터 직업 랭킹 정보";
 
     private static final String CHARACTER_DOJANG_API = "캐릭터 무릉도장 정보";
 
@@ -347,97 +335,6 @@ public class CharacterClientImpl implements CharacterClient {
                 ocid,
                 CharacterHexaMatrixStatResponse.class,
                 CHARACTER_HEXA_MATRIX_STAT_API,
-                "ocid",
-                ocid
-        );
-    }
-
-    @Override
-    public CharacterRankingResponse getOverallRanking(
-            String ocid,
-            LocalDate date
-    ) {
-        LinkedHashMap<String, String> queryParameters =
-                new LinkedHashMap<>();
-
-        queryParameters.put("date", date.toString());
-        queryParameters.put("ocid", ocid);
-
-        return request(
-                RANKING_OVERALL_PATH,
-                queryParameters,
-                CharacterRankingResponse.class,
-                CHARACTER_OVERALL_RANKING_API,
-                "ocid",
-                ocid
-        );
-    }
-
-    @Override
-    public CharacterRankingResponse getWorldRanking(
-            String ocid,
-            String worldName,
-            LocalDate date
-    ) {
-        LinkedHashMap<String, String> queryParameters =
-                new LinkedHashMap<>();
-
-        queryParameters.put("date", date.toString());
-        queryParameters.put("world_name", worldName);
-        queryParameters.put("ocid", ocid);
-
-        return request(
-                RANKING_OVERALL_PATH,
-                queryParameters,
-                CharacterRankingResponse.class,
-                CHARACTER_WORLD_RANKING_API,
-                "ocid",
-                ocid
-        );
-    }
-
-    @Override
-    public CharacterRankingResponse getWorldClassRanking(
-            String ocid,
-            String worldName,
-            String classRankingFilter,
-            LocalDate date
-    ) {
-        LinkedHashMap<String, String> queryParameters = new LinkedHashMap<>();
-
-        queryParameters.put("date", date.toString());
-        queryParameters.put("world_name", worldName);
-        queryParameters.put("class", classRankingFilter);
-        queryParameters.put("ocid", ocid);
-
-        return request(
-                RANKING_OVERALL_PATH,
-                queryParameters,
-                CharacterRankingResponse.class,
-                CHARACTER_WORLD_CLASS_RANKING_API,
-                "ocid",
-                ocid
-        );
-    }
-
-    @Override
-    public CharacterRankingResponse getClassRanking(
-            String ocid,
-            String classRankingFilter,
-            LocalDate date
-    ) {
-        LinkedHashMap<String, String> queryParameters =
-                new LinkedHashMap<>();
-
-        queryParameters.put("date", date.toString());
-        queryParameters.put("class", classRankingFilter);
-        queryParameters.put("ocid", ocid);
-
-        return request(
-                RANKING_OVERALL_PATH,
-                queryParameters,
-                CharacterRankingResponse.class,
-                CHARACTER_CLASS_RANKING_API,
                 "ocid",
                 ocid
         );

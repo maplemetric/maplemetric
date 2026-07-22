@@ -4,9 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -14,7 +11,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculationPolicyV1;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
-import com.maplemetric.character.application.result.GetCharacterRankingResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
@@ -29,22 +25,28 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.FinalStat;
+import com.maplemetric.common.nexon.NexonApiFailure;
+import com.maplemetric.ranking.CharacterRanking;
+import com.maplemetric.ranking.CharacterRankingQuery;
+import com.maplemetric.ranking.CharacterRankingQueryException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -53,11 +55,11 @@ class CharacterQueryServiceTest {
 
     private static final String CHARACTER_NAME = "감점";
     private static final String OCID = "test-ocid";
-    private static final LocalDate RANKING_DATE =
-            LocalDate.of(2026, 7, 19);
-
     @Mock
     private CharacterClient characterClient;
+
+    @Mock
+    private CharacterRankingQuery characterRankingQuery;
 
     private AdditionalOptionCalculator additionalOptionCalculator;
     private CharacterQueryService characterQueryService;
@@ -79,6 +81,7 @@ class CharacterQueryServiceTest {
                 new CharacterQueryService(
                         characterClient,
                         additionalOptionCalculator,
+                        characterRankingQuery,
                         clock
                 );
     }
@@ -112,7 +115,7 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
-        givenRankingResponses(RANKING_DATE);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -251,7 +254,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verifyRankingCalls(RANKING_DATE);
+        verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
@@ -288,7 +291,7 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
-        givenRankingResponses(RANKING_DATE);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -314,7 +317,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verifyRankingCalls(RANKING_DATE);
+        verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
@@ -336,7 +339,7 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
-        givenRankingResponses(RANKING_DATE);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -365,7 +368,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verifyRankingCalls(RANKING_DATE);
+        verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
@@ -394,7 +397,7 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
-        givenRankingResponses(RANKING_DATE);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -423,7 +426,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verifyRankingCalls(RANKING_DATE);
+        verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
@@ -447,7 +450,7 @@ class CharacterQueryServiceTest {
                         createStatResponse(List.of())
                 );
 
-        givenRankingResponses(RANKING_DATE);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -480,7 +483,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verifyRankingCalls(RANKING_DATE);
+        verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
@@ -517,7 +520,7 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(statResponse);
 
-        givenRankingResponses(RANKING_DATE);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -554,7 +557,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verifyRankingCalls(RANKING_DATE);
+        verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
@@ -562,61 +565,12 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
     }
 
-    @Test
-    void 랭킹기준일은KST오전9시29분이면전일이다() {
-        CharacterQueryService service =
-                new CharacterQueryService(
-                        characterClient,
-                        additionalOptionCalculator,
-                        Clock.fixed(
-                                Instant.parse(
-                                        "2026-07-21T00:29:00Z"
-                                ),
-                                ZoneId.of("Asia/Seoul")
-                        )
-                );
-
-        LocalDate expectedRankingDate =
-                LocalDate.of(2026, 7, 20);
-
-        givenSummaryResponses(expectedRankingDate);
-
-        service.getCharacterSummary(CHARACTER_NAME);
-
-        verifyRankingCalls(expectedRankingDate);
-        verifyExtendedSummaryCalls();
-    }
-
-    @Test
-    void 랭킹기준일은KST오전9시30분이면당일이다() {
-        CharacterQueryService service =
-                new CharacterQueryService(
-                        characterClient,
-                        additionalOptionCalculator,
-                        Clock.fixed(
-                                Instant.parse(
-                                        "2026-07-21T00:30:00Z"
-                                ),
-                                ZoneId.of("Asia/Seoul")
-                        )
-                );
-
-        LocalDate expectedRankingDate =
-                LocalDate.of(2026, 7, 21);
-
-        givenSummaryResponses(expectedRankingDate);
-
-        service.getCharacterSummary(CHARACTER_NAME);
-
-        verifyRankingCalls(expectedRankingDate);
-        verifyExtendedSummaryCalls();
-    }
-
-    @Test
-    void 직업랭킹필터를구할수없으면직업랭킹을조회하지않는다() {
-        CharacterRankingResponse emptyRankingResponse =
-                new CharacterRankingResponse(List.of());
-
+    @ParameterizedTest
+    @MethodSource("characterRankingFailures")
+    void 랭킹조회실패를기존캐릭터오류로변환한다(
+            NexonApiFailure failure,
+            CharacterErrorCode expectedErrorCode
+    ) {
         given(characterClient.getOcid(CHARACTER_NAME))
                 .willReturn(OCID);
 
@@ -626,140 +580,61 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(createStatResponse(List.of()));
 
-        given(characterClient.getOverallRanking(
+        given(characterRankingQuery.getCharacterRanking(
                 OCID,
-                RANKING_DATE
-        )).willReturn(emptyRankingResponse);
+                CHARACTER_NAME,
+                "루나"
+        )).willThrow(
+                new CharacterRankingQueryException(failure)
+        );
 
-        given(characterClient.getWorldRanking(
-                OCID,
-                "루나",
-                RANKING_DATE
-        )).willReturn(emptyRankingResponse);
-
-        given(characterClient.getCharacterDojang(OCID))
-                .willReturn(createDojangResponse(null));
-
-        given(characterClient.getCharacterUnion(OCID))
-                .willReturn(createUnionResponse());
-
-        given(characterClient.getCharacterSymbol(OCID))
-                .willReturn(createSymbolResponse());
-
-        givenExtendedSummaryResponses();
-
-        given(characterClient.getCharacterEquipment(OCID))
-                .willReturn(createEquipmentResponse(List.of()));
-
-        GetCharacterSummaryResult result =
-                characterQueryService.getCharacterSummary(
-                        CHARACTER_NAME
+        CharacterException exception =
+                catchThrowableOfType(
+                        () -> characterQueryService.getCharacterSummary(
+                                CHARACTER_NAME
+                        ),
+                        CharacterException.class
                 );
 
-        assertThat(result.ranking().classRank())
-                .isNull();
-
-        assertThat(result.ranking().worldClassRank())
-                .isNull();
+        assertThat(exception.getErrorCode())
+                .isEqualTo(expectedErrorCode);
 
         verify(characterClient).getOcid(CHARACTER_NAME);
         verify(characterClient).getCharacterBasic(OCID);
         verify(characterClient).getCharacterStat(OCID);
-        verify(characterClient).getOverallRanking(OCID, RANKING_DATE);
-        verify(characterClient).getWorldRanking(OCID, "루나", RANKING_DATE);
-        verify(characterClient, never())
-                .getClassRanking(
-                        anyString(),
-                        anyString(),
-                        any(LocalDate.class)
-                );
-
-        verify(characterClient, never())
-                .getWorldClassRanking(
-                        anyString(),
-                        anyString(),
-                        anyString(),
-                        any(LocalDate.class)
-                );
-        verify(characterClient).getCharacterDojang(OCID);
-        verify(characterClient).getCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
-        verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
+
+        verify(characterRankingQuery).getCharacterRanking(
+                OCID,
+                CHARACTER_NAME,
+                "루나"
+        );
+        verifyNoMoreInteractions(characterRankingQuery);
     }
 
-    @Test
-    void 랭킹목록에서대상캐릭터명과일치하는순위를선택한다() {
-        CharacterRankingResponse response =
-                new CharacterRankingResponse(
-                        List.of(
-                                new CharacterRankingResponse.Ranking(
-                                        1,
-                                        "다른캐릭터",
-                                        "루나",
-                                        "팬텀",
-                                        null
-                                ),
-                                new CharacterRankingResponse.Ranking(
-                                        58333,
-                                        CHARACTER_NAME,
-                                        "루나",
-                                        "팬텀",
-                                        null
-                                )
-                        )
-                );
-
-        GetCharacterRankingResult result =
-                GetCharacterRankingResult.of(
-                        CHARACTER_NAME,
-                        response,
-                        response,
-                        response,
-                        response,
-                        createDojangResponse(57)
-                );
-
-        assertThat(result.overallRank())
-                .isEqualTo(58333);
-
-        assertThat(result.worldRank())
-                .isEqualTo(58333);
-
-        assertThat(result.classRank())
-                .isEqualTo(58333);
-
-        assertThat(result.worldClassRank())
-                .isEqualTo(58333);
-    }
-
-    @Test
-    void 랭킹응답이200이지만목록이비어있으면순위는null이다() {
-        CharacterRankingResponse response =
-                new CharacterRankingResponse(List.of());
-
-        GetCharacterRankingResult result =
-                GetCharacterRankingResult.of(
-                        CHARACTER_NAME,
-                        response,
-                        response,
-                        response,
-                        response,
-                        createDojangResponse(57)
-                );
-
-        assertThat(result.overallRank())
-                .isNull();
-
-        assertThat(result.worldRank())
-                .isNull();
-
-        assertThat(result.classRank())
-                .isNull();
-
-        assertThat(result.worldClassRank())
-                .isNull();
+    private static Stream<Arguments> characterRankingFailures() {
+        return Stream.of(
+                Arguments.of(
+                        NexonApiFailure.NOT_FOUND,
+                        CharacterErrorCode.NEXON_API_CLIENT_ERROR
+                ),
+                Arguments.of(
+                        NexonApiFailure.CLIENT_ERROR,
+                        CharacterErrorCode.NEXON_API_CLIENT_ERROR
+                ),
+                Arguments.of(
+                        NexonApiFailure.SERVER_ERROR,
+                        CharacterErrorCode.NEXON_API_SERVER_ERROR
+                ),
+                Arguments.of(
+                        NexonApiFailure.TIMEOUT,
+                        CharacterErrorCode.NEXON_API_TIMEOUT
+                ),
+                Arguments.of(
+                        NexonApiFailure.RESPONSE_INVALID,
+                        CharacterErrorCode.NEXON_API_RESPONSE_INVALID
+                )
+        );
     }
 
     @Test
@@ -801,6 +676,7 @@ class CharacterQueryServiceTest {
                 );
 
         verifyNoInteractions(characterClient);
+        verifyNoInteractions(characterRankingQuery);
     }
 
     @Test
@@ -808,7 +684,7 @@ class CharacterQueryServiceTest {
         CharacterEquipmentResponse.ItemEquipment item =
                 createItemEquipment();
 
-        givenSummaryResponses(RANKING_DATE);
+        givenSummaryResponses();
 
         given(characterClient.getCharacterEquipment(OCID))
                 .willReturn(
@@ -880,9 +756,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
     }
 
-    private void givenSummaryResponses(
-            LocalDate rankingDate
-    ) {
+    private void givenSummaryResponses() {
         given(characterClient.getOcid(CHARACTER_NAME))
                 .willReturn(OCID);
 
@@ -892,7 +766,7 @@ class CharacterQueryServiceTest {
         given(characterClient.getCharacterStat(OCID))
                 .willReturn(createStatResponse(List.of()));
 
-        givenRankingResponses(rankingDate);
+        givenRankingResponse();
 
         given(characterClient.getCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
@@ -906,78 +780,35 @@ class CharacterQueryServiceTest {
                 .willReturn(createEquipmentResponse(List.of()));
     }
 
-    private void givenRankingResponses(
-            LocalDate rankingDate
-    ) {
-        given(characterClient.getOverallRanking(OCID, rankingDate))
-                .willReturn(createRankingResponse(
-                        CHARACTER_NAME,
+    private void givenRankingResponse() {
+        given(characterRankingQuery.getCharacterRanking(
+                OCID,
+                CHARACTER_NAME,
+                "루나"
+        )).willReturn(
+                new CharacterRanking(
                         58333,
-                        "팬텀",
-                        null
-                ));
-
-        given(characterClient.getWorldRanking(OCID, "루나", rankingDate))
-                .willReturn(createRankingResponse(
-                        CHARACTER_NAME,
                         10244,
-                        "팬텀",
-                        null
-                ));
-
-        given(characterClient.getClassRanking(
-                OCID,
-                "팬텀-전체 전직",
-                rankingDate
-        )).willReturn(createRankingResponse(
-                CHARACTER_NAME,
-                1588,
-                "팬텀",
-                null
-        ));
-
-        given(characterClient.getWorldClassRanking(
-                OCID,
-                "루나",
-                "팬텀-전체 전직",
-                rankingDate
-        )).willReturn(createRankingResponse(
-                CHARACTER_NAME,
-                321,
-                "팬텀",
-                null
-        ));
+                        1588,
+                        321
+                )
+        );
 
         given(characterClient.getCharacterDojang(OCID))
                 .willReturn(createDojangResponse(57));
     }
 
-    private void verifyRankingCalls(
-            LocalDate rankingDate
-    ) {
-        verify(characterClient)
-                .getOverallRanking(OCID, rankingDate);
-
-        verify(characterClient)
-                .getWorldRanking(OCID, "루나", rankingDate);
-
-        verify(characterClient)
-                .getClassRanking(
-                        OCID,
-                        "팬텀-전체 전직",
-                        rankingDate
-                );
-
-        verify(characterClient)
-                .getWorldClassRanking(
-                        OCID,
-                        "루나",
-                        "팬텀-전체 전직",
-                        rankingDate
-                );
+    private void verifyRankingCall() {
+        verify(characterRankingQuery).getCharacterRanking(
+                OCID,
+                CHARACTER_NAME,
+                "루나"
+        );
 
         verify(characterClient)
                 .getCharacterDojang(OCID);
+
+        verifyNoMoreInteractions(characterRankingQuery);
     }
 
     private void givenExtendedSummaryResponses() {
@@ -1036,25 +867,6 @@ class CharacterQueryServiceTest {
 
         verify(characterClient)
                 .getCharacterHexaMatrixStat(OCID);
-    }
-
-    private CharacterRankingResponse createRankingResponse(
-            String characterName,
-            Integer ranking,
-            String className,
-            String subClassName
-    ) {
-        return new CharacterRankingResponse(
-                List.of(
-                        new CharacterRankingResponse.Ranking(
-                                ranking,
-                                characterName,
-                                "루나",
-                                className,
-                                subClassName
-                        )
-                )
-        );
     }
 
     private CharacterBasicResponse createBasicResponse() {

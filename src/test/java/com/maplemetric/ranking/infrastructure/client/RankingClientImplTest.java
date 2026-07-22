@@ -39,6 +39,12 @@ class RankingClientImplTest {
     private static final String NEXON_API_KEY =
             "test-nexon-api-key";
 
+    private static final String OCID =
+            "1234567890abcdefghijklmnopqrstuv";
+
+    private static final String MASKED_OCID =
+            "1234...stuv";
+
     private static final LocalDate RANKING_DATE =
             LocalDate.of(2026, 7, 19);
 
@@ -132,6 +138,314 @@ class RankingClientImplTest {
                 });
 
         mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터랭킹네종을공식쿼리로조회하고역직렬화한다() {
+        ResponseCreator responseCreator = characterRankingResponse();
+
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "ocid", OCID
+                ),
+                responseCreator
+        );
+
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "world_name", "루나",
+                        "ocid", OCID
+                ),
+                responseCreator
+        );
+
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "class", "팬텀-전체 전직",
+                        "ocid", OCID
+                ),
+                responseCreator
+        );
+
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "world_name", "루나",
+                        "class", "팬텀-전체 전직",
+                        "ocid", OCID
+                ),
+                responseCreator
+        );
+
+        OverallRankingResponse overallResult =
+                rankingClient.getCharacterOverallRanking(
+                        OCID,
+                        RANKING_DATE
+                );
+
+        OverallRankingResponse worldResult =
+                rankingClient.getCharacterWorldRanking(
+                        OCID,
+                        "루나",
+                        RANKING_DATE
+                );
+
+        OverallRankingResponse classResult =
+                rankingClient.getCharacterClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                );
+
+        OverallRankingResponse worldClassResult =
+                rankingClient.getCharacterWorldClassRanking(
+                        OCID,
+                        "루나",
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                );
+
+        assertThat(overallResult.ranking().get(0).characterName())
+                .isEqualTo("감점");
+
+        assertThat(worldResult.ranking().get(0).ranking())
+                .isEqualTo(58333);
+
+        assertThat(classResult.ranking().get(0).className())
+                .isEqualTo("팬텀");
+
+        assertThat(worldClassResult.ranking().get(0).subClassName())
+                .isNull();
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터직업랭킹사엑스엑스로그는OCID와API키를노출하지않는다(
+            CapturedOutput output
+    ) {
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "class", "팬텀-전체 전직",
+                        "ocid", OCID
+                ),
+                withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(
+                                """
+                                {
+                                  "error": {
+                                    "name": "OPENAPI00004",
+                                    "message": "Please input valid parameter"
+                                  }
+                                }
+                                """
+                        )
+        );
+
+        RankingException exception = catchThrowableOfType(
+                () -> rankingClient.getCharacterClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                ),
+                RankingException.class
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        RankingErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        assertThat(output)
+                .contains("캐릭터 직업 랭킹 정보")
+                .contains("OPENAPI00004")
+                .contains("ocid=" + MASKED_OCID)
+                .doesNotContain(OCID)
+                .doesNotContain(NEXON_API_KEY)
+                .doesNotContain("x-nxopen-api-key");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터랭킹응답본문이비어있으면잘못된응답오류를반환한다(
+            CapturedOutput output
+    ) {
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "ocid", OCID
+                ),
+                withStatus(HttpStatus.OK)
+        );
+
+        RankingException exception = catchThrowableOfType(
+                () -> rankingClient.getCharacterOverallRanking(
+                        OCID,
+                        RANKING_DATE
+                ),
+                RankingException.class
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        RankingErrorCode.NEXON_API_RESPONSE_INVALID
+                );
+
+        assertSensitiveValuesAreNotLogged(output);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터랭킹사공사응답은빈목록으로변환하지않는다(
+            CapturedOutput output
+    ) {
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                Map.of(
+                        "date", "2026-07-19",
+                        "ocid", OCID
+                ),
+                withStatus(HttpStatus.NOT_FOUND)
+        );
+
+        RankingException exception = catchThrowableOfType(
+                () -> rankingClient.getCharacterOverallRanking(
+                        OCID,
+                        RANKING_DATE
+                ),
+                RankingException.class
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        RankingErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        assertSensitiveValuesAreNotLogged(output);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터랭킹요청제한응답이면재시도후성공한다(
+            CapturedOutput output
+    ) {
+        Map<String, String> queryParameters = Map.of(
+                "date", "2026-07-19",
+                "class", "팬텀-전체 전직",
+                "ocid", OCID
+        );
+
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                queryParameters,
+                createRateLimitResponse()
+        );
+
+        expectGetRequest(
+                OVERALL_RANKING_PATH,
+                queryParameters,
+                characterRankingResponse()
+        );
+
+        OverallRankingResponse result =
+                rankingClient.getCharacterClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                );
+
+        assertThat(result.ranking().get(0).ranking())
+                .isEqualTo(58333);
+
+        assertThat(output)
+                .contains("OPENAPI00007")
+                .contains("retryCount=1");
+
+        assertSensitiveValuesAreNotLogged(output);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터랭킹요청제한재시도횟수를소진하면클라이언트오류다(
+            CapturedOutput output
+    ) {
+        Map<String, String> queryParameters = Map.of(
+                "date", "2026-07-19",
+                "class", "팬텀-전체 전직",
+                "ocid", OCID
+        );
+
+        for (int requestCount = 0;
+             requestCount < 4;
+             requestCount++) {
+            expectGetRequest(
+                    OVERALL_RANKING_PATH,
+                    queryParameters,
+                    createRateLimitResponse()
+            );
+        }
+
+        RankingException exception = catchThrowableOfType(
+                () -> rankingClient.getCharacterClassRanking(
+                        OCID,
+                        "팬텀-전체 전직",
+                        RANKING_DATE
+                ),
+                RankingException.class
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        RankingErrorCode.NEXON_API_CLIENT_ERROR
+                );
+
+        assertThat(output)
+                .contains("retryCount=1")
+                .contains("retryCount=2")
+                .contains("retryCount=3");
+
+        assertSensitiveValuesAreNotLogged(output);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 캐릭터랭킹타임아웃은타임아웃오류로변환한다(
+            CapturedOutput output
+    ) {
+        RankingClientImpl timeoutClient = createFailingClient(
+                new SocketTimeoutException("read timeout")
+        );
+
+        RankingException exception = catchThrowableOfType(
+                () -> timeoutClient.getCharacterOverallRanking(
+                        OCID,
+                        RANKING_DATE
+                ),
+                RankingException.class
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        RankingErrorCode.NEXON_API_TIMEOUT
+                );
+
+        assertSensitiveValuesAreNotLogged(output);
     }
 
     @Test
@@ -450,6 +764,55 @@ class RankingClientImplTest {
                 "{\"ranking\": []}",
                 MediaType.APPLICATION_JSON
         );
+    }
+
+    private ResponseCreator characterRankingResponse() {
+        return withSuccess(
+                """
+                {
+                  "ranking": [
+                    {
+                      "date": "2026-07-19",
+                      "ranking": 58333,
+                      "character_name": "감점",
+                      "world_name": "루나",
+                      "class_name": "팬텀",
+                      "sub_class_name": null,
+                      "character_level": 290,
+                      "character_exp": 123456789,
+                      "character_popularity": 321,
+                      "character_guildname": "메이플"
+                    }
+                  ]
+                }
+                """,
+                MediaType.APPLICATION_JSON
+        );
+    }
+
+    private ResponseCreator createRateLimitResponse() {
+        return withStatus(HttpStatus.TOO_MANY_REQUESTS)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(
+                        """
+                        {
+                          "error": {
+                            "name": "OPENAPI00007",
+                            "message": "Please try again later"
+                          }
+                        }
+                        """
+                );
+    }
+
+    private void assertSensitiveValuesAreNotLogged(
+            CapturedOutput output
+    ) {
+        assertThat(output)
+                .contains("ocid=" + MASKED_OCID)
+                .doesNotContain(OCID)
+                .doesNotContain(NEXON_API_KEY)
+                .doesNotContain("x-nxopen-api-key");
     }
 
     private void expectGetRequest(

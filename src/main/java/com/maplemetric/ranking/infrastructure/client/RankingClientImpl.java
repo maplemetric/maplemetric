@@ -31,6 +31,18 @@ public class RankingClientImpl implements RankingClient {
     private static final String OVERALL_RANKING_API =
             "종합 랭킹 목록";
 
+    private static final String CHARACTER_OVERALL_RANKING_API =
+            "캐릭터 종합 랭킹 정보";
+
+    private static final String CHARACTER_WORLD_RANKING_API =
+            "캐릭터 월드 랭킹 정보";
+
+    private static final String CHARACTER_CLASS_RANKING_API =
+            "캐릭터 직업 랭킹 정보";
+
+    private static final String CHARACTER_WORLD_CLASS_RANKING_API =
+            "캐릭터 월드 내 직업 랭킹 정보";
+
     private static final String UNION_RANKING_API =
             "유니온 랭킹 목록";
 
@@ -92,6 +104,66 @@ public class RankingClientImpl implements RankingClient {
         validateRanking(response.ranking());
 
         return response;
+    }
+
+    @Override
+    public OverallRankingResponse getCharacterOverallRanking(
+            String ocid,
+            LocalDate date
+    ) {
+        return requestCharacterRanking(
+                ocid,
+                date,
+                null,
+                null,
+                CHARACTER_OVERALL_RANKING_API
+        );
+    }
+
+    @Override
+    public OverallRankingResponse getCharacterWorldRanking(
+            String ocid,
+            String worldName,
+            LocalDate date
+    ) {
+        return requestCharacterRanking(
+                ocid,
+                date,
+                worldName,
+                null,
+                CHARACTER_WORLD_RANKING_API
+        );
+    }
+
+    @Override
+    public OverallRankingResponse getCharacterClassRanking(
+            String ocid,
+            String classRankingFilter,
+            LocalDate date
+    ) {
+        return requestCharacterRanking(
+                ocid,
+                date,
+                null,
+                classRankingFilter,
+                CHARACTER_CLASS_RANKING_API
+        );
+    }
+
+    @Override
+    public OverallRankingResponse getCharacterWorldClassRanking(
+            String ocid,
+            String worldName,
+            String classRankingFilter,
+            LocalDate date
+    ) {
+        return requestCharacterRanking(
+                ocid,
+                date,
+                worldName,
+                classRankingFilter,
+                CHARACTER_WORLD_CLASS_RANKING_API
+        );
     }
 
     @Override
@@ -179,6 +251,38 @@ public class RankingClientImpl implements RankingClient {
                     RankingErrorCode.NEXON_API_RESPONSE_INVALID
             );
         }
+    }
+
+    private OverallRankingResponse requestCharacterRanking(
+            String ocid,
+            LocalDate date,
+            String worldName,
+            String classRankingFilter,
+            String apiName
+    ) {
+        LinkedHashMap<String, String> queryParameters =
+                new LinkedHashMap<>();
+
+        queryParameters.put("date", date.toString());
+
+        if (StringUtils.hasText(worldName)) {
+            queryParameters.put("world_name", worldName);
+        }
+
+        if (StringUtils.hasText(classRankingFilter)) {
+            queryParameters.put("class", classRankingFilter);
+        }
+
+        queryParameters.put("ocid", ocid);
+
+        return nexonApiRequester.request(
+                OVERALL_RANKING_PATH,
+                queryParameters,
+                OverallRankingResponse.class,
+                apiName,
+                "ocid",
+                ocid
+        );
     }
 
     private RankingException createException(
