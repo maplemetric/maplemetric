@@ -48,15 +48,16 @@ class ModulithStructureTest {
                 modules.getModuleByName("ranking")
                         .orElseThrow();
 
-        assertThat(rankingModule.isExposed(CharacterRanking.class))
-                .isTrue();
-
-        assertThat(rankingModule.isExposed(CharacterRankingQuery.class))
-                .isTrue();
-
-        assertThat(rankingModule.isExposed(
-                CharacterRankingQueryException.class
-        )).isTrue();
+        assertThat(
+                rankingModule.getNamedInterfaces()
+                        .getUnnamedInterface()
+                        .asJavaClasses()
+                        .map(type -> type.getName())
+        ).containsExactlyInAnyOrder(
+                CharacterRanking.class.getName(),
+                CharacterRankingQuery.class.getName(),
+                CharacterRankingQueryException.class.getName()
+        );
 
         assertThat(
                 rankingModule.getType(
