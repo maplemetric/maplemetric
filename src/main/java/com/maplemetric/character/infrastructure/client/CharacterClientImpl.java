@@ -3,12 +3,15 @@ package com.maplemetric.character.infrastructure.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
+import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
@@ -44,6 +47,12 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_EQUIPMENT_PATH = "/maplestory/v1/character/item-equipment";
 
     private static final String CHARACTER_STAT_PATH = "/maplestory/v1/character/stat";
+
+    private static final String CHARACTER_POPULARITY_PATH = "/maplestory/v1/character/popularity";
+
+    private static final String CHARACTER_HYPER_STAT_PATH = "/maplestory/v1/character/hyper-stat";
+
+    private static final String CHARACTER_ABILITY_PATH = "/maplestory/v1/character/ability";
 
     private static final String CHARACTER_UNION_PATH = "/maplestory/v1/user/union";
 
@@ -92,6 +101,12 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_CLASS_RANKING_API = "캐릭터 직업 랭킹 정보";
 
     private static final String CHARACTER_DOJANG_API = "캐릭터 무릉도장 정보";
+
+    private static final String CHARACTER_POPULARITY_API = "캐릭터 인기도 정보";
+
+    private static final String CHARACTER_HYPER_STAT_API = "캐릭터 하이퍼스탯 정보";
+
+    private static final String CHARACTER_ABILITY_API = "캐릭터 어빌리티 정보";
 
     private static final String INVALID_IDENTIFIER_ERROR_CODE = "OPENAPI00003";
 
@@ -182,6 +197,51 @@ public class CharacterClientImpl implements CharacterClient {
                 ocid,
                 CharacterStatResponse.class,
                 CHARACTER_STAT_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterPopularityResponse getCharacterPopularity(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_POPULARITY_PATH,
+                "ocid",
+                ocid,
+                CharacterPopularityResponse.class,
+                CHARACTER_POPULARITY_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterHyperStatResponse getCharacterHyperStat(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_HYPER_STAT_PATH,
+                "ocid",
+                ocid,
+                CharacterHyperStatResponse.class,
+                CHARACTER_HYPER_STAT_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterAbilityResponse getCharacterAbility(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_ABILITY_PATH,
+                "ocid",
+                ocid,
+                CharacterAbilityResponse.class,
+                CHARACTER_ABILITY_API,
                 "ocid",
                 ocid
         );

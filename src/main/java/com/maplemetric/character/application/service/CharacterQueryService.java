@@ -1,9 +1,13 @@
 package com.maplemetric.character.application.service;
 
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
+import com.maplemetric.character.application.result.GetCharacterAbilityResult;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
+import com.maplemetric.character.application.result.GetCharacterDojangResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterHexaResult;
+import com.maplemetric.character.application.result.GetCharacterHyperStatResult;
+import com.maplemetric.character.application.result.GetCharacterPopularityResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
 import com.maplemetric.character.application.result.GetCharacterSkillsResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
@@ -13,12 +17,15 @@ import com.maplemetric.character.application.result.GetCharacterUnionResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
+import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
@@ -26,6 +33,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolRespon
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -164,6 +172,15 @@ public class CharacterQueryService {
         CharacterDojangResponse dojangResponse =
                 characterClient.getCharacterDojang(ocid);
 
+        CharacterPopularityResponse popularityResponse =
+                characterClient.getCharacterPopularity(ocid);
+
+        CharacterHyperStatResponse hyperStatResponse =
+                characterClient.getCharacterHyperStat(ocid);
+
+        CharacterAbilityResponse abilityResponse =
+                characterClient.getCharacterAbility(ocid);
+
         CharacterUnionResponse unionResponse =
                 characterClient.getCharacterUnion(ocid);
 
@@ -224,7 +241,20 @@ public class CharacterQueryService {
                         equipmentResponse,
                         basicResponse.characterClass(),
                         additionalOptionCalculator
-                )
+                ),
+                GetCharacterPopularityResult.from(
+                        popularityResponse
+                ),
+                GetCharacterHyperStatResult.from(
+                        hyperStatResponse
+                ),
+                GetCharacterAbilityResult.from(
+                        abilityResponse
+                ),
+                GetCharacterDojangResult.from(
+                        dojangResponse
+                ),
+                Instant.now(clock).toString()
         );
     }
 

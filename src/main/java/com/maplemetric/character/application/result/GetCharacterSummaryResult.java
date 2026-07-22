@@ -8,7 +8,12 @@ public record GetCharacterSummaryResult(
         GetCharacterSymbolResult symbols,
         GetCharacterSkillsResult skills,
         GetCharacterHexaResult hexa,
-        GetCharacterEquipmentResult equipment
+        GetCharacterEquipmentResult equipment,
+        GetCharacterPopularityResult popularity,
+        GetCharacterHyperStatResult hyperStat,
+        GetCharacterAbilityResult ability,
+        GetCharacterDojangResult dojang,
+        String dataUpdatedAt
 ) {
 
     public static GetCharacterSummaryResult of(
@@ -19,7 +24,12 @@ public record GetCharacterSummaryResult(
             GetCharacterSymbolResult symbols,
             GetCharacterSkillsResult skills,
             GetCharacterHexaResult hexa,
-            GetCharacterEquipmentResult equipment
+            GetCharacterEquipmentResult equipment,
+            GetCharacterPopularityResult popularity,
+            GetCharacterHyperStatResult hyperStat,
+            GetCharacterAbilityResult ability,
+            GetCharacterDojangResult dojang,
+            String dataUpdatedAt
     ) {
         return new GetCharacterSummaryResult(
                 basic,
@@ -29,7 +39,12 @@ public record GetCharacterSummaryResult(
                 symbols,
                 skills,
                 hexa,
-                equipment
+                equipment,
+                popularity,
+                hyperStat,
+                ability,
+                dojang,
+                dataUpdatedAt
         );
     }
 }

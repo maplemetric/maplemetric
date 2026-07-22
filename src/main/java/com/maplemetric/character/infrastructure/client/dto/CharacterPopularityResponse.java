@@ -4,12 +4,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record CharacterDojangResponse(
+public record CharacterPopularityResponse(
         String date,
-        String characterClass,
-        String worldName,
-        Integer dojangBestFloor,
-        String dateDojangRecord,
-        Integer dojangBestTime
+        Long popularity
 ) {
 }

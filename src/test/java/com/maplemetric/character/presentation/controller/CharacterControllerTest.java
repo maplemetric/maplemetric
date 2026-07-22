@@ -9,9 +9,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.maplemetric.character.application.result.AdditionalOptionEvaluationResult;
+import com.maplemetric.character.application.result.GetCharacterAbilityResult;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
+import com.maplemetric.character.application.result.GetCharacterDojangResult;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterHexaResult;
+import com.maplemetric.character.application.result.GetCharacterHyperStatResult;
+import com.maplemetric.character.application.result.GetCharacterPopularityResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
 import com.maplemetric.character.application.result.GetCharacterSkillsResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
@@ -217,6 +221,43 @@ class CharacterControllerTest {
                                 "$.data.equipment.itemEquipmentPreset3[0]"
                                         + ".additionalOptionEvaluation.score"
                         ).value(158.0)
+                )
+                .andExpect(
+                        jsonPath("$.data.popularity.popularity")
+                                .value(1234)
+                )
+                .andExpect(
+                        jsonPath("$.data.hyperStat.appliedPresetNo")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.data.hyperStat.presets.length()")
+                                .value(3)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.hyperStat.presets[0].stats[0].statType"
+                        ).value("크리티컬 확률")
+                )
+                .andExpect(
+                        jsonPath("$.data.ability.currentGrade")
+                                .value("레전드리")
+                )
+                .andExpect(
+                        jsonPath("$.data.ability.presets.length()")
+                                .value(3)
+                )
+                .andExpect(
+                        jsonPath("$.data.dojang.bestFloor")
+                                .value(57)
+                )
+                .andExpect(
+                        jsonPath("$.data.dojang.bestTime")
+                                .value(600)
+                )
+                .andExpect(
+                        jsonPath("$.data.dataUpdatedAt")
+                                .value("2026-07-20T00:00:00Z")
                 );
 
         verify(characterQueryService)
@@ -267,7 +308,12 @@ class CharacterControllerTest {
                 createSymbolResult(),
                 createSkillsResult(),
                 createHexaResult(),
-                createEquipmentResult()
+                createEquipmentResult(),
+                createPopularityResult(),
+                createHyperStatResult(),
+                createAbilityResult(),
+                createDojangResult(),
+                "2026-07-20T00:00:00Z"
         );
     }
 
@@ -306,6 +352,91 @@ class CharacterControllerTest {
                 1588,
                 321,
                 57
+        );
+    }
+
+    private GetCharacterPopularityResult createPopularityResult() {
+        return new GetCharacterPopularityResult(
+                "2026-07-19T00:00+09:00",
+                1234L
+        );
+    }
+
+    private GetCharacterHyperStatResult createHyperStatResult() {
+        return new GetCharacterHyperStatResult(
+                "2026-07-19T00:00+09:00",
+                "팬텀",
+                2,
+                5L,
+                List.of(
+                        new GetCharacterHyperStatResult.HyperStatPresetResult(
+                                1,
+                                10L,
+                                List.of(
+                                        new GetCharacterHyperStatResult.HyperStatResult(
+                                                "크리티컬 확률",
+                                                15L,
+                                                5,
+                                                "크리티컬 확률 5% 증가"
+                                        )
+                                )
+                        ),
+                        new GetCharacterHyperStatResult.HyperStatPresetResult(
+                                2,
+                                20L,
+                                List.of()
+                        ),
+                        new GetCharacterHyperStatResult.HyperStatPresetResult(
+                                3,
+                                30L,
+                                List.of()
+                        )
+                )
+        );
+    }
+
+    private GetCharacterAbilityResult createAbilityResult() {
+        GetCharacterAbilityResult.AbilityOptionResult option =
+                new GetCharacterAbilityResult.AbilityOptionResult(
+                        "1",
+                        "레전드리",
+                        "보스 몬스터 공격 시 데미지 20% 증가"
+                );
+
+        return new GetCharacterAbilityResult(
+                "2026-07-19T00:00+09:00",
+                "레전드리",
+                List.of(option),
+                100L,
+                1,
+                List.of(
+                        new GetCharacterAbilityResult.AbilityPresetResult(
+                                1,
+                                "레전드리",
+                                List.of(option)
+                        ),
+                        new GetCharacterAbilityResult.AbilityPresetResult(
+                                2,
+                                null,
+                                List.of()
+                        ),
+                        new GetCharacterAbilityResult.AbilityPresetResult(
+                                3,
+                                null,
+                                List.of()
+                        )
+                )
+        );
+    }
+
+    private GetCharacterDojangResult createDojangResult() {
+        return new GetCharacterDojangResult(
+                "2026-07-19T00:00+09:00",
+                "팬텀",
+                "루나",
+                57,
+                "2026-07-18T00:00+09:00",
+                600
         );
     }
 
