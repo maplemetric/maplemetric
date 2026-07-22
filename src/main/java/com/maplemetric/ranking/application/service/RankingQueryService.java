@@ -1,6 +1,5 @@
 package com.maplemetric.ranking.application.service;
 
-import com.maplemetric.ranking.RankingDateResolver;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
 import com.maplemetric.ranking.application.result.GetUnionRankingResult;

@@ -3,7 +3,6 @@ package com.maplemetric.ranking.application.service;
 import com.maplemetric.ranking.CharacterRanking;
 import com.maplemetric.ranking.CharacterRankingQuery;
 import com.maplemetric.ranking.CharacterRankingQueryException;
-import com.maplemetric.ranking.RankingDateResolver;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.RankingClient;
 import com.maplemetric.ranking.infrastructure.client.dto.OverallRankingResponse;

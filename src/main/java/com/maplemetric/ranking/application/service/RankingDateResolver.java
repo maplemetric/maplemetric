@@ -1,4 +1,4 @@
-package com.maplemetric.ranking;
+package com.maplemetric.ranking.application.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -6,9 +6,9 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
-public final class RankingDateResolver {
+final class RankingDateResolver {
 
-    public static final ZoneId KOREA_ZONE_ID =
+    static final ZoneId KOREA_ZONE_ID =
             ZoneId.of("Asia/Seoul");
 
     private static final LocalTime RANKING_AVAILABLE_TIME =
@@ -17,7 +17,7 @@ public final class RankingDateResolver {
     private RankingDateResolver() {
     }
 
-    public static LocalDate resolve(
+    static LocalDate resolve(
             LocalDate requestedDate,
             Clock clock
     ) {
