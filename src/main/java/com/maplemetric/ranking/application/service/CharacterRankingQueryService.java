@@ -10,6 +10,7 @@ import com.maplemetric.ranking.infrastructure.client.dto.OverallRankingResponse;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -116,19 +117,7 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
             String characterName,
             OverallRankingResponse response
     ) {
-        if (response == null
-                || response.ranking() == null) {
-            return null;
-        }
-
-        return response.ranking()
-                .stream()
-                .filter(ranking -> ranking != null)
-                .filter(ranking -> Objects.equals(
-                        characterName,
-                        ranking.characterName()
-                ))
-                .findFirst()
+        return findRanking(characterName, response)
                 .map(ranking -> createClassRankingFilter(
                         ranking.className(),
                         ranking.subClassName()
@@ -158,9 +147,18 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
             String characterName,
             OverallRankingResponse response
     ) {
+        return findRanking(characterName, response)
+                .map(ranking -> ranking.ranking())
+                .orElse(null);
+    }
+
+    private Optional<OverallRankingResponse.Ranking> findRanking(
+            String characterName,
+            OverallRankingResponse response
+    ) {
         if (response == null
                 || response.ranking() == null) {
-            return null;
+            return Optional.empty();
         }
 
         return response.ranking()
@@ -170,8 +168,6 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
                         characterName,
                         ranking.characterName()
                 ))
-                .findFirst()
-                .map(ranking -> ranking.ranking())
-                .orElse(null);
+                .findFirst();
     }
 }
