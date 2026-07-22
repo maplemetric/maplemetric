@@ -1,4 +1,4 @@
-package com.maplemetric.global.config.properties;
+package com.maplemetric.common.config.properties;
 
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;

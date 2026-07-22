@@ -4,7 +4,7 @@ import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.service.CharacterQueryService;
 import com.maplemetric.character.presentation.code.CharacterSuccessCode;
 import com.maplemetric.character.presentation.dto.GetCharacterSummaryResponse;
-import com.maplemetric.global.ApiResponse;
+import com.maplemetric.common.ApiResponse;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

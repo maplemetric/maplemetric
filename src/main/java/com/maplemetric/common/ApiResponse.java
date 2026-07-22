@@ -1,4 +1,4 @@
-package com.maplemetric.global;
+package com.maplemetric.common;
 
 public record ApiResponse<T>(
         boolean success,
