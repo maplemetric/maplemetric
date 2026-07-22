@@ -19,8 +19,8 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
-import com.maplemetric.nexon.NexonApiFailure;
-import com.maplemetric.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonApiFailure;
+import com.maplemetric.common.nexon.NexonApiRequester;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -1,8 +1,8 @@
 package com.maplemetric.ranking.infrastructure.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.nexon.NexonApiFailure;
-import com.maplemetric.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonApiFailure;
+import com.maplemetric.common.nexon.NexonApiRequester;
 import com.maplemetric.ranking.domain.exception.RankingErrorCode;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.dto.DojangRankingResponse;

@@ -32,7 +32,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
-import com.maplemetric.nexon.RankingDateResolver;
+import com.maplemetric.ranking.RankingDateResolver;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;

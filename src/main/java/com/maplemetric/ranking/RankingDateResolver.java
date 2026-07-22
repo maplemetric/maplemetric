@@ -1,4 +1,4 @@
-package com.maplemetric.nexon;
+package com.maplemetric.ranking;
 
 import java.time.Clock;
 import java.time.LocalDate;

@@ -1,4 +1,4 @@
-package com.maplemetric.nexon;
+package com.maplemetric.common.nexon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.global.BusinessException;

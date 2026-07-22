@@ -1,4 +1,4 @@
-package com.maplemetric.nexon;
+package com.maplemetric.common.nexon;
 
 public enum NexonApiFailure {
 
