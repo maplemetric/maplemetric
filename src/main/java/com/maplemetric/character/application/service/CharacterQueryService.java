@@ -32,12 +32,10 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
+import com.maplemetric.ranking.RankingDateResolver;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -56,10 +54,6 @@ public class CharacterQueryService {
     private static final int KOREAN_CHARACTER_WEIGHT = 2;
     private static final int ENGLISH_NUMBER_CHARACTER_WEIGHT = 1;
 
-    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
-
-    private static final LocalTime RANKING_AVAILABLE_TIME = LocalTime.of(9, 30);
-
     private final CharacterClient characterClient;
     private final AdditionalOptionCalculator additionalOptionCalculator;
     private final Clock clock;
@@ -72,7 +66,7 @@ public class CharacterQueryService {
         this(
                 characterClient,
                 additionalOptionCalculator,
-                Clock.system(KOREA_ZONE_ID)
+                Clock.system(RankingDateResolver.KOREA_ZONE_ID)
         );
     }
 
@@ -259,18 +253,10 @@ public class CharacterQueryService {
     }
 
     private LocalDate resolveRankingDate() {
-        ZonedDateTime now =
-                ZonedDateTime.now(clock)
-                        .withZoneSameInstant(KOREA_ZONE_ID);
-
-        LocalDate today = now.toLocalDate();
-
-        if (now.toLocalTime()
-                .isBefore(RANKING_AVAILABLE_TIME)) {
-            return today.minusDays(1);
-        }
-
-        return today;
+        return RankingDateResolver.resolve(
+                null,
+                clock
+        );
     }
 
     private String resolveClassRankingFilter(

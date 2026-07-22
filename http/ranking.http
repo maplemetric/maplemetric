@@ -1,0 +1,17 @@
+@baseUrl = http://localhost:8080
+@date = 2026-07-19
+
+### 종합 랭킹
+GET {{baseUrl}}/api/v1/rankings/overall?date={{date}}&worldName=루나&className=팬텀-전체 전직&page=1
+
+### 일반 월드 종합 랭킹
+GET {{baseUrl}}/api/v1/rankings/overall?date={{date}}&worldType=0&page=1
+
+### 유니온 랭킹
+GET {{baseUrl}}/api/v1/rankings/union?date={{date}}&worldName=루나&page=1
+
+### 무릉도장 일반 랭킹
+GET {{baseUrl}}/api/v1/rankings/dojang?date={{date}}&worldName=루나&difficulty=0&className=팬텀-전체 전직&page=1
+
+### 무릉도장 통달 랭킹
+GET {{baseUrl}}/api/v1/rankings/dojang?date={{date}}&difficulty=1&page=1
