@@ -10,7 +10,12 @@ public record GetCharacterSummaryResponse(
         GetCharacterSymbolResponse symbols,
         GetCharacterSkillsResponse skills,
         GetCharacterHexaResponse hexa,
-        GetCharacterEquipmentResponse equipment
+        GetCharacterEquipmentResponse equipment,
+        GetCharacterPopularityResponse popularity,
+        GetCharacterHyperStatResponse hyperStat,
+        GetCharacterAbilityResponse ability,
+        GetCharacterDojangResponse dojang,
+        String dataUpdatedAt
 ) {
 
     public static GetCharacterSummaryResponse from(
@@ -24,7 +29,12 @@ public record GetCharacterSummaryResponse(
                 GetCharacterSymbolResponse.from(result.symbols()),
                 GetCharacterSkillsResponse.from(result.skills()),
                 GetCharacterHexaResponse.from(result.hexa()),
-                GetCharacterEquipmentResponse.from(result.equipment())
+                GetCharacterEquipmentResponse.from(result.equipment()),
+                GetCharacterPopularityResponse.from(result.popularity()),
+                GetCharacterHyperStatResponse.from(result.hyperStat()),
+                GetCharacterAbilityResponse.from(result.ability()),
+                GetCharacterDojangResponse.from(result.dojang()),
+                result.dataUpdatedAt()
         );
     }
 }

@@ -9,10 +9,13 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
+import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterRankingResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
@@ -62,6 +65,15 @@ class CharacterClientImplTest {
 
     private static final String CHARACTER_BASIC_PATH =
             "/maplestory/v1/character/basic";
+
+    private static final String CHARACTER_POPULARITY_PATH =
+            "/maplestory/v1/character/popularity";
+
+    private static final String CHARACTER_HYPER_STAT_PATH =
+            "/maplestory/v1/character/hyper-stat";
+
+    private static final String CHARACTER_ABILITY_PATH =
+            "/maplestory/v1/character/ability";
 
     private static final String CHARACTER_UNION_PATH =
             "/maplestory/v1/user/union";
@@ -750,7 +762,12 @@ class CharacterClientImplTest {
                 withSuccess(
                         """
                         {
-                          "dojang_best_floor": 57
+                          "date": "2026-07-19T00:00+09:00",
+                          "character_class": "팬텀",
+                          "world_name": "루나",
+                          "dojang_best_floor": 57,
+                          "date_dojang_record": "2026-07-18T00:00+09:00",
+                          "dojang_best_time": 600
                         }
                         """,
                         MediaType.APPLICATION_JSON
@@ -762,6 +779,21 @@ class CharacterClientImplTest {
 
         assertThat(result.dojangBestFloor())
                 .isEqualTo(57);
+
+        assertThat(result.date())
+                .isEqualTo("2026-07-19T00:00+09:00");
+
+        assertThat(result.characterClass())
+                .isEqualTo("팬텀");
+
+        assertThat(result.worldName())
+                .isEqualTo("루나");
+
+        assertThat(result.dateDojangRecord())
+                .isEqualTo("2026-07-18T00:00+09:00");
+
+        assertThat(result.dojangBestTime())
+                .isEqualTo(600);
 
         mockServer.verify();
     }
@@ -1294,6 +1326,145 @@ class CharacterClientImplTest {
                 );
 
         assertSensitiveValuesAreNotLogged(output);
+    }
+
+    @Test
+    void 인기도정보를ocid로조회하고역직렬화한다() {
+        expectGetRequest(
+                CHARACTER_POPULARITY_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "date": "2026-07-19T00:00+09:00",
+                          "popularity": 1234
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterPopularityResponse result =
+                characterClient.getCharacterPopularity(OCID);
+
+        assertThat(result.date())
+                .isEqualTo("2026-07-19T00:00+09:00");
+
+        assertThat(result.popularity())
+                .isEqualTo(1234L);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 하이퍼스탯정보를ocid로조회하고프리셋을역직렬화한다() {
+        expectGetRequest(
+                CHARACTER_HYPER_STAT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "date": "2026-07-19T00:00+09:00",
+                          "character_class": "팬텀",
+                          "use_preset_no": "2",
+                          "use_available_hyper_stat": 5,
+                          "hyper_stat_preset_1": [
+                            {
+                              "stat_type": "크리티컬 확률",
+                              "stat_point": 15,
+                              "stat_level": 5,
+                              "stat_increase": "크리티컬 확률 5% 증가"
+                            }
+                          ],
+                          "hyper_stat_preset_1_remain_point": 10,
+                          "hyper_stat_preset_2": [],
+                          "hyper_stat_preset_2_remain_point": 20,
+                          "hyper_stat_preset_3": [],
+                          "hyper_stat_preset_3_remain_point": 30
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterHyperStatResponse result =
+                characterClient.getCharacterHyperStat(OCID);
+
+        assertThat(result.usePresetNo())
+                .isEqualTo("2");
+
+        assertThat(result.useAvailableHyperStat())
+                .isEqualTo(5L);
+
+        assertThat(result.hyperStatPreset1())
+                .extracting(
+                        stat -> stat.statType(),
+                        stat -> stat.statPoint(),
+                        stat -> stat.statLevel()
+                )
+                .containsExactly(
+                        tuple("크리티컬 확률", 15L, 5)
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 어빌리티정보를ocid로조회하고프리셋을역직렬화한다() {
+        expectGetRequest(
+                CHARACTER_ABILITY_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "date": "2026-07-19T00:00+09:00",
+                          "ability_grade": "레전드리",
+                          "ability_info": [
+                            {
+                              "ability_no": "1",
+                              "ability_grade": "레전드리",
+                              "ability_value": "보스 몬스터 공격 시 데미지 20% 증가"
+                            }
+                          ],
+                          "remain_fame": 100,
+                          "preset_no": 1,
+                          "ability_preset_1": {
+                            "ability_preset_grade": "레전드리",
+                            "ability_info": []
+                          },
+                          "ability_preset_2": null,
+                          "ability_preset_3": null
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterAbilityResponse result =
+                characterClient.getCharacterAbility(OCID);
+
+        assertThat(result.abilityGrade())
+                .isEqualTo("레전드리");
+
+        assertThat(result.abilityInfo())
+                .extracting(
+                        option -> option.abilityNo(),
+                        option -> option.abilityValue()
+                )
+                .containsExactly(
+                        tuple(
+                                "1",
+                                "보스 몬스터 공격 시 데미지 20% 증가"
+                        )
+                );
+
+        assertThat(result.abilityPreset1().abilityPresetGrade())
+                .isEqualTo("레전드리");
+
+        mockServer.verify();
     }
 
     private String createSkillResponseJson(
