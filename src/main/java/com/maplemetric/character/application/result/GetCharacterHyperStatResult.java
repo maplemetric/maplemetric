@@ -1,8 +1,9 @@
 package com.maplemetric.character.application.result;
 
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.HyperStat;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import java.util.List;
 import org.springframework.util.StringUtils;
 
@@ -18,28 +19,28 @@ public record GetCharacterHyperStatResult(
     private static final int MAX_PRESET_NO = 3;
 
     public static GetCharacterHyperStatResult from(
-            CharacterHyperStatResponse response
+            CharacterHyperStat hyperStat
     ) {
         return new GetCharacterHyperStatResult(
-                response.date(),
-                response.characterClass(),
-                convertPresetNo(response.usePresetNo()),
-                response.useAvailableHyperStat(),
+                hyperStat.date(),
+                hyperStat.characterClass(),
+                convertPresetNo(hyperStat.appliedPresetNo()),
+                hyperStat.availablePoints(),
                 List.of(
                         createPreset(
                                 1,
-                                response.hyperStatPreset1RemainPoint(),
-                                response.hyperStatPreset1()
+                                hyperStat.preset1RemainPoints(),
+                                hyperStat.preset1()
                         ),
                         createPreset(
                                 2,
-                                response.hyperStatPreset2RemainPoint(),
-                                response.hyperStatPreset2()
+                                hyperStat.preset2RemainPoints(),
+                                hyperStat.preset2()
                         ),
                         createPreset(
                                 3,
-                                response.hyperStatPreset3RemainPoint(),
-                                response.hyperStatPreset3()
+                                hyperStat.preset3RemainPoints(),
+                                hyperStat.preset3()
                         )
                 )
         );
@@ -73,7 +74,7 @@ public record GetCharacterHyperStatResult(
     private static HyperStatPresetResult createPreset(
             int presetNo,
             Long remainPoints,
-            List<CharacterHyperStatResponse.HyperStat> stats
+            List<HyperStat> stats
     ) {
         return new HyperStatPresetResult(
                 presetNo,
@@ -83,7 +84,7 @@ public record GetCharacterHyperStatResult(
     }
 
     private static List<HyperStatResult> convertStats(
-            List<CharacterHyperStatResponse.HyperStat> stats
+            List<HyperStat> stats
     ) {
         if (stats == null) {
             return List.of();
