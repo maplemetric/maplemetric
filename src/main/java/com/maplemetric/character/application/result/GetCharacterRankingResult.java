@@ -1,6 +1,6 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterDojangPort.CharacterDojang;
 import com.maplemetric.ranking.api.CharacterRanking;
 
 public record GetCharacterRankingResult(
@@ -13,14 +13,14 @@ public record GetCharacterRankingResult(
 
     public static GetCharacterRankingResult of(
             CharacterRanking ranking,
-            CharacterDojangResponse dojangResponse
+            CharacterDojang dojang
     ) {
         return new GetCharacterRankingResult(
                 ranking == null ? null : ranking.overallRank(),
                 ranking == null ? null : ranking.worldRank(),
                 ranking == null ? null : ranking.classRank(),
                 ranking == null ? null : ranking.worldClassRank(),
-                dojangResponse == null ? null : dojangResponse.dojangBestFloor()
+                dojang == null ? null : dojang.bestFloor()
         );
     }
 }
