@@ -1,18 +1,18 @@
-package com.maplemetric.ranking.presentation.dto;
+package com.maplemetric.ranking.presentation.response;
 
-import com.maplemetric.ranking.application.result.GetOverallRankingResult;
+import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import java.time.LocalDate;
 import java.util.List;
 
-public record GetOverallRankingResponse(
+public record GetDojangRankingResponse(
         List<Ranking> ranking,
         int page,
         LocalDate asOf,
         String source
 ) {
 
-    public static GetOverallRankingResponse from(
-            GetOverallRankingResult result
+    public static GetDojangRankingResponse from(
+            GetDojangRankingResult result
     ) {
         List<Ranking> ranking = result.ranking()
                 .stream()
@@ -23,13 +23,12 @@ public record GetOverallRankingResponse(
                         item.className(),
                         item.subClassName(),
                         item.characterLevel(),
-                        item.characterExp(),
-                        item.characterPopularity(),
-                        item.characterGuildName()
+                        item.dojangFloor(),
+                        item.dojangTimeRecord()
                 ))
                 .toList();
 
-        return new GetOverallRankingResponse(
+        return new GetDojangRankingResponse(
                 ranking,
                 result.page(),
                 result.asOf(),
@@ -44,9 +43,8 @@ public record GetOverallRankingResponse(
             String className,
             String subClassName,
             Integer characterLevel,
-            Long characterExp,
-            Integer characterPopularity,
-            String characterGuildName
+            Integer dojangFloor,
+            Integer dojangTimeRecord
     ) {
     }
 }

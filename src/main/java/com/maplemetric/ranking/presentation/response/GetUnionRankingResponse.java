@@ -1,18 +1,18 @@
-package com.maplemetric.ranking.presentation.dto;
+package com.maplemetric.ranking.presentation.response;
 
-import com.maplemetric.ranking.application.result.GetDojangRankingResult;
+import com.maplemetric.ranking.application.result.GetUnionRankingResult;
 import java.time.LocalDate;
 import java.util.List;
 
-public record GetDojangRankingResponse(
+public record GetUnionRankingResponse(
         List<Ranking> ranking,
         int page,
         LocalDate asOf,
         String source
 ) {
 
-    public static GetDojangRankingResponse from(
-            GetDojangRankingResult result
+    public static GetUnionRankingResponse from(
+            GetUnionRankingResult result
     ) {
         List<Ranking> ranking = result.ranking()
                 .stream()
@@ -22,13 +22,12 @@ public record GetDojangRankingResponse(
                         item.worldName(),
                         item.className(),
                         item.subClassName(),
-                        item.characterLevel(),
-                        item.dojangFloor(),
-                        item.dojangTimeRecord()
+                        item.unionLevel(),
+                        item.unionPower()
                 ))
                 .toList();
 
-        return new GetDojangRankingResponse(
+        return new GetUnionRankingResponse(
                 ranking,
                 result.page(),
                 result.asOf(),
@@ -42,9 +41,8 @@ public record GetDojangRankingResponse(
             String worldName,
             String className,
             String subClassName,
-            Integer characterLevel,
-            Integer dojangFloor,
-            Integer dojangTimeRecord
+            Integer unionLevel,
+            Long unionPower
     ) {
     }
 }

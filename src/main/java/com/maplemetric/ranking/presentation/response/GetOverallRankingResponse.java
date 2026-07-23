@@ -1,18 +1,18 @@
-package com.maplemetric.ranking.presentation.dto;
+package com.maplemetric.ranking.presentation.response;
 
-import com.maplemetric.ranking.application.result.GetUnionRankingResult;
+import com.maplemetric.ranking.application.result.GetOverallRankingResult;
 import java.time.LocalDate;
 import java.util.List;
 
-public record GetUnionRankingResponse(
+public record GetOverallRankingResponse(
         List<Ranking> ranking,
         int page,
         LocalDate asOf,
         String source
 ) {
 
-    public static GetUnionRankingResponse from(
-            GetUnionRankingResult result
+    public static GetOverallRankingResponse from(
+            GetOverallRankingResult result
     ) {
         List<Ranking> ranking = result.ranking()
                 .stream()
@@ -22,12 +22,14 @@ public record GetUnionRankingResponse(
                         item.worldName(),
                         item.className(),
                         item.subClassName(),
-                        item.unionLevel(),
-                        item.unionPower()
+                        item.characterLevel(),
+                        item.characterExp(),
+                        item.characterPopularity(),
+                        item.characterGuildName()
                 ))
                 .toList();
 
-        return new GetUnionRankingResponse(
+        return new GetOverallRankingResponse(
                 ranking,
                 result.page(),
                 result.asOf(),
@@ -41,8 +43,10 @@ public record GetUnionRankingResponse(
             String worldName,
             String className,
             String subClassName,
-            Integer unionLevel,
-            Long unionPower
+            Integer characterLevel,
+            Long characterExp,
+            Integer characterPopularity,
+            String characterGuildName
     ) {
     }
 }
