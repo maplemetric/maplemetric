@@ -27,6 +27,22 @@ class ModulithStructureTest {
             "com.maplemetric.analysis.infrastructure.openai."
                     + "OpenAiInsightGenerator";
 
+    private static final String WORLD_ENTITY =
+            "com.maplemetric.world.infrastructure.persistence."
+                    + "WorldEntity";
+
+    private static final String WORLD_REPOSITORY =
+            "com.maplemetric.world.infrastructure.persistence."
+                    + "WorldRepository";
+
+    private static final String JOB_ENTITY =
+            "com.maplemetric.ranking.infrastructure.persistence."
+                    + "JobEntity";
+
+    private static final String JOB_REPOSITORY =
+            "com.maplemetric.ranking.infrastructure.persistence."
+                    + "JobRepository";
+
     private final ApplicationModules modules =
             ApplicationModules.of(
                     MaplemetricServiceApplication.class
@@ -63,6 +79,25 @@ class ModulithStructureTest {
         assertThat(
                 modules.getModuleByName("event")
         ).isPresent();
+    }
+
+    @Test
+    void World모듈은영속성구현을외부에공개하지않는다() {
+        ApplicationModule worldModule =
+                modules.getModuleByName("world")
+                        .orElseThrow();
+
+        assertThat(
+                worldModule.getType(WORLD_ENTITY)
+                        .map(type -> worldModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                worldModule.getType(WORLD_REPOSITORY)
+                        .map(type -> worldModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
     }
 
     @Test
@@ -122,6 +157,18 @@ class ModulithStructureTest {
                 rankingModule.getType(
                                 RANKING_DATE_RESOLVER
                         )
+                        .map(type -> rankingModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                rankingModule.getType(JOB_ENTITY)
+                        .map(type -> rankingModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                rankingModule.getType(JOB_REPOSITORY)
                         .map(type -> rankingModule.isExposed(type))
                         .orElseThrow()
         ).isFalse();
