@@ -7,6 +7,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort.CharacterSymbol;
 import com.maplemetric.character.application.port.out.LoadCharacterUnionPort;
 import com.maplemetric.character.application.port.out.LoadCharacterUnionPort.CharacterUnion;
 import com.maplemetric.character.application.result.GetCharacterAbilityResult;
@@ -33,7 +35,6 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatRes
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
@@ -60,6 +61,7 @@ public class CharacterQueryService {
     private final LoadCharacterBasicPort loadCharacterBasicPort;
     private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
     private final LoadCharacterStatPort loadCharacterStatPort;
+    private final LoadCharacterSymbolPort loadCharacterSymbolPort;
     private final LoadCharacterUnionPort loadCharacterUnionPort;
     private final AdditionalOptionCalculator additionalOptionCalculator;
     private final CharacterRankingQuery characterRankingQuery;
@@ -71,6 +73,7 @@ public class CharacterQueryService {
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             LoadCharacterStatPort loadCharacterStatPort,
+            LoadCharacterSymbolPort loadCharacterSymbolPort,
             LoadCharacterUnionPort loadCharacterUnionPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery
@@ -80,6 +83,7 @@ public class CharacterQueryService {
                 loadCharacterBasicPort,
                 loadCharacterEquipmentPort,
                 loadCharacterStatPort,
+                loadCharacterSymbolPort,
                 loadCharacterUnionPort,
                 additionalOptionCalculator,
                 characterRankingQuery,
@@ -92,6 +96,7 @@ public class CharacterQueryService {
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             LoadCharacterStatPort loadCharacterStatPort,
+            LoadCharacterSymbolPort loadCharacterSymbolPort,
             LoadCharacterUnionPort loadCharacterUnionPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery,
@@ -103,6 +108,7 @@ public class CharacterQueryService {
         this.loadCharacterEquipmentPort =
                 loadCharacterEquipmentPort;
         this.loadCharacterStatPort = loadCharacterStatPort;
+        this.loadCharacterSymbolPort = loadCharacterSymbolPort;
         this.loadCharacterUnionPort = loadCharacterUnionPort;
         this.additionalOptionCalculator =
                 additionalOptionCalculator;
@@ -169,8 +175,8 @@ public class CharacterQueryService {
         CharacterUnion union =
                 loadCharacterUnionPort.loadCharacterUnion(ocid);
 
-        CharacterSymbolResponse symbolResponse =
-                characterClient.getCharacterSymbol(ocid);
+        CharacterSymbol characterSymbol =
+                loadCharacterSymbolPort.loadCharacterSymbol(ocid);
 
         CharacterSkillResponse fifthSkillResponse =
                 characterClient.getCharacterSkill(
@@ -208,7 +214,7 @@ public class CharacterQueryService {
                         dojangResponse
                 ),
                 GetCharacterUnionResult.from(union),
-                GetCharacterSymbolResult.from(symbolResponse),
+                GetCharacterSymbolResult.from(characterSymbol),
                 GetCharacterSkillsResult.of(
                         vMatrixResponse,
                         fifthSkillResponse,

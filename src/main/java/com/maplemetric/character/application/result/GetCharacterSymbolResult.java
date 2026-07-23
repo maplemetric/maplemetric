@@ -1,6 +1,7 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort.CharacterSymbol;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort.Symbol;
 import java.util.List;
 
 public record GetCharacterSymbolResult(
@@ -12,12 +13,12 @@ public record GetCharacterSymbolResult(
     private static final String AUTHENTIC_SYMBOL_KEYWORD = "어센틱심볼";
 
     public static GetCharacterSymbolResult from(
-            CharacterSymbolResponse response
+            CharacterSymbol characterSymbol
     ) {
-        List<CharacterSymbolResponse.Symbol> symbols =
-                response.symbol() == null
+        List<Symbol> symbols =
+                characterSymbol.symbols() == null
                         ? List.of()
-                        : response.symbol();
+                        : characterSymbol.symbols();
 
         return new GetCharacterSymbolResult(
                 convertArcaneSymbols(symbols),
@@ -26,7 +27,7 @@ public record GetCharacterSymbolResult(
     }
 
     private static List<SymbolResult> convertArcaneSymbols(
-            List<CharacterSymbolResponse.Symbol> symbols
+            List<Symbol> symbols
     ) {
         return symbols.stream()
                 .filter(symbol -> isArcaneSymbol(symbol))
@@ -35,7 +36,7 @@ public record GetCharacterSymbolResult(
     }
 
     private static List<SymbolResult> convertAuthenticSymbols(
-            List<CharacterSymbolResponse.Symbol> symbols
+            List<Symbol> symbols
     ) {
         return symbols.stream()
                 .filter(symbol -> isAuthenticSymbol(symbol))
@@ -44,14 +45,14 @@ public record GetCharacterSymbolResult(
     }
 
     private static boolean isArcaneSymbol(
-            CharacterSymbolResponse.Symbol symbol
+            Symbol symbol
     ) {
         return symbol.symbolName() != null
                 && symbol.symbolName().contains(ARCANE_SYMBOL_KEYWORD);
     }
 
     private static boolean isAuthenticSymbol(
-            CharacterSymbolResponse.Symbol symbol
+            Symbol symbol
     ) {
         return symbol.symbolName() != null
                 && symbol.symbolName().contains(AUTHENTIC_SYMBOL_KEYWORD);
@@ -64,7 +65,7 @@ public record GetCharacterSymbolResult(
     ) {
 
         public static SymbolResult from(
-                CharacterSymbolResponse.Symbol symbol
+                Symbol symbol
         ) {
             return new SymbolResult(
                     symbol.symbolName(),
