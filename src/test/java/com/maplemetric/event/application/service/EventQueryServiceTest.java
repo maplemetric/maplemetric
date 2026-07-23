@@ -39,7 +39,7 @@ class EventQueryServiceTest {
                         new EventNoticeListResponse(
                                 List.of(
                                         createEvent(
-                                                "2026-07-20T10:00+09:00"
+                                                "2026-07-20T16:00Z"
                                         )
                                 )
                         )
@@ -55,7 +55,7 @@ class EventQueryServiceTest {
                             .isEqualTo(201L);
                     assertThat(event.date())
                             .isEqualTo(
-                                    LocalDate.of(2026, 7, 20)
+                                    LocalDate.of(2026, 7, 21)
                             );
                     assertThat(event.startDate())
                             .isEqualTo(

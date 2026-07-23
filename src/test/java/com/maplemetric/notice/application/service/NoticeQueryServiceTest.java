@@ -234,7 +234,7 @@ class NoticeQueryServiceTest {
                 noticeId,
                 title,
                 "https://example.com/" + noticeId,
-                "2026-07-21T10:00+09:00"
+                "2026-07-20T16:00Z"
         );
     }
 }

@@ -5,6 +5,7 @@ import com.maplemetric.event.domain.exception.EventException;
 import com.maplemetric.event.infrastructure.client.dto.EventNoticeListResponse;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import org.springframework.util.StringUtils;
@@ -20,6 +21,9 @@ public record GetOngoingEventListResult(
 
     private static final String SOURCE =
             "NEXON_OPEN_API";
+
+    private static final ZoneId KOREA_ZONE_ID =
+            ZoneId.of("Asia/Seoul");
 
     public static GetOngoingEventListResult from(
             EventNoticeListResponse response
@@ -51,6 +55,7 @@ public record GetOngoingEventListResult(
 
         try {
             return OffsetDateTime.parse(value)
+                    .atZoneSameInstant(KOREA_ZONE_ID)
                     .toLocalDate();
         } catch (DateTimeParseException exception) {
             throw new EventException(
