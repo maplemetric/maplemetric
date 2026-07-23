@@ -3,9 +3,9 @@ package com.maplemetric.analysis.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-import com.maplemetric.analysis.InsightFacts;
-import com.maplemetric.analysis.InsightResult;
-import com.maplemetric.analysis.InsightSentiment;
+import com.maplemetric.analysis.application.result.InsightResult;
+import com.maplemetric.analysis.domain.model.InsightFacts;
+import com.maplemetric.analysis.domain.model.InsightSentiment;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;

@@ -7,10 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.analysis.InsightFacts;
-import com.maplemetric.analysis.InsightResult;
-import com.maplemetric.analysis.InsightSentiment;
+import com.maplemetric.analysis.application.result.InsightResult;
 import com.maplemetric.analysis.application.service.TemplateInsightGenerator;
+import com.maplemetric.analysis.domain.model.InsightFacts;
+import com.maplemetric.analysis.domain.model.InsightSentiment;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

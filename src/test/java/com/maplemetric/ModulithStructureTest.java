@@ -2,10 +2,10 @@ package com.maplemetric;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.maplemetric.analysis.InsightFacts;
-import com.maplemetric.analysis.InsightGenerator;
-import com.maplemetric.analysis.InsightResult;
-import com.maplemetric.analysis.InsightSentiment;
+import com.maplemetric.analysis.application.result.InsightResult;
+import com.maplemetric.analysis.application.service.InsightGenerator;
+import com.maplemetric.analysis.domain.model.InsightFacts;
+import com.maplemetric.analysis.domain.model.InsightSentiment;
 import com.maplemetric.ranking.CharacterRanking;
 import com.maplemetric.ranking.CharacterRankingQuery;
 import com.maplemetric.ranking.CharacterRankingQueryException;
@@ -156,7 +156,7 @@ class ModulithStructureTest {
     }
 
     @Test
-    void Analysis모듈은계약만공개하고구현은내부에둔다() {
+    void Analysis모듈은외부계약이없고구현을내부에둔다() {
         ApplicationModule analysisModule =
                 modules.getModuleByName("analysis")
                         .orElseThrow();
@@ -165,14 +165,31 @@ class ModulithStructureTest {
                 analysisModule.getNamedInterfaces()
                         .getUnnamedInterface()
                         .asJavaClasses()
-                        .map(type -> type.getName())
-        ).containsExactlyInAnyOrder(
-                InsightFacts.class.getName(),
-                InsightFacts.Evidence.class.getName(),
-                InsightGenerator.class.getName(),
-                InsightResult.class.getName(),
-                InsightSentiment.class.getName()
-        );
+        ).isEmpty();
+
+        assertThat(
+                analysisModule.getType(InsightFacts.class.getName())
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                analysisModule.getType(InsightGenerator.class.getName())
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                analysisModule.getType(InsightResult.class.getName())
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                analysisModule.getType(InsightSentiment.class.getName())
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
 
         assertThat(
                 analysisModule.getType(
