@@ -1,19 +1,18 @@
 package com.maplemetric.ranking.api;
 
-import com.maplemetric.common.nexon.NexonApiFailure;
 import java.util.Objects;
 
 public class CharacterRankingQueryException extends RuntimeException {
 
-    private final NexonApiFailure failure;
+    private final CharacterRankingQueryFailure failure;
 
     public CharacterRankingQueryException(
-            NexonApiFailure failure
+            CharacterRankingQueryFailure failure
     ) {
         this.failure = Objects.requireNonNull(failure);
     }
 
-    public NexonApiFailure getFailure() {
+    public CharacterRankingQueryFailure getFailure() {
         return failure;
     }
 }

@@ -36,4 +36,19 @@ class RankingArchitectureTest {
                 )
                 .check(rankingClasses);
     }
+
+    @Test
+    void 공개API는Nexon구현을참조하지않는다() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "..ranking.api.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage(
+                        "..common.nexon.."
+                )
+                .check(rankingClasses);
+    }
 }
