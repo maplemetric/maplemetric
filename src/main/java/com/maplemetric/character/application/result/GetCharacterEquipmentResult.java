@@ -1,7 +1,9 @@
 package com.maplemetric.character.application.result;
 
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
-import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 
 import java.util.List;
 
@@ -17,32 +19,32 @@ public record GetCharacterEquipmentResult(
 ) {
 
     public static GetCharacterEquipmentResult from(
-            CharacterEquipmentResponse response,
+            CharacterEquipment equipment,
             String characterClass,
             AdditionalOptionCalculator calculator
     ) {
         return new GetCharacterEquipmentResult(
-                response.date(),
-                response.characterGender(),
-                response.characterClass(),
-                response.presetNo(),
+                equipment.date(),
+                equipment.characterGender(),
+                equipment.characterClass(),
+                equipment.presetNo(),
                 convertItems(
-                        response.itemEquipment(),
+                        equipment.itemEquipment(),
                         characterClass,
                         calculator
                 ),
                 convertItems(
-                        response.itemEquipmentPreset1(),
+                        equipment.itemEquipmentPreset1(),
                         characterClass,
                         calculator
                 ),
                 convertItems(
-                        response.itemEquipmentPreset2(),
+                        equipment.itemEquipmentPreset2(),
                         characterClass,
                         calculator
                 ),
                 convertItems(
-                        response.itemEquipmentPreset3(),
+                        equipment.itemEquipmentPreset3(),
                         characterClass,
                         calculator
                 )
@@ -50,7 +52,7 @@ public record GetCharacterEquipmentResult(
     }
 
     private static List<ItemEquipmentResult> convertItems(
-            List<CharacterEquipmentResponse.ItemEquipment> items,
+            List<ItemEquipment> items,
             String characterClass,
             AdditionalOptionCalculator calculator
     ) {
@@ -106,7 +108,7 @@ public record GetCharacterEquipmentResult(
             String dateExpire
     ) {
         public static ItemEquipmentResult from(
-                CharacterEquipmentResponse.ItemEquipment item,
+                ItemEquipment item,
                 String characterClass,
                 AdditionalOptionCalculator calculator
         ) {
@@ -174,7 +176,7 @@ public record GetCharacterEquipmentResult(
             String maxMpRate
     ) {
 
-        public static ItemOptionResult from(CharacterEquipmentResponse.ItemOption option) {
+        public static ItemOptionResult from(ItemOption option) {
             if (option == null) {
                 return null;
             }
