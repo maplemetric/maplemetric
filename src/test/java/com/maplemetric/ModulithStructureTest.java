@@ -43,6 +43,17 @@ class ModulithStructureTest {
     }
 
     @Test
+    void 공지와이벤트를독립모듈로구성한다() {
+        assertThat(
+                modules.getModuleByName("notice")
+        ).isPresent();
+
+        assertThat(
+                modules.getModuleByName("event")
+        ).isPresent();
+    }
+
+    @Test
     void Ranking모듈은계약만공개하고기준일정책은내부에둔다() {
         ApplicationModule rankingModule =
                 modules.getModuleByName("ranking")
