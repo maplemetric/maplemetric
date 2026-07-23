@@ -1,8 +1,8 @@
-package com.maplemetric.ranking.infrastructure.client;
+package com.maplemetric.ranking.infrastructure.client.nexon;
 
-import com.maplemetric.ranking.infrastructure.client.dto.DojangRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.dto.OverallRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.dto.UnionRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
 import java.time.LocalDate;
 
 public interface RankingClient {

@@ -1,18 +1,17 @@
 package com.maplemetric.ranking.domain.exception;
 
-import com.maplemetric.common.BusinessException;
 import com.maplemetric.common.nexon.NexonApiFailure;
+import java.util.Objects;
 
-public class RankingException extends BusinessException {
+public class RankingException extends RuntimeException {
 
-    private final RankingErrorCode errorCode;
+    private final NexonApiFailure failure;
 
-    public RankingException(RankingErrorCode errorCode) {
-        super(errorCode);
-        this.errorCode = errorCode;
+    public RankingException(NexonApiFailure failure) {
+        this.failure = Objects.requireNonNull(failure);
     }
 
     public NexonApiFailure getFailure() {
-        return errorCode.getFailure();
+        return failure;
     }
 }
