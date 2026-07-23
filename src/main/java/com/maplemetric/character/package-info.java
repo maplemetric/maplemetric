@@ -2,7 +2,7 @@
         allowedDependencies = {
                 "common",
                 "common::nexon",
-                "ranking"
+                "ranking::api"
         }
 )
 package com.maplemetric.character;

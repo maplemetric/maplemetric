@@ -1,8 +1,8 @@
 package com.maplemetric.ranking.application.service;
 
-import com.maplemetric.ranking.CharacterRanking;
-import com.maplemetric.ranking.CharacterRankingQuery;
-import com.maplemetric.ranking.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRanking;
+import com.maplemetric.ranking.api.CharacterRankingQuery;
+import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort.RankingEntry;
 import com.maplemetric.ranking.domain.exception.RankingException;

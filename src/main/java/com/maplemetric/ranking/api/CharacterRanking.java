@@ -1,4 +1,4 @@
-package com.maplemetric.ranking;
+package com.maplemetric.ranking.api;
 
 public record CharacterRanking(
         Integer overallRank,

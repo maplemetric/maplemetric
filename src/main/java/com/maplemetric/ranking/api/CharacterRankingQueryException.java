@@ -1,4 +1,4 @@
-package com.maplemetric.ranking;
+package com.maplemetric.ranking.api;
 
 import com.maplemetric.common.nexon.NexonApiFailure;
 import java.util.Objects;
