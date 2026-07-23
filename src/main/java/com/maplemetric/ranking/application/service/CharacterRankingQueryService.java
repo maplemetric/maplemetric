@@ -3,11 +3,12 @@ package com.maplemetric.ranking.application.service;
 import com.maplemetric.ranking.CharacterRanking;
 import com.maplemetric.ranking.CharacterRankingQuery;
 import com.maplemetric.ranking.CharacterRankingQueryException;
+import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort;
+import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort.RankingEntry;
 import com.maplemetric.ranking.domain.exception.RankingException;
-import com.maplemetric.ranking.infrastructure.client.nexon.RankingClient;
-import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,24 +18,24 @@ import org.springframework.util.StringUtils;
 @Service
 public class CharacterRankingQueryService implements CharacterRankingQuery {
 
-    private final RankingClient rankingClient;
+    private final LoadCharacterRankingPort loadCharacterRankingPort;
     private final Clock clock;
 
     @Autowired
     public CharacterRankingQueryService(
-            RankingClient rankingClient
+            LoadCharacterRankingPort loadCharacterRankingPort
     ) {
         this(
-                rankingClient,
+                loadCharacterRankingPort,
                 Clock.system(RankingDateResolver.KOREA_ZONE_ID)
         );
     }
 
     CharacterRankingQueryService(
-            RankingClient rankingClient,
+            LoadCharacterRankingPort loadCharacterRankingPort,
             Clock clock
     ) {
-        this.rankingClient = rankingClient;
+        this.loadCharacterRankingPort = loadCharacterRankingPort;
         this.clock = clock;
     }
 
@@ -65,14 +66,14 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
         LocalDate rankingDate =
                 RankingDateResolver.resolve(null, clock);
 
-        OverallRankingResponse overallRankingResponse =
-                rankingClient.getCharacterOverallRanking(
+        List<RankingEntry> overallRanking =
+                loadCharacterRankingPort.loadOverallRanking(
                         ocid,
                         rankingDate
                 );
 
-        OverallRankingResponse worldRankingResponse =
-                rankingClient.getCharacterWorldRanking(
+        List<RankingEntry> worldRanking =
+                loadCharacterRankingPort.loadWorldRanking(
                         ocid,
                         worldName,
                         rankingDate
@@ -81,22 +82,22 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
         String classRankingFilter =
                 resolveClassRankingFilter(
                         characterName,
-                        overallRankingResponse
+                        overallRanking
                 );
 
-        OverallRankingResponse classRankingResponse = null;
-        OverallRankingResponse worldClassRankingResponse = null;
+        List<RankingEntry> classRanking = List.of();
+        List<RankingEntry> worldClassRanking = List.of();
 
         if (StringUtils.hasText(classRankingFilter)) {
-            classRankingResponse =
-                    rankingClient.getCharacterClassRanking(
+            classRanking =
+                    loadCharacterRankingPort.loadClassRanking(
                             ocid,
                             classRankingFilter,
                             rankingDate
                     );
 
-            worldClassRankingResponse =
-                    rankingClient.getCharacterWorldClassRanking(
+            worldClassRanking =
+                    loadCharacterRankingPort.loadWorldClassRanking(
                             ocid,
                             worldName,
                             classRankingFilter,
@@ -105,21 +106,21 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
         }
 
         return new CharacterRanking(
-                extractRank(characterName, overallRankingResponse),
-                extractRank(characterName, worldRankingResponse),
-                extractRank(characterName, classRankingResponse),
-                extractRank(characterName, worldClassRankingResponse)
+                extractRank(characterName, overallRanking),
+                extractRank(characterName, worldRanking),
+                extractRank(characterName, classRanking),
+                extractRank(characterName, worldClassRanking)
         );
     }
 
     private String resolveClassRankingFilter(
             String characterName,
-            OverallRankingResponse response
+            List<RankingEntry> ranking
     ) {
-        return findRanking(characterName, response)
-                .map(ranking -> createClassRankingFilter(
-                        ranking.className(),
-                        ranking.subClassName()
+        return findRanking(characterName, ranking)
+                .map(item -> createClassRankingFilter(
+                        item.className(),
+                        item.subClassName()
                 ))
                 .orElse(null);
     }
@@ -144,28 +145,27 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
 
     private Integer extractRank(
             String characterName,
-            OverallRankingResponse response
+            List<RankingEntry> ranking
     ) {
-        return findRanking(characterName, response)
-                .map(ranking -> ranking.ranking())
+        return findRanking(characterName, ranking)
+                .map(item -> item.ranking())
                 .orElse(null);
     }
 
-    private Optional<OverallRankingResponse.Ranking> findRanking(
+    private Optional<RankingEntry> findRanking(
             String characterName,
-            OverallRankingResponse response
+            List<RankingEntry> ranking
     ) {
-        if (response == null
-                || response.ranking() == null) {
+        if (ranking == null) {
             return Optional.empty();
         }
 
-        return response.ranking()
+        return ranking
                 .stream()
-                .filter(ranking -> ranking != null)
-                .filter(ranking -> Objects.equals(
+                .filter(item -> item != null)
+                .filter(item -> Objects.equals(
                         characterName,
-                        ranking.characterName()
+                        item.characterName()
                 ))
                 .findFirst();
     }
