@@ -3,6 +3,7 @@ package com.maplemetric.ranking.application.service;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort.RankingEntry;
 import com.maplemetric.ranking.domain.exception.RankingException;
@@ -53,9 +54,26 @@ public class CharacterRankingQueryService implements CharacterRankingQuery {
             );
         } catch (RankingException exception) {
             throw new CharacterRankingQueryException(
-                    exception.getFailure()
+                    resolveQueryFailure(exception)
             );
         }
+    }
+
+    private CharacterRankingQueryFailure resolveQueryFailure(
+            RankingException exception
+    ) {
+        return switch (exception.getFailure()) {
+            case NOT_FOUND ->
+                    CharacterRankingQueryFailure.NOT_FOUND;
+            case CLIENT_ERROR ->
+                    CharacterRankingQueryFailure.CLIENT_ERROR;
+            case SERVER_ERROR ->
+                    CharacterRankingQueryFailure.SERVER_ERROR;
+            case TIMEOUT ->
+                    CharacterRankingQueryFailure.TIMEOUT;
+            case RESPONSE_INVALID ->
+                    CharacterRankingQueryFailure.RESPONSE_INVALID;
+        };
     }
 
     private CharacterRanking queryCharacterRanking(
