@@ -2,11 +2,11 @@ package com.maplemetric.analysis.infrastructure.openai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.analysis.InsightFacts;
-import com.maplemetric.analysis.InsightGenerator;
-import com.maplemetric.analysis.InsightResult;
-import com.maplemetric.analysis.InsightSentiment;
+import com.maplemetric.analysis.application.result.InsightResult;
+import com.maplemetric.analysis.application.service.InsightGenerator;
 import com.maplemetric.analysis.application.service.TemplateInsightGenerator;
+import com.maplemetric.analysis.domain.model.InsightFacts;
+import com.maplemetric.analysis.domain.model.InsightSentiment;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;

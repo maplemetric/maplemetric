@@ -1,5 +1,6 @@
-package com.maplemetric.analysis;
+package com.maplemetric.analysis.application.result;
 
+import com.maplemetric.analysis.domain.model.InsightSentiment;
 import java.util.List;
 
 public record InsightResult(
