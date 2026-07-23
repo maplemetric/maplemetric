@@ -2,6 +2,10 @@ package com.maplemetric;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.maplemetric.analysis.InsightFacts;
+import com.maplemetric.analysis.InsightGenerator;
+import com.maplemetric.analysis.InsightResult;
+import com.maplemetric.analysis.InsightSentiment;
 import com.maplemetric.ranking.CharacterRanking;
 import com.maplemetric.ranking.CharacterRankingQuery;
 import com.maplemetric.ranking.CharacterRankingQueryException;
@@ -14,6 +18,10 @@ class ModulithStructureTest {
     private static final String RANKING_DATE_RESOLVER =
             "com.maplemetric.ranking.application.service."
                     + "RankingDateResolver";
+
+    private static final String TEMPLATE_INSIGHT_GENERATOR =
+            "com.maplemetric.analysis.application.service."
+                    + "TemplateInsightGenerator";
 
     private final ApplicationModules modules =
             ApplicationModules.of(
@@ -51,6 +59,33 @@ class ModulithStructureTest {
         assertThat(
                 modules.getModuleByName("event")
         ).isPresent();
+    }
+
+    @Test
+    void Analysis모듈은계약만공개하고템플릿구현은내부에둔다() {
+        ApplicationModule analysisModule =
+                modules.getModuleByName("analysis")
+                        .orElseThrow();
+
+        assertThat(
+                analysisModule.getNamedInterfaces()
+                        .getUnnamedInterface()
+                        .asJavaClasses()
+                        .map(type -> type.getName())
+        ).contains(
+                InsightFacts.class.getName(),
+                InsightGenerator.class.getName(),
+                InsightResult.class.getName(),
+                InsightSentiment.class.getName()
+        );
+
+        assertThat(
+                analysisModule.getType(
+                                TEMPLATE_INSIGHT_GENERATOR
+                        )
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
     }
 
     @Test
