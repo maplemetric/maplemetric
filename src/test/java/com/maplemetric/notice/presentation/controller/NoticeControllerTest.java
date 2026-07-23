@@ -7,13 +7,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.maplemetric.notice.application.exception.NoticeException;
+import com.maplemetric.notice.application.exception.NoticeFailure;
 import com.maplemetric.notice.application.result.GetNoticeListResult;
 import com.maplemetric.notice.application.service.NoticeQueryService;
-import com.maplemetric.notice.domain.exception.NoticeErrorCode;
-import com.maplemetric.notice.domain.exception.NoticeException;
+import com.maplemetric.notice.domain.exception.InvalidNoticeCategoryException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -140,9 +145,7 @@ class NoticeControllerTest {
                 "event",
                 20
         )).willThrow(
-                new NoticeException(
-                        NoticeErrorCode.INVALID_CATEGORY
-                )
+                new InvalidNoticeCategoryException()
         );
 
         mockMvc.perform(
@@ -160,6 +163,29 @@ class NoticeControllerTest {
                 "event",
                 20
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("noticeFailures")
+    void 공지조회오류를HTTP응답으로변환한다(
+            NoticeFailure failure,
+            int expectedStatus,
+            String expectedCode
+    ) throws Exception {
+        given(noticeQueryService.getNotices(
+                "general",
+                20
+        )).willThrow(new NoticeException(failure));
+
+        mockMvc.perform(
+                        get("/api/v1/notices")
+                )
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(
+                        jsonPath("$.code")
+                                .value(expectedCode)
+                );
     }
 
     private GetNoticeListResult createNoticeResult() {
@@ -199,6 +225,31 @@ class NoticeControllerTest {
                 1,
                 "cashshop",
                 "NEXON_OPEN_API"
+        );
+    }
+
+    private static Stream<Arguments> noticeFailures() {
+        return Stream.of(
+                Arguments.of(
+                        NoticeFailure.CLIENT_ERROR,
+                        502,
+                        "NOTICE_002"
+                ),
+                Arguments.of(
+                        NoticeFailure.SERVER_ERROR,
+                        502,
+                        "NOTICE_003"
+                ),
+                Arguments.of(
+                        NoticeFailure.TIMEOUT,
+                        504,
+                        "NOTICE_004"
+                ),
+                Arguments.of(
+                        NoticeFailure.RESPONSE_INVALID,
+                        502,
+                        "NOTICE_005"
+                )
         );
     }
 }
