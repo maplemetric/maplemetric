@@ -1,11 +1,11 @@
-package com.maplemetric.notice.infrastructure.client.dto;
+package com.maplemetric.notice.infrastructure.client.nexon.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record UpdateNoticeListResponse(
-        List<NoticeItemResponse> updateNotice
+public record CashshopNoticeListResponse(
+        List<CashshopNoticeItemResponse> cashshopNotice
 ) {
 }

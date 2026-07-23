@@ -1,7 +1,6 @@
-package com.maplemetric.notice.domain;
+package com.maplemetric.notice.domain.model;
 
-import com.maplemetric.notice.domain.exception.NoticeErrorCode;
-import com.maplemetric.notice.domain.exception.NoticeException;
+import com.maplemetric.notice.domain.exception.InvalidNoticeCategoryException;
 import java.util.Arrays;
 
 public enum NoticeCategory {
@@ -27,9 +26,7 @@ public enum NoticeCategory {
                 )
                 .findFirst()
                 .orElseThrow(() ->
-                        new NoticeException(
-                                NoticeErrorCode.INVALID_CATEGORY
-                        )
+                        new InvalidNoticeCategoryException()
                 );
     }
 }

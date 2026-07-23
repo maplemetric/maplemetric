@@ -1,4 +1,4 @@
-package com.maplemetric.notice.infrastructure.client;
+package com.maplemetric.notice.infrastructure.client.nexon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -6,11 +6,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.notice.domain.exception.NoticeErrorCode;
-import com.maplemetric.notice.domain.exception.NoticeException;
-import com.maplemetric.notice.infrastructure.client.dto.CashshopNoticeListResponse;
-import com.maplemetric.notice.infrastructure.client.dto.NoticeListResponse;
-import com.maplemetric.notice.infrastructure.client.dto.UpdateNoticeListResponse;
+import com.maplemetric.notice.application.exception.NoticeException;
+import com.maplemetric.notice.application.exception.NoticeFailure;
+import com.maplemetric.notice.infrastructure.client.nexon.response.CashshopNoticeListResponse;
+import com.maplemetric.notice.infrastructure.client.nexon.response.NoticeListResponse;
+import com.maplemetric.notice.infrastructure.client.nexon.response.UpdateNoticeListResponse;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestClient;
 
 @ExtendWith(OutputCaptureExtension.class)
-class NoticeClientImplTest {
+class NexonNoticeClientTest {
 
     private static final String BASE_URL =
             "https://open.api.nexon.com";
@@ -46,7 +46,7 @@ class NoticeClientImplTest {
 
     private ObjectMapper objectMapper;
     private MockRestServiceServer mockServer;
-    private NoticeClientImpl noticeClient;
+    private NexonNoticeClient nexonNoticeClient;
 
     @BeforeEach
     void setUp() {
@@ -64,7 +64,7 @@ class NoticeClientImplTest {
                 .bindTo(restClientBuilder)
                 .build();
 
-        noticeClient = new NoticeClientImpl(
+        nexonNoticeClient = new NexonNoticeClient(
                 restClientBuilder.build(),
                 objectMapper
         );
@@ -133,13 +133,13 @@ class NoticeClientImplTest {
         );
 
         NoticeListResponse general =
-                noticeClient.getNotices();
+                nexonNoticeClient.getNotices();
 
         UpdateNoticeListResponse update =
-                noticeClient.getUpdateNotices();
+                nexonNoticeClient.getUpdateNotices();
 
         CashshopNoticeListResponse cashshop =
-                noticeClient.getCashshopNotices();
+                nexonNoticeClient.getCashshopNotices();
 
         assertThat(general.notice())
                 .singleElement()
@@ -182,7 +182,7 @@ class NoticeClientImplTest {
         );
 
         NoticeListResponse result =
-                noticeClient.getNotices();
+                nexonNoticeClient.getNotices();
 
         assertThat(result.notice()).isEmpty();
 
@@ -200,13 +200,13 @@ class NoticeClientImplTest {
         );
 
         NoticeException exception = catchThrowableOfType(
-                () -> noticeClient.getNotices(),
+                () -> nexonNoticeClient.getNotices(),
                 NoticeException.class
         );
 
-        assertThat(exception.getErrorCode())
+        assertThat(exception.getFailure())
                 .isEqualTo(
-                        NoticeErrorCode.NEXON_API_RESPONSE_INVALID
+                        NoticeFailure.RESPONSE_INVALID
                 );
 
         mockServer.verify();
@@ -233,13 +233,13 @@ class NoticeClientImplTest {
         );
 
         NoticeException exception = catchThrowableOfType(
-                () -> noticeClient.getUpdateNotices(),
+                () -> nexonNoticeClient.getUpdateNotices(),
                 NoticeException.class
         );
 
-        assertThat(exception.getErrorCode())
+        assertThat(exception.getFailure())
                 .isEqualTo(
-                        NoticeErrorCode.NEXON_API_CLIENT_ERROR
+                        NoticeFailure.CLIENT_ERROR
                 );
 
         assertThat(output)
@@ -259,13 +259,13 @@ class NoticeClientImplTest {
         );
 
         NoticeException exception = catchThrowableOfType(
-                () -> noticeClient.getCashshopNotices(),
+                () -> nexonNoticeClient.getCashshopNotices(),
                 NoticeException.class
         );
 
-        assertThat(exception.getErrorCode())
+        assertThat(exception.getFailure())
                 .isEqualTo(
-                        NoticeErrorCode.NEXON_API_SERVER_ERROR
+                        NoticeFailure.SERVER_ERROR
                 );
 
         mockServer.verify();
@@ -273,7 +273,7 @@ class NoticeClientImplTest {
 
     @Test
     void 타임아웃은타임아웃오류로변환한다() {
-        NoticeClientImpl timeoutClient = createFailingClient(
+        NexonNoticeClient timeoutClient = createFailingClient(
                 new SocketTimeoutException("read timeout")
         );
 
@@ -282,9 +282,9 @@ class NoticeClientImplTest {
                 NoticeException.class
         );
 
-        assertThat(exception.getErrorCode())
+        assertThat(exception.getFailure())
                 .isEqualTo(
-                        NoticeErrorCode.NEXON_API_TIMEOUT
+                        NoticeFailure.TIMEOUT
                 );
     }
 
@@ -303,7 +303,7 @@ class NoticeClientImplTest {
                 .andRespond(responseCreator);
     }
 
-    private NoticeClientImpl createFailingClient(
+    private NexonNoticeClient createFailingClient(
             IOException exception
     ) {
         ClientHttpRequestFactory requestFactory =
@@ -320,7 +320,7 @@ class NoticeClientImplTest {
                 .requestFactory(requestFactory)
                 .build();
 
-        return new NoticeClientImpl(
+        return new NexonNoticeClient(
                 restClient,
                 objectMapper
         );

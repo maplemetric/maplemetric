@@ -4,7 +4,7 @@ import com.maplemetric.common.ApiResponse;
 import com.maplemetric.notice.application.result.GetNoticeListResult;
 import com.maplemetric.notice.application.service.NoticeQueryService;
 import com.maplemetric.notice.presentation.code.NoticeSuccessCode;
-import com.maplemetric.notice.presentation.dto.GetNoticeListResponse;
+import com.maplemetric.notice.presentation.response.GetNoticeListResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.GetMapping;

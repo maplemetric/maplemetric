@@ -1,4 +1,4 @@
-package com.maplemetric.notice.presentation.dto;
+package com.maplemetric.notice.presentation.response;
 
 import com.maplemetric.notice.application.result.GetNoticeListResult;
 import java.time.LocalDate;
