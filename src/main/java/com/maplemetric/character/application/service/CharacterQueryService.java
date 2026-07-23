@@ -1,6 +1,8 @@
 package com.maplemetric.character.application.service;
 
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
+import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
+import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
 import com.maplemetric.character.application.result.GetCharacterAbilityResult;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterDojangResult;
@@ -18,7 +20,6 @@ import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
@@ -53,6 +54,7 @@ public class CharacterQueryService {
     private static final int ENGLISH_NUMBER_CHARACTER_WEIGHT = 1;
 
     private final CharacterClient characterClient;
+    private final LoadCharacterBasicPort loadCharacterBasicPort;
     private final AdditionalOptionCalculator additionalOptionCalculator;
     private final CharacterRankingQuery characterRankingQuery;
     private final Clock clock;
@@ -60,11 +62,13 @@ public class CharacterQueryService {
     @Autowired
     public CharacterQueryService(
             CharacterClient characterClient,
+            LoadCharacterBasicPort loadCharacterBasicPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery
     ) {
         this(
                 characterClient,
+                loadCharacterBasicPort,
                 additionalOptionCalculator,
                 characterRankingQuery,
                 Clock.systemUTC()
@@ -73,11 +77,14 @@ public class CharacterQueryService {
 
     CharacterQueryService(
             CharacterClient characterClient,
+            LoadCharacterBasicPort loadCharacterBasicPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery,
             Clock clock
     ) {
         this.characterClient = characterClient;
+        this.loadCharacterBasicPort =
+                loadCharacterBasicPort;
         this.additionalOptionCalculator =
                 additionalOptionCalculator;
         this.characterRankingQuery = characterRankingQuery;
@@ -89,10 +96,10 @@ public class CharacterQueryService {
     ) {
         String ocid = getValidatedOcid(characterName);
 
-        CharacterBasicResponse basicResponse =
-                characterClient.getCharacterBasic(ocid);
+        CharacterBasic basic =
+                loadCharacterBasicPort.loadCharacterBasic(ocid);
 
-        return GetCharacterBasicResult.from(basicResponse);
+        return GetCharacterBasicResult.from(basic);
     }
 
     public GetCharacterEquipmentResult getCharacterEquipment(
@@ -115,8 +122,8 @@ public class CharacterQueryService {
     ) {
         String ocid = getValidatedOcid(characterName);
 
-        CharacterBasicResponse basicResponse =
-                characterClient.getCharacterBasic(ocid);
+        CharacterBasic basic =
+                loadCharacterBasicPort.loadCharacterBasic(ocid);
 
         CharacterStatResponse statResponse =
                 characterClient.getCharacterStat(ocid);
@@ -124,7 +131,7 @@ public class CharacterQueryService {
         CharacterRanking characterRanking =
                 getCharacterRanking(
                         ocid,
-                        basicResponse
+                        basic
                 );
 
         CharacterDojangResponse dojangResponse =
@@ -173,7 +180,7 @@ public class CharacterQueryService {
                 characterClient.getCharacterEquipment(ocid);
 
         return GetCharacterSummaryResult.of(
-                GetCharacterBasicResult.from(basicResponse),
+                GetCharacterBasicResult.from(basic),
                 GetCharacterStatResult.from(statResponse),
                 GetCharacterRankingResult.of(
                         characterRanking,
@@ -193,7 +200,7 @@ public class CharacterQueryService {
                 ),
                 GetCharacterEquipmentResult.from(
                         equipmentResponse,
-                        basicResponse.characterClass(),
+                        basic.characterClass(),
                         additionalOptionCalculator
                 ),
                 GetCharacterPopularityResult.from(
@@ -214,13 +221,13 @@ public class CharacterQueryService {
 
     private CharacterRanking getCharacterRanking(
             String ocid,
-            CharacterBasicResponse basicResponse
+            CharacterBasic basic
     ) {
         try {
             return characterRankingQuery.getCharacterRanking(
                     ocid,
-                    basicResponse.characterName(),
-                    basicResponse.worldName()
+                    basic.characterName(),
+                    basic.worldName()
             );
         } catch (CharacterRankingQueryException exception) {
             throw new CharacterException(
@@ -251,7 +258,7 @@ public class CharacterQueryService {
     ) {
         validateCharacterName(characterName);
 
-        return characterClient.getOcid(characterName);
+        return loadCharacterBasicPort.resolveOcid(characterName);
     }
 
     private void validateCharacterName(
