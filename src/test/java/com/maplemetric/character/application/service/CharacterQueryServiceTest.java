@@ -19,6 +19,9 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.FinalStat;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort.CharacterSymbol;
+import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort.Symbol;
 import com.maplemetric.character.application.port.out.LoadCharacterUnionPort;
 import com.maplemetric.character.application.port.out.LoadCharacterUnionPort.CharacterUnion;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
@@ -35,7 +38,6 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatRes
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
@@ -74,6 +76,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterStatPort loadCharacterStatPort;
 
     @Mock
+    private LoadCharacterSymbolPort loadCharacterSymbolPort;
+
+    @Mock
     private LoadCharacterUnionPort loadCharacterUnionPort;
 
     @Mock
@@ -101,6 +106,7 @@ class CharacterQueryServiceTest {
                         loadCharacterBasicPort,
                         loadCharacterEquipmentPort,
                         loadCharacterStatPort,
+                        loadCharacterSymbolPort,
                         loadCharacterUnionPort,
                         additionalOptionCalculator,
                         characterRankingQuery,
@@ -142,7 +148,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -281,7 +287,7 @@ class CharacterQueryServiceTest {
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
+        verify(loadCharacterSymbolPort).loadCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
@@ -289,6 +295,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterSymbolPort);
         verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
@@ -326,7 +333,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -352,7 +359,7 @@ class CharacterQueryServiceTest {
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
+        verify(loadCharacterSymbolPort).loadCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
@@ -360,6 +367,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterSymbolPort);
         verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
@@ -382,7 +390,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -411,7 +419,7 @@ class CharacterQueryServiceTest {
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
+        verify(loadCharacterSymbolPort).loadCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
@@ -419,6 +427,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterSymbolPort);
         verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
@@ -448,7 +457,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -477,7 +486,7 @@ class CharacterQueryServiceTest {
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
+        verify(loadCharacterSymbolPort).loadCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
@@ -485,6 +494,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterSymbolPort);
         verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
@@ -509,7 +519,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -542,7 +552,7 @@ class CharacterQueryServiceTest {
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
+        verify(loadCharacterSymbolPort).loadCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
@@ -550,6 +560,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterSymbolPort);
         verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
@@ -587,7 +598,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -624,7 +635,7 @@ class CharacterQueryServiceTest {
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
-        verify(characterClient).getCharacterSymbol(OCID);
+        verify(loadCharacterSymbolPort).loadCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
@@ -632,6 +643,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterSymbolPort);
         verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
@@ -678,6 +690,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoInteractions(loadCharacterSymbolPort);
         verifyNoInteractions(loadCharacterUnionPort);
 
         verify(characterRankingQuery).getCharacterRanking(
@@ -715,15 +728,13 @@ class CharacterQueryServiceTest {
 
     @Test
     void 심볼목록이없으면빈목록을반환한다() {
-        CharacterSymbolResponse response =
-                new CharacterSymbolResponse(
-                        null,
-                        "팬텀",
+        CharacterSymbol characterSymbol =
+                new CharacterSymbol(
                         null
                 );
 
         GetCharacterSymbolResult result =
-                GetCharacterSymbolResult.from(response);
+                GetCharacterSymbolResult.from(characterSymbol);
 
         assertThat(result.arcaneSymbols())
                 .isEmpty();
@@ -755,6 +766,7 @@ class CharacterQueryServiceTest {
         verifyNoInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(loadCharacterStatPort);
+        verifyNoInteractions(loadCharacterSymbolPort);
         verifyNoInteractions(loadCharacterUnionPort);
         verifyNoInteractions(characterRankingQuery);
     }
@@ -841,6 +853,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(loadCharacterStatPort);
+        verifyNoInteractions(loadCharacterSymbolPort);
         verifyNoInteractions(loadCharacterUnionPort);
     }
 
@@ -859,7 +872,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
-        given(characterClient.getCharacterSymbol(OCID))
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
                 .willReturn(createSymbolResponse());
 
         givenExtendedSummaryResponses();
@@ -1062,22 +1075,20 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterSymbolResponse createSymbolResponse() {
-        return new CharacterSymbolResponse(
-                null,
-                "팬텀",
+    private CharacterSymbol createSymbolResponse() {
+        return new CharacterSymbol(
                 List.of(
-                        new CharacterSymbolResponse.Symbol(
+                        new Symbol(
                                 "아케인심볼 : 소멸의 여로",
                                 20,
                                 "https://example.com/vanishing.png"
                         ),
-                        new CharacterSymbolResponse.Symbol(
+                        new Symbol(
                                 "어센틱심볼 : 세르니움",
                                 11,
                                 "https://example.com/cernium.png"
                         ),
-                        new CharacterSymbolResponse.Symbol(
+                        new Symbol(
                                 "그랜드 어센틱심볼 : 탈라하트",
                                 5,
                                 "https://example.com/tallahart.png"
