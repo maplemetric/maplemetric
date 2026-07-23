@@ -72,8 +72,9 @@ class ModulithStructureTest {
                         .getUnnamedInterface()
                         .asJavaClasses()
                         .map(type -> type.getName())
-        ).contains(
+        ).containsExactlyInAnyOrder(
                 InsightFacts.class.getName(),
+                InsightFacts.Evidence.class.getName(),
                 InsightGenerator.class.getName(),
                 InsightResult.class.getName(),
                 InsightSentiment.class.getName()
