@@ -1,6 +1,6 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterUnionPort.CharacterUnion;
 
 public record GetCharacterUnionResult(
         Integer unionLevel,
@@ -8,11 +8,11 @@ public record GetCharacterUnionResult(
 ) {
 
     public static GetCharacterUnionResult from(
-            CharacterUnionResponse response
+            CharacterUnion union
     ) {
         return new GetCharacterUnionResult(
-                response.unionLevel(),
-                response.unionArtifactLevel()
+                union.unionLevel(),
+                union.unionArtifactLevel()
         );
     }
 }
