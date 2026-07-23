@@ -12,6 +12,8 @@ import com.maplemetric.character.application.calculator.AdditionalOptionCalculat
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
+import com.maplemetric.character.application.port.out.LoadCharacterDojangPort;
+import com.maplemetric.character.application.port.out.LoadCharacterDojangPort.CharacterDojang;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
@@ -31,7 +33,6 @@ import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
@@ -70,6 +71,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterBasicPort loadCharacterBasicPort;
 
     @Mock
+    private LoadCharacterDojangPort loadCharacterDojangPort;
+
+    @Mock
     private LoadCharacterEquipmentPort loadCharacterEquipmentPort;
 
     @Mock
@@ -104,6 +108,7 @@ class CharacterQueryServiceTest {
                 new CharacterQueryService(
                         characterClient,
                         loadCharacterBasicPort,
+                        loadCharacterDojangPort,
                         loadCharacterEquipmentPort,
                         loadCharacterStatPort,
                         loadCharacterSymbolPort,
@@ -896,7 +901,7 @@ class CharacterQueryServiceTest {
                 )
         );
 
-        given(characterClient.getCharacterDojang(OCID))
+        given(loadCharacterDojangPort.loadCharacterDojang(OCID))
                 .willReturn(createDojangResponse(57));
     }
 
@@ -907,10 +912,11 @@ class CharacterQueryServiceTest {
                 "루나"
         );
 
-        verify(characterClient)
-                .getCharacterDojang(OCID);
+        verify(loadCharacterDojangPort)
+                .loadCharacterDojang(OCID);
 
         verifyNoMoreInteractions(characterRankingQuery);
+        verifyNoMoreInteractions(loadCharacterDojangPort);
     }
 
     private void givenExtendedSummaryResponses() {
@@ -1062,10 +1068,10 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterDojangResponse createDojangResponse(
+    private CharacterDojang createDojangResponse(
             Integer bestFloor
     ) {
-        return new CharacterDojangResponse(
+        return new CharacterDojang(
                 "2026-07-19T00:00+09:00",
                 "팬텀",
                 "루나",
