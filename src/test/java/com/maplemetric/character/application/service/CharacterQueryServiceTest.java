@@ -16,6 +16,9 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
+import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
+import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
+import com.maplemetric.character.application.port.out.LoadCharacterStatPort.FinalStat;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
@@ -31,10 +34,8 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillRes
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
-import com.maplemetric.character.infrastructure.client.dto.FinalStat;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
@@ -69,6 +70,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterEquipmentPort loadCharacterEquipmentPort;
 
     @Mock
+    private LoadCharacterStatPort loadCharacterStatPort;
+
+    @Mock
     private CharacterRankingQuery characterRankingQuery;
 
     private AdditionalOptionCalculator additionalOptionCalculator;
@@ -92,6 +96,7 @@ class CharacterQueryServiceTest {
                         characterClient,
                         loadCharacterBasicPort,
                         loadCharacterEquipmentPort,
+                        loadCharacterStatPort,
                         additionalOptionCalculator,
                         characterRankingQuery,
                         clock
@@ -103,7 +108,7 @@ class CharacterQueryServiceTest {
         CharacterBasic basic =
                 createBasic();
 
-        CharacterStatResponse statResponse =
+        CharacterStat characterStat =
                 createStatResponse(
                         List.of(
                                 new FinalStat(
@@ -124,8 +129,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(basic);
 
-        given(characterClient.getCharacterStat(OCID))
-                .willReturn(statResponse);
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(characterStat);
 
         givenRankingResponse();
 
@@ -268,7 +273,7 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
@@ -278,11 +283,12 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
     }
 
     @Test
     void 전투력스탯을추출한다() {
-        CharacterStatResponse statResponse =
+        CharacterStat characterStat =
                 createStatResponse(
                         List.of(
                                 new FinalStat(
@@ -306,8 +312,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
-                .willReturn(statResponse);
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(characterStat);
 
         givenRankingResponse();
 
@@ -337,7 +343,7 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
@@ -347,11 +353,12 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
     }
 
     @Test
     void 최종스탯이없으면빈목록을반환한다() {
-        CharacterStatResponse statResponse =
+        CharacterStat characterStat =
                 createStatResponse(null);
 
         given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
@@ -360,8 +367,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
-                .willReturn(statResponse);
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(characterStat);
 
         givenRankingResponse();
 
@@ -394,7 +401,7 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
@@ -404,11 +411,12 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
     }
 
     @Test
     void 전투력스탯이없으면전투력을반환하지않는다() {
-        CharacterStatResponse statResponse =
+        CharacterStat characterStat =
                 createStatResponse(
                         List.of(
                                 new FinalStat(
@@ -424,8 +432,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
-                .willReturn(statResponse);
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(characterStat);
 
         givenRankingResponse();
 
@@ -458,7 +466,7 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
@@ -468,6 +476,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
     }
 
     @Test
@@ -481,7 +490,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
                 .willReturn(
                         createStatResponse(List.of())
                 );
@@ -521,7 +530,7 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
@@ -531,11 +540,12 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
     }
 
     @Test
     void 포스스탯은최종스탯목록에그대로유지한다() {
-        CharacterStatResponse statResponse =
+        CharacterStat characterStat =
                 createStatResponse(
                         List.of(
                                 new FinalStat(
@@ -559,8 +569,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
-                .willReturn(statResponse);
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(characterStat);
 
         givenRankingResponse();
 
@@ -601,7 +611,7 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
@@ -611,6 +621,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
     }
 
     @ParameterizedTest
@@ -625,7 +636,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
                 .willReturn(createStatResponse(List.of()));
 
         given(characterRankingQuery.getCharacterRanking(
@@ -651,10 +662,11 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
-        verify(characterClient).getCharacterStat(OCID);
+        verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
+        verifyNoMoreInteractions(loadCharacterStatPort);
 
         verify(characterRankingQuery).getCharacterRanking(
                 OCID,
@@ -730,6 +742,7 @@ class CharacterQueryServiceTest {
         verifyNoInteractions(characterClient);
         verifyNoInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
+        verifyNoInteractions(loadCharacterStatPort);
         verifyNoInteractions(characterRankingQuery);
     }
 
@@ -814,6 +827,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
+        verifyNoInteractions(loadCharacterStatPort);
     }
 
     private void givenSummaryResponses() {
@@ -823,7 +837,7 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willReturn(createBasic());
 
-        given(characterClient.getCharacterStat(OCID))
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
                 .willReturn(createStatResponse(List.of()));
 
         givenRankingResponse();
@@ -948,10 +962,10 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterStatResponse createStatResponse(
+    private CharacterStat createStatResponse(
             List<FinalStat> finalStat
     ) {
-        return new CharacterStatResponse(
+        return new CharacterStat(
                 null,
                 "팬텀",
                 finalStat,
