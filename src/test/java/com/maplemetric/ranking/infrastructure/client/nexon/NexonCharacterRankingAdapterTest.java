@@ -129,6 +129,13 @@ class NexonCharacterRankingAdapterTest {
                 )
         );
 
+        given(rankingClient.getCharacterWorldClassRanking(
+                OCID,
+                WORLD_NAME,
+                CLASS_FILTER,
+                RANKING_DATE
+        )).willReturn(null);
+
         assertThat(adapter.loadOverallRanking(
                 OCID,
                 RANKING_DATE
@@ -142,6 +149,13 @@ class NexonCharacterRankingAdapterTest {
 
         assertThat(adapter.loadClassRanking(
                 OCID,
+                CLASS_FILTER,
+                RANKING_DATE
+        )).isEmpty();
+
+        assertThat(adapter.loadWorldClassRanking(
+                OCID,
+                WORLD_NAME,
                 CLASS_FILTER,
                 RANKING_DATE
         )).isEmpty();

@@ -32,8 +32,7 @@ class RankingArchitectureTest {
                 .dependOnClassesThat()
                 .resideInAnyPackage(
                         "..ranking.infrastructure..",
-                        "..ranking.presentation..",
-                        "..common.nexon.."
+                        "..ranking.presentation.."
                 )
                 .check(rankingClasses);
     }
