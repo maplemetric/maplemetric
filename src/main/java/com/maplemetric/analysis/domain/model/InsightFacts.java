@@ -1,4 +1,4 @@
-package com.maplemetric.analysis;
+package com.maplemetric.analysis.domain.model;
 
 import java.util.List;
 

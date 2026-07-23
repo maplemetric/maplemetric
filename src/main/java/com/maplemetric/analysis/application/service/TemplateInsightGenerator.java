@@ -1,8 +1,7 @@
 package com.maplemetric.analysis.application.service;
 
-import com.maplemetric.analysis.InsightFacts;
-import com.maplemetric.analysis.InsightGenerator;
-import com.maplemetric.analysis.InsightResult;
+import com.maplemetric.analysis.application.result.InsightResult;
+import com.maplemetric.analysis.domain.model.InsightFacts;
 import java.util.List;
 import org.springframework.stereotype.Service;
 

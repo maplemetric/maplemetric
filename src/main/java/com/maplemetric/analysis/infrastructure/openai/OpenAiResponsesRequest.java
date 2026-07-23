@@ -1,7 +1,7 @@
 package com.maplemetric.analysis.infrastructure.openai;
 
-import com.maplemetric.analysis.InsightFacts;
-import com.maplemetric.analysis.InsightSentiment;
+import com.maplemetric.analysis.domain.model.InsightFacts;
+import com.maplemetric.analysis.domain.model.InsightSentiment;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
