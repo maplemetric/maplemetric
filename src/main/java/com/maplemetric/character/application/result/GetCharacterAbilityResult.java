@@ -1,6 +1,8 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.AbilityOption;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.AbilityPreset;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.CharacterAbility;
 import java.util.List;
 
 public record GetCharacterAbilityResult(
@@ -13,25 +15,25 @@ public record GetCharacterAbilityResult(
 ) {
 
     public static GetCharacterAbilityResult from(
-            CharacterAbilityResponse response
+            CharacterAbility ability
     ) {
         return new GetCharacterAbilityResult(
-                response.date(),
-                response.abilityGrade(),
-                convertOptions(response.abilityInfo()),
-                response.remainFame(),
-                response.presetNo(),
+                ability.date(),
+                ability.currentGrade(),
+                convertOptions(ability.currentOptions()),
+                ability.remainFame(),
+                ability.appliedPresetNo(),
                 List.of(
-                        createPreset(1, response.abilityPreset1()),
-                        createPreset(2, response.abilityPreset2()),
-                        createPreset(3, response.abilityPreset3())
+                        createPreset(1, ability.preset1()),
+                        createPreset(2, ability.preset2()),
+                        createPreset(3, ability.preset3())
                 )
         );
     }
 
     private static AbilityPresetResult createPreset(
             int presetNo,
-            CharacterAbilityResponse.AbilityPreset preset
+            AbilityPreset preset
     ) {
         if (preset == null) {
             return new AbilityPresetResult(
@@ -43,13 +45,13 @@ public record GetCharacterAbilityResult(
 
         return new AbilityPresetResult(
                 presetNo,
-                preset.abilityPresetGrade(),
-                convertOptions(preset.abilityInfo())
+                preset.grade(),
+                convertOptions(preset.options())
         );
     }
 
     private static List<AbilityOptionResult> convertOptions(
-            List<CharacterAbilityResponse.AbilityInfo> options
+            List<AbilityOption> options
     ) {
         if (options == null) {
             return List.of();
@@ -58,9 +60,9 @@ public record GetCharacterAbilityResult(
         return options.stream()
                 .filter(option -> option != null)
                 .map(option -> new AbilityOptionResult(
-                        option.abilityNo(),
-                        option.abilityGrade(),
-                        option.abilityValue()
+                        option.optionNo(),
+                        option.grade(),
+                        option.value()
                 ))
                 .toList();
     }
