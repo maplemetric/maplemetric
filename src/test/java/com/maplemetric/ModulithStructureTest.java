@@ -174,6 +174,14 @@ class ModulithStructureTest {
         ).isFalse();
 
         assertThat(
+                analysisModule.getType(
+                                InsightFacts.Evidence.class.getName()
+                        )
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
                 analysisModule.getType(InsightGenerator.class.getName())
                         .map(type -> analysisModule.isExposed(type))
                         .orElseThrow()
