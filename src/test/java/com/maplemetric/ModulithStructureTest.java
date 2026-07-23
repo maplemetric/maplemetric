@@ -43,6 +43,14 @@ class ModulithStructureTest {
             "com.maplemetric.ranking.infrastructure.persistence."
                     + "JobRepository";
 
+    private static final String CHARACTER_SNAPSHOT_ENTITY =
+            "com.maplemetric.character.infrastructure.persistence."
+                    + "CharacterSnapshotEntity";
+
+    private static final String CHARACTER_SNAPSHOT_REPOSITORY =
+            "com.maplemetric.character.infrastructure.persistence."
+                    + "CharacterSnapshotRepository";
+
     private final ApplicationModules modules =
             ApplicationModules.of(
                     MaplemetricServiceApplication.class
@@ -96,6 +104,29 @@ class ModulithStructureTest {
         assertThat(
                 worldModule.getType(WORLD_REPOSITORY)
                         .map(type -> worldModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+    }
+
+    @Test
+    void Character모듈은Snapshot영속성구현을외부에공개하지않는다() {
+        ApplicationModule characterModule =
+                modules.getModuleByName("character")
+                        .orElseThrow();
+
+        assertThat(
+                characterModule.getType(
+                                CHARACTER_SNAPSHOT_ENTITY
+                        )
+                        .map(type -> characterModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                characterModule.getType(
+                                CHARACTER_SNAPSHOT_REPOSITORY
+                        )
+                        .map(type -> characterModule.isExposed(type))
                         .orElseThrow()
         ).isFalse();
     }
