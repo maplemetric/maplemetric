@@ -1,6 +1,5 @@
 package com.maplemetric.ranking.application.result;
 
-import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,36 +10,17 @@ public record GetDojangRankingResult(
         String source
 ) {
 
-    public static GetDojangRankingResult from(
-            DojangRankingResponse response,
+    public static GetDojangRankingResult of(
+            List<Ranking> ranking,
             int page,
-            LocalDate requestedDate
+            LocalDate asOf,
+            String source
     ) {
-        LocalDate asOf = RankingResultSupport.resolveAsOf(
-                response.ranking(),
-                requestedDate,
-                item -> item.date()
-        );
-
-        List<Ranking> ranking = response.ranking()
-                .stream()
-                .map(item -> new Ranking(
-                        item.ranking(),
-                        item.characterName(),
-                        item.worldName(),
-                        item.className(),
-                        item.subClassName(),
-                        item.characterLevel(),
-                        item.dojangFloor(),
-                        item.dojangTimeRecord()
-                ))
-                .toList();
-
         return new GetDojangRankingResult(
                 ranking,
                 page,
                 asOf,
-                RankingResultSupport.SOURCE
+                source
         );
     }
 

@@ -1,6 +1,5 @@
 package com.maplemetric.ranking.application.result;
 
-import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,35 +10,17 @@ public record GetUnionRankingResult(
         String source
 ) {
 
-    public static GetUnionRankingResult from(
-            UnionRankingResponse response,
+    public static GetUnionRankingResult of(
+            List<Ranking> ranking,
             int page,
-            LocalDate requestedDate
+            LocalDate asOf,
+            String source
     ) {
-        LocalDate asOf = RankingResultSupport.resolveAsOf(
-                response.ranking(),
-                requestedDate,
-                item -> item.date()
-        );
-
-        List<Ranking> ranking = response.ranking()
-                .stream()
-                .map(item -> new Ranking(
-                        item.ranking(),
-                        item.characterName(),
-                        item.worldName(),
-                        item.className(),
-                        item.subClassName(),
-                        item.unionLevel(),
-                        item.unionPower()
-                ))
-                .toList();
-
         return new GetUnionRankingResult(
                 ranking,
                 page,
                 asOf,
-                RankingResultSupport.SOURCE
+                source
         );
     }
 
