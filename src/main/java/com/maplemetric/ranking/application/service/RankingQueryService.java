@@ -1,12 +1,9 @@
 package com.maplemetric.ranking.application.service;
 
+import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
 import com.maplemetric.ranking.application.result.GetUnionRankingResult;
-import com.maplemetric.ranking.infrastructure.client.nexon.RankingClient;
-import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
 import java.time.Clock;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,24 +12,24 @@ import org.springframework.stereotype.Service;
 @Service
 public class RankingQueryService {
 
-    private final RankingClient rankingClient;
+    private final LoadRankingListPort loadRankingListPort;
     private final Clock clock;
 
     @Autowired
     public RankingQueryService(
-            RankingClient rankingClient
+            LoadRankingListPort loadRankingListPort
     ) {
         this(
-                rankingClient,
+                loadRankingListPort,
                 Clock.system(RankingDateResolver.KOREA_ZONE_ID)
         );
     }
 
     RankingQueryService(
-            RankingClient rankingClient,
+            LoadRankingListPort loadRankingListPort,
             Clock clock
     ) {
-        this.rankingClient = rankingClient;
+        this.loadRankingListPort = loadRankingListPort;
         this.clock = clock;
     }
 
@@ -46,19 +43,12 @@ public class RankingQueryService {
         LocalDate rankingDate =
                 RankingDateResolver.resolve(date, clock);
 
-        OverallRankingResponse response =
-                rankingClient.getOverallRanking(
-                        rankingDate,
-                        worldName,
-                        worldType,
-                        className,
-                        page
-                );
-
-        return GetOverallRankingResult.from(
-                response,
-                page,
-                rankingDate
+        return loadRankingListPort.loadOverallRanking(
+                rankingDate,
+                worldName,
+                worldType,
+                className,
+                page
         );
     }
 
@@ -70,17 +60,10 @@ public class RankingQueryService {
         LocalDate rankingDate =
                 RankingDateResolver.resolve(date, clock);
 
-        UnionRankingResponse response =
-                rankingClient.getUnionRanking(
-                        rankingDate,
-                        worldName,
-                        page
-                );
-
-        return GetUnionRankingResult.from(
-                response,
-                page,
-                rankingDate
+        return loadRankingListPort.loadUnionRanking(
+                rankingDate,
+                worldName,
+                page
         );
     }
 
@@ -94,19 +77,12 @@ public class RankingQueryService {
         LocalDate rankingDate =
                 RankingDateResolver.resolve(date, clock);
 
-        DojangRankingResponse response =
-                rankingClient.getDojangRanking(
-                        rankingDate,
-                        worldName,
-                        difficulty,
-                        className,
-                        page
-                );
-
-        return GetDojangRankingResult.from(
-                response,
-                page,
-                rankingDate
+        return loadRankingListPort.loadDojangRanking(
+                rankingDate,
+                worldName,
+                difficulty,
+                className,
+                page
         );
     }
 }
