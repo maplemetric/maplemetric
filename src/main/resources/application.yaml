@@ -53,3 +53,11 @@ maplemetric:
     open-api:
       base-url: https://open.api.nexon.com
       key: ${NEXON_OPEN_API_KEY:}
+
+  openai:
+    enabled: ${OPENAI_ENABLED:false}
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+    key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:}
+    connect-timeout: ${OPENAI_CONNECT_TIMEOUT:3s}
+    read-timeout: ${OPENAI_READ_TIMEOUT:10s}
