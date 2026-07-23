@@ -1,6 +1,6 @@
 package com.maplemetric.ranking.application.result;
 
-import com.maplemetric.ranking.infrastructure.client.dto.UnionRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
 import java.time.LocalDate;
 import java.util.List;
 

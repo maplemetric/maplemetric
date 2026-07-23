@@ -1,4 +1,4 @@
-package com.maplemetric.ranking.domain.exception;
+package com.maplemetric.ranking.presentation.code;
 
 import com.maplemetric.common.ErrorCode;
 import com.maplemetric.common.nexon.NexonApiFailure;

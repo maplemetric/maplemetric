@@ -1,4 +1,4 @@
-package com.maplemetric.ranking.infrastructure.client.dto;
+package com.maplemetric.ranking.infrastructure.client.nexon.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;

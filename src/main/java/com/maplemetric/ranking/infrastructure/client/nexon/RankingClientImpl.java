@@ -1,13 +1,13 @@
-package com.maplemetric.ranking.infrastructure.client;
+package com.maplemetric.ranking.infrastructure.client.nexon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
-import com.maplemetric.ranking.domain.exception.RankingErrorCode;
 import com.maplemetric.ranking.domain.exception.RankingException;
-import com.maplemetric.ranking.infrastructure.client.dto.DojangRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.dto.OverallRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.dto.UnionRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
+import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -1,7 +1,7 @@
 package com.maplemetric.ranking.application.result;
 
-import com.maplemetric.ranking.domain.exception.RankingErrorCode;
 import com.maplemetric.ranking.domain.exception.RankingException;
+import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
