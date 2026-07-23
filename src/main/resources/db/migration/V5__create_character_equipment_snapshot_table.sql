@@ -32,9 +32,3 @@ CREATE TABLE p_character_equipment_snapshot
     CONSTRAINT ck_p_character_equipment_snapshot_starforce
         CHECK (starforce IS NULL OR starforce >= 0)
 );
-
-CREATE INDEX idx_p_character_equipment_character
-    ON p_character_equipment_snapshot (
-        character_snapshot_id,
-        equipment_preset_no
-    );
