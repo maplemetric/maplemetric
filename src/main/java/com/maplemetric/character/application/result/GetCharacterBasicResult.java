@@ -1,6 +1,6 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterBasicResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
 
 public record GetCharacterBasicResult(
         String characterName,
@@ -18,21 +18,21 @@ public record GetCharacterBasicResult(
         String liberationQuestClearFlag
 ) {
 
-    public static GetCharacterBasicResult from(CharacterBasicResponse response) {
+    public static GetCharacterBasicResult from(CharacterBasic basic) {
         return new GetCharacterBasicResult(
-                response.characterName(),
-                response.worldName(),
-                response.characterGender(),
-                response.characterClass(),
-                response.characterClassLevel(),
-                response.characterLevel(),
-                response.characterExp(),
-                response.characterExpRate(),
-                response.characterGuildName(),
-                response.characterImage(),
-                response.characterDateCreate(),
-                response.accessFlag(),
-                response.liberationQuestClearFlag()
+                basic.characterName(),
+                basic.worldName(),
+                basic.characterGender(),
+                basic.characterClass(),
+                basic.characterClassLevel(),
+                basic.characterLevel(),
+                basic.characterExp(),
+                basic.characterExpRate(),
+                basic.characterGuildName(),
+                basic.characterImage(),
+                basic.characterDateCreate(),
+                basic.accessFlag(),
+                basic.liberationQuestClearFlag()
         );
     }
 }
