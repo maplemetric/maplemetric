@@ -1,4 +1,4 @@
-package com.maplemetric.ranking.infrastructure.client;
+package com.maplemetric.ranking.infrastructure.client.nexon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -6,11 +6,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.ranking.domain.exception.RankingErrorCode;
 import com.maplemetric.ranking.domain.exception.RankingException;
-import com.maplemetric.ranking.infrastructure.client.dto.DojangRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.dto.OverallRankingResponse;
-import com.maplemetric.ranking.infrastructure.client.dto.UnionRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
+import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
+import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
