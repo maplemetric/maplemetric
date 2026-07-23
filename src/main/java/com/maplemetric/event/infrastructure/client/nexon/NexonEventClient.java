@@ -1,18 +1,18 @@
-package com.maplemetric.event.infrastructure.client;
+package com.maplemetric.event.infrastructure.client.nexon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
-import com.maplemetric.event.domain.exception.EventErrorCode;
-import com.maplemetric.event.domain.exception.EventException;
-import com.maplemetric.event.infrastructure.client.dto.EventNoticeListResponse;
+import com.maplemetric.event.application.exception.EventException;
+import com.maplemetric.event.application.exception.EventFailure;
+import com.maplemetric.event.infrastructure.client.nexon.response.EventNoticeListResponse;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 @Component
-public class EventClientImpl implements EventClient {
+class NexonEventClient {
 
     private static final String EVENT_NOTICE_PATH =
             "/maplestory/v1/notice-event";
@@ -22,7 +22,7 @@ public class EventClientImpl implements EventClient {
 
     private final NexonApiRequester nexonApiRequester;
 
-    public EventClientImpl(
+    NexonEventClient(
             @Qualifier("nexonRestClient") RestClient nexonRestClient,
             ObjectMapper objectMapper
     ) {
@@ -34,8 +34,7 @@ public class EventClientImpl implements EventClient {
         );
     }
 
-    @Override
-    public EventNoticeListResponse getOngoingEvents() {
+    EventNoticeListResponse getOngoingEvents() {
         EventNoticeListResponse response =
                 nexonApiRequester.request(
                         EVENT_NOTICE_PATH,
@@ -51,7 +50,7 @@ public class EventClientImpl implements EventClient {
                 .stream()
                 .anyMatch(event -> event == null)) {
             throw new EventException(
-                    EventErrorCode.NEXON_API_RESPONSE_INVALID
+                    EventFailure.RESPONSE_INVALID
             );
         }
 
@@ -61,17 +60,17 @@ public class EventClientImpl implements EventClient {
     private EventException createException(
             NexonApiFailure failure
     ) {
-        EventErrorCode errorCode = switch (failure) {
+        EventFailure eventFailure = switch (failure) {
             case NOT_FOUND, CLIENT_ERROR ->
-                    EventErrorCode.NEXON_API_CLIENT_ERROR;
+                    EventFailure.CLIENT_ERROR;
             case SERVER_ERROR ->
-                    EventErrorCode.NEXON_API_SERVER_ERROR;
+                    EventFailure.SERVER_ERROR;
             case TIMEOUT ->
-                    EventErrorCode.NEXON_API_TIMEOUT;
+                    EventFailure.TIMEOUT;
             case RESPONSE_INVALID ->
-                    EventErrorCode.NEXON_API_RESPONSE_INVALID;
+                    EventFailure.RESPONSE_INVALID;
         };
 
-        return new EventException(errorCode);
+        return new EventException(eventFailure);
     }
 }
