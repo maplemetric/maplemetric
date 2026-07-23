@@ -3,9 +3,9 @@ package com.maplemetric.character.application.result;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -13,11 +13,11 @@ class GetCharacterHyperStatResultTest {
 
     @Test
     void 적용프리셋을숫자로변환하고null목록을빈목록으로변환한다() {
-        CharacterHyperStatResponse response =
+        CharacterHyperStat hyperStat =
                 createResponse("2");
 
         GetCharacterHyperStatResult result =
-                GetCharacterHyperStatResult.from(response);
+                GetCharacterHyperStatResult.from(hyperStat);
 
         assertThat(result.appliedPresetNo())
                 .isEqualTo(2);
@@ -31,12 +31,12 @@ class GetCharacterHyperStatResultTest {
 
     @Test
     void 적용프리셋이숫자가아니면잘못된응답예외를반환한다() {
-        CharacterHyperStatResponse response =
+        CharacterHyperStat hyperStat =
                 createResponse("invalid");
 
         CharacterException exception =
                 catchThrowableOfType(
-                        () -> GetCharacterHyperStatResult.from(response),
+                        () -> GetCharacterHyperStatResult.from(hyperStat),
                         CharacterException.class
                 );
 
@@ -48,12 +48,12 @@ class GetCharacterHyperStatResultTest {
 
     @Test
     void 적용프리셋이범위를벗어나면잘못된응답예외를반환한다() {
-        CharacterHyperStatResponse response =
+        CharacterHyperStat hyperStat =
                 createResponse("4");
 
         CharacterException exception =
                 catchThrowableOfType(
-                        () -> GetCharacterHyperStatResult.from(response),
+                        () -> GetCharacterHyperStatResult.from(hyperStat),
                         CharacterException.class
                 );
 
@@ -63,10 +63,10 @@ class GetCharacterHyperStatResultTest {
                 );
     }
 
-    private CharacterHyperStatResponse createResponse(
+    private CharacterHyperStat createResponse(
             String presetNo
     ) {
-        return new CharacterHyperStatResponse(
+        return new CharacterHyperStat(
                 "2026-07-19T00:00+09:00",
                 "팬텀",
                 presetNo,

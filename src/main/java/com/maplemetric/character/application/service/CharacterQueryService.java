@@ -7,6 +7,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterDojangPort;
 import com.maplemetric.character.application.port.out.LoadCharacterDojangPort.CharacterDojang;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort;
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
@@ -34,7 +36,6 @@ import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
@@ -63,6 +64,7 @@ public class CharacterQueryService {
     private final LoadCharacterBasicPort loadCharacterBasicPort;
     private final LoadCharacterDojangPort loadCharacterDojangPort;
     private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
+    private final LoadCharacterHyperStatPort loadCharacterHyperStatPort;
     private final LoadCharacterPopularityPort loadCharacterPopularityPort;
     private final LoadCharacterStatPort loadCharacterStatPort;
     private final LoadCharacterSymbolPort loadCharacterSymbolPort;
@@ -77,6 +79,7 @@ public class CharacterQueryService {
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
+            LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
@@ -89,6 +92,7 @@ public class CharacterQueryService {
                 loadCharacterBasicPort,
                 loadCharacterDojangPort,
                 loadCharacterEquipmentPort,
+                loadCharacterHyperStatPort,
                 loadCharacterPopularityPort,
                 loadCharacterStatPort,
                 loadCharacterSymbolPort,
@@ -104,6 +108,7 @@ public class CharacterQueryService {
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
+            LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
@@ -118,6 +123,7 @@ public class CharacterQueryService {
         this.loadCharacterDojangPort = loadCharacterDojangPort;
         this.loadCharacterEquipmentPort =
                 loadCharacterEquipmentPort;
+        this.loadCharacterHyperStatPort = loadCharacterHyperStatPort;
         this.loadCharacterPopularityPort =
                 loadCharacterPopularityPort;
         this.loadCharacterStatPort = loadCharacterStatPort;
@@ -180,8 +186,9 @@ public class CharacterQueryService {
                 loadCharacterPopularityPort
                         .loadCharacterPopularity(ocid);
 
-        CharacterHyperStatResponse hyperStatResponse =
-                characterClient.getCharacterHyperStat(ocid);
+        CharacterHyperStat hyperStat =
+                loadCharacterHyperStatPort
+                        .loadCharacterHyperStat(ocid);
 
         CharacterAbilityResponse abilityResponse =
                 characterClient.getCharacterAbility(ocid);
@@ -248,7 +255,7 @@ public class CharacterQueryService {
                         popularity
                 ),
                 GetCharacterHyperStatResult.from(
-                        hyperStatResponse
+                        hyperStat
                 ),
                 GetCharacterAbilityResult.from(
                         abilityResponse

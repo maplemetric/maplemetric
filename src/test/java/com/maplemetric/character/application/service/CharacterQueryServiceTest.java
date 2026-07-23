@@ -18,6 +18,9 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort;
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
+import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.HyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
@@ -37,7 +40,6 @@ import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
@@ -78,6 +80,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterEquipmentPort loadCharacterEquipmentPort;
 
     @Mock
+    private LoadCharacterHyperStatPort loadCharacterHyperStatPort;
+
+    @Mock
     private LoadCharacterPopularityPort loadCharacterPopularityPort;
 
     @Mock
@@ -114,6 +119,7 @@ class CharacterQueryServiceTest {
                         loadCharacterBasicPort,
                         loadCharacterDojangPort,
                         loadCharacterEquipmentPort,
+                        loadCharacterHyperStatPort,
                         loadCharacterPopularityPort,
                         loadCharacterStatPort,
                         loadCharacterSymbolPort,
@@ -929,7 +935,8 @@ class CharacterQueryServiceTest {
                 .loadCharacterPopularity(OCID))
                 .willReturn(createPopularityResponse());
 
-        given(characterClient.getCharacterHyperStat(OCID))
+        given(loadCharacterHyperStatPort
+                .loadCharacterHyperStat(OCID))
                 .willReturn(createHyperStatResponse());
 
         given(characterClient.getCharacterAbility(OCID))
@@ -958,8 +965,8 @@ class CharacterQueryServiceTest {
         verify(loadCharacterPopularityPort)
                 .loadCharacterPopularity(OCID);
 
-        verify(characterClient)
-                .getCharacterHyperStat(OCID);
+        verify(loadCharacterHyperStatPort)
+                .loadCharacterHyperStat(OCID);
 
         verify(characterClient)
                 .getCharacterAbility(OCID);
@@ -983,6 +990,7 @@ class CharacterQueryServiceTest {
                 .getCharacterHexaMatrixStat(OCID);
 
         verifyNoMoreInteractions(loadCharacterPopularityPort);
+        verifyNoMoreInteractions(loadCharacterHyperStatPort);
     }
 
     private CharacterBasic createBasic() {
@@ -1028,14 +1036,14 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterHyperStatResponse createHyperStatResponse() {
-        return new CharacterHyperStatResponse(
+    private CharacterHyperStat createHyperStatResponse() {
+        return new CharacterHyperStat(
                 "2026-07-19T00:00+09:00",
                 "팬텀",
                 "2",
                 5L,
                 List.of(
-                        new CharacterHyperStatResponse.HyperStat(
+                        new HyperStat(
                                 "크리티컬 확률",
                                 15L,
                                 5,
