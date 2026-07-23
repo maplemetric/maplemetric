@@ -1,6 +1,6 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterDojangPort.CharacterDojang;
 
 public record GetCharacterDojangResult(
         String date,
@@ -12,15 +12,15 @@ public record GetCharacterDojangResult(
 ) {
 
     public static GetCharacterDojangResult from(
-            CharacterDojangResponse response
+            CharacterDojang dojang
     ) {
         return new GetCharacterDojangResult(
-                response.date(),
-                response.characterClass(),
-                response.worldName(),
-                response.dojangBestFloor(),
-                response.dateDojangRecord(),
-                response.dojangBestTime()
+                dojang.date(),
+                dojang.characterClass(),
+                dojang.worldName(),
+                dojang.bestFloor(),
+                dojang.recordDate(),
+                dojang.bestTime()
         );
     }
 }

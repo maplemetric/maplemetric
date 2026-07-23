@@ -3,6 +3,8 @@ package com.maplemetric.character.application.service;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
+import com.maplemetric.character.application.port.out.LoadCharacterDojangPort;
+import com.maplemetric.character.application.port.out.LoadCharacterDojangPort.CharacterDojang;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
@@ -28,7 +30,6 @@ import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
@@ -59,6 +60,7 @@ public class CharacterQueryService {
 
     private final CharacterClient characterClient;
     private final LoadCharacterBasicPort loadCharacterBasicPort;
+    private final LoadCharacterDojangPort loadCharacterDojangPort;
     private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
     private final LoadCharacterStatPort loadCharacterStatPort;
     private final LoadCharacterSymbolPort loadCharacterSymbolPort;
@@ -71,6 +73,7 @@ public class CharacterQueryService {
     public CharacterQueryService(
             CharacterClient characterClient,
             LoadCharacterBasicPort loadCharacterBasicPort,
+            LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
@@ -81,6 +84,7 @@ public class CharacterQueryService {
         this(
                 characterClient,
                 loadCharacterBasicPort,
+                loadCharacterDojangPort,
                 loadCharacterEquipmentPort,
                 loadCharacterStatPort,
                 loadCharacterSymbolPort,
@@ -94,6 +98,7 @@ public class CharacterQueryService {
     CharacterQueryService(
             CharacterClient characterClient,
             LoadCharacterBasicPort loadCharacterBasicPort,
+            LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
@@ -105,6 +110,7 @@ public class CharacterQueryService {
         this.characterClient = characterClient;
         this.loadCharacterBasicPort =
                 loadCharacterBasicPort;
+        this.loadCharacterDojangPort = loadCharacterDojangPort;
         this.loadCharacterEquipmentPort =
                 loadCharacterEquipmentPort;
         this.loadCharacterStatPort = loadCharacterStatPort;
@@ -160,8 +166,8 @@ public class CharacterQueryService {
                         basic
                 );
 
-        CharacterDojangResponse dojangResponse =
-                characterClient.getCharacterDojang(ocid);
+        CharacterDojang dojang =
+                loadCharacterDojangPort.loadCharacterDojang(ocid);
 
         CharacterPopularityResponse popularityResponse =
                 characterClient.getCharacterPopularity(ocid);
@@ -211,7 +217,7 @@ public class CharacterQueryService {
                 GetCharacterStatResult.from(stat),
                 GetCharacterRankingResult.of(
                         characterRanking,
-                        dojangResponse
+                        dojang
                 ),
                 GetCharacterUnionResult.from(union),
                 GetCharacterSymbolResult.from(characterSymbol),
@@ -240,7 +246,7 @@ public class CharacterQueryService {
                         abilityResponse
                 ),
                 GetCharacterDojangResult.from(
-                        dojangResponse
+                        dojang
                 ),
                 Instant.now(clock).toString()
         );
