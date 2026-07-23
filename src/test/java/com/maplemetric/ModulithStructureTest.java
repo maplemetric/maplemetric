@@ -23,6 +23,10 @@ class ModulithStructureTest {
             "com.maplemetric.analysis.application.service."
                     + "TemplateInsightGenerator";
 
+    private static final String OPENAI_INSIGHT_GENERATOR =
+            "com.maplemetric.analysis.infrastructure.openai."
+                    + "OpenAiInsightGenerator";
+
     private final ApplicationModules modules =
             ApplicationModules.of(
                     MaplemetricServiceApplication.class
@@ -62,7 +66,7 @@ class ModulithStructureTest {
     }
 
     @Test
-    void Analysis모듈은계약만공개하고템플릿구현은내부에둔다() {
+    void Analysis모듈은계약만공개하고구현은내부에둔다() {
         ApplicationModule analysisModule =
                 modules.getModuleByName("analysis")
                         .orElseThrow();
@@ -83,6 +87,14 @@ class ModulithStructureTest {
         assertThat(
                 analysisModule.getType(
                                 TEMPLATE_INSIGHT_GENERATOR
+                        )
+                        .map(type -> analysisModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                analysisModule.getType(
+                                OPENAI_INSIGHT_GENERATOR
                         )
                         .map(type -> analysisModule.isExposed(type))
                         .orElseThrow()
