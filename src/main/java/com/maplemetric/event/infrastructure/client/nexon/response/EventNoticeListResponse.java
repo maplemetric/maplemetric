@@ -1,4 +1,4 @@
-package com.maplemetric.event.infrastructure.client.dto;
+package com.maplemetric.event.infrastructure.client.nexon.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;

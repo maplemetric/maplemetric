@@ -4,7 +4,7 @@ import com.maplemetric.common.ApiResponse;
 import com.maplemetric.event.application.result.GetOngoingEventListResult;
 import com.maplemetric.event.application.service.EventQueryService;
 import com.maplemetric.event.presentation.code.EventSuccessCode;
-import com.maplemetric.event.presentation.dto.GetOngoingEventListResponse;
+import com.maplemetric.event.presentation.response.GetOngoingEventListResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

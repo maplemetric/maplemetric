@@ -1,4 +1,4 @@
-package com.maplemetric.event.infrastructure.client;
+package com.maplemetric.event.infrastructure.client.nexon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -6,9 +6,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.event.domain.exception.EventErrorCode;
-import com.maplemetric.event.domain.exception.EventException;
-import com.maplemetric.event.infrastructure.client.dto.EventNoticeListResponse;
+import com.maplemetric.event.application.exception.EventException;
+import com.maplemetric.event.application.exception.EventFailure;
+import com.maplemetric.event.infrastructure.client.nexon.response.EventNoticeListResponse;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,7 @@ import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestClient;
 
 @ExtendWith(OutputCaptureExtension.class)
-class EventClientImplTest {
+class NexonEventClientTest {
 
     private static final String BASE_URL =
             "https://open.api.nexon.com";
@@ -38,7 +38,7 @@ class EventClientImplTest {
 
     private ObjectMapper objectMapper;
     private MockRestServiceServer mockServer;
-    private EventClientImpl eventClient;
+    private NexonEventClient eventClient;
 
     @BeforeEach
     void setUp() {
@@ -56,7 +56,7 @@ class EventClientImplTest {
                 .bindTo(restClientBuilder)
                 .build();
 
-        eventClient = new EventClientImpl(
+        eventClient = new NexonEventClient(
                 restClientBuilder.build(),
                 objectMapper
         );
@@ -138,10 +138,8 @@ class EventClientImplTest {
                 EventException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        EventErrorCode.NEXON_API_RESPONSE_INVALID
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(EventFailure.RESPONSE_INVALID);
 
         mockServer.verify();
     }
@@ -170,10 +168,8 @@ class EventClientImplTest {
                 EventException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        EventErrorCode.NEXON_API_CLIENT_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(EventFailure.CLIENT_ERROR);
 
         assertThat(output)
                 .contains("메이플스토리 진행 중 이벤트 목록")
@@ -195,17 +191,15 @@ class EventClientImplTest {
                 EventException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        EventErrorCode.NEXON_API_SERVER_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(EventFailure.SERVER_ERROR);
 
         mockServer.verify();
     }
 
     @Test
     void 타임아웃은타임아웃오류로변환한다() {
-        EventClientImpl timeoutClient = createFailingClient(
+        NexonEventClient timeoutClient = createFailingClient(
                 new SocketTimeoutException("read timeout")
         );
 
@@ -214,10 +208,8 @@ class EventClientImplTest {
                 EventException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        EventErrorCode.NEXON_API_TIMEOUT
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(EventFailure.TIMEOUT);
     }
 
     private void expectGetRequest(
@@ -234,7 +226,7 @@ class EventClientImplTest {
                 .andRespond(responseCreator);
     }
 
-    private EventClientImpl createFailingClient(
+    private NexonEventClient createFailingClient(
             IOException exception
     ) {
         ClientHttpRequestFactory requestFactory =
@@ -251,7 +243,7 @@ class EventClientImplTest {
                 .requestFactory(requestFactory)
                 .build();
 
-        return new EventClientImpl(
+        return new NexonEventClient(
                 restClient,
                 objectMapper
         );

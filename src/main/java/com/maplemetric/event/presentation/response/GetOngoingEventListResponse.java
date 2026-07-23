@@ -1,4 +1,4 @@
-package com.maplemetric.event.presentation.dto;
+package com.maplemetric.event.presentation.response;
 
 import com.maplemetric.event.application.result.GetOngoingEventListResult;
 import java.time.LocalDate;
