@@ -1,7 +1,7 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.FinalStat;
+import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
+import com.maplemetric.character.application.port.out.LoadCharacterStatPort.FinalStat;
 
 import java.util.List;
 
@@ -15,11 +15,11 @@ public record GetCharacterStatResult(
 
     private static final String COMBAT_POWER_STAT_NAME = "전투력";
 
-    public static GetCharacterStatResult from(CharacterStatResponse response) {
+    public static GetCharacterStatResult from(CharacterStat stat) {
         List<FinalStatResult> finalStatResults =
-                response.finalStat() == null
+                stat.finalStat() == null
                         ? List.of()
-                        : response.finalStat().stream()
+                        : stat.finalStat().stream()
                         .map(finalStat -> FinalStatResult.from(finalStat))
                         .toList();
 
@@ -32,10 +32,10 @@ public record GetCharacterStatResult(
                 .orElse(null);
 
         return new GetCharacterStatResult(
-                response.date(),
-                response.characterClass(),
+                stat.date(),
+                stat.characterClass(),
                 combatPower,
-                response.remainAp(),
+                stat.remainAp(),
                 finalStatResults
         );
     }
