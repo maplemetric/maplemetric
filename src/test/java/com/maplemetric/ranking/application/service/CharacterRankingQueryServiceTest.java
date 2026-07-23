@@ -12,9 +12,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.CharacterRanking;
 import com.maplemetric.ranking.CharacterRankingQueryException;
+import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort;
+import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort.RankingEntry;
 import com.maplemetric.ranking.domain.exception.RankingException;
-import com.maplemetric.ranking.infrastructure.client.nexon.RankingClient;
-import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -37,7 +37,7 @@ class CharacterRankingQueryServiceTest {
     private static final String WORLD_NAME = "루나";
 
     @Mock
-    private RankingClient rankingClient;
+    private LoadCharacterRankingPort loadCharacterRankingPort;
 
     @Test
     void 랭킹기준일은KST오전9시29분이면전일이며네번의요청에동일하게전달한다() {
@@ -109,30 +109,28 @@ class CharacterRankingQueryServiceTest {
 
         LocalDate rankingDate = LocalDate.of(2026, 7, 21);
 
-        OverallRankingResponse overallResponse =
-                new OverallRankingResponse(
-                        List.of(
-                                createRanking(
-                                        "다른캐릭터",
-                                        1,
-                                        "팬텀",
-                                        null
-                                ),
-                                createRanking(
-                                        CHARACTER_NAME,
-                                        58333,
-                                        "모험가",
-                                        "마법사"
-                                )
+        List<RankingEntry> overallRanking =
+                List.of(
+                        createRanking(
+                                "다른캐릭터",
+                                1,
+                                "팬텀",
+                                null
+                        ),
+                        createRanking(
+                                CHARACTER_NAME,
+                                58333,
+                                "모험가",
+                                "마법사"
                         )
                 );
 
-        given(rankingClient.getCharacterOverallRanking(
+        given(loadCharacterRankingPort.loadOverallRanking(
                 OCID,
                 rankingDate
-        )).willReturn(overallResponse);
+        )).willReturn(overallRanking);
 
-        given(rankingClient.getCharacterWorldRanking(
+        given(loadCharacterRankingPort.loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
@@ -143,7 +141,7 @@ class CharacterRankingQueryServiceTest {
                 "마법사"
         ));
 
-        given(rankingClient.getCharacterClassRanking(
+        given(loadCharacterRankingPort.loadClassRanking(
                 OCID,
                 "모험가-마법사",
                 rankingDate
@@ -154,7 +152,7 @@ class CharacterRankingQueryServiceTest {
                 "마법사"
         ));
 
-        given(rankingClient.getCharacterWorldClassRanking(
+        given(loadCharacterRankingPort.loadWorldClassRanking(
                 OCID,
                 WORLD_NAME,
                 "모험가-마법사",
@@ -187,19 +185,18 @@ class CharacterRankingQueryServiceTest {
         );
 
         LocalDate rankingDate = LocalDate.of(2026, 7, 21);
-        OverallRankingResponse emptyResponse =
-                new OverallRankingResponse(List.of());
+        List<RankingEntry> emptyRanking = List.of();
 
-        given(rankingClient.getCharacterOverallRanking(
+        given(loadCharacterRankingPort.loadOverallRanking(
                 OCID,
                 rankingDate
-        )).willReturn(emptyResponse);
+        )).willReturn(emptyRanking);
 
-        given(rankingClient.getCharacterWorldRanking(
+        given(loadCharacterRankingPort.loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
-        )).willReturn(emptyResponse);
+        )).willReturn(emptyRanking);
 
         CharacterRanking result = service.getCharacterRanking(
                 OCID,
@@ -217,33 +214,33 @@ class CharacterRankingQueryServiceTest {
                         )
                 );
 
-        verify(rankingClient, never())
-                .getCharacterClassRanking(
+        verify(loadCharacterRankingPort, never())
+                .loadClassRanking(
                         anyString(),
                         anyString(),
                         any(LocalDate.class)
                 );
 
-        verify(rankingClient, never())
-                .getCharacterWorldClassRanking(
+        verify(loadCharacterRankingPort, never())
+                .loadWorldClassRanking(
                         anyString(),
                         anyString(),
                         anyString(),
                         any(LocalDate.class)
                 );
 
-        verify(rankingClient).getCharacterOverallRanking(
+        verify(loadCharacterRankingPort).loadOverallRanking(
                 OCID,
                 rankingDate
         );
 
-        verify(rankingClient).getCharacterWorldRanking(
+        verify(loadCharacterRankingPort).loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
         );
 
-        verifyNoMoreInteractions(rankingClient);
+        verifyNoMoreInteractions(loadCharacterRankingPort);
     }
 
     @Test
@@ -253,21 +250,19 @@ class CharacterRankingQueryServiceTest {
         );
 
         LocalDate rankingDate = LocalDate.of(2026, 7, 21);
-        OverallRankingResponse nullItemResponse =
-                new OverallRankingResponse(
-                        Collections.singletonList(null)
-                );
+        List<RankingEntry> nullItemRanking =
+                Collections.singletonList(null);
 
-        given(rankingClient.getCharacterOverallRanking(
+        given(loadCharacterRankingPort.loadOverallRanking(
                 OCID,
                 rankingDate
-        )).willReturn(nullItemResponse);
+        )).willReturn(nullItemRanking);
 
-        given(rankingClient.getCharacterWorldRanking(
+        given(loadCharacterRankingPort.loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
-        )).willReturn(nullItemResponse);
+        )).willReturn(nullItemRanking);
 
         CharacterRanking result = service.getCharacterRanking(
                 OCID,
@@ -289,7 +284,7 @@ class CharacterRankingQueryServiceTest {
 
         LocalDate rankingDate = LocalDate.of(2026, 7, 21);
 
-        given(rankingClient.getCharacterOverallRanking(
+        given(loadCharacterRankingPort.loadOverallRanking(
                 OCID,
                 rankingDate
         )).willReturn(createRankingResponse(
@@ -299,13 +294,13 @@ class CharacterRankingQueryServiceTest {
                 null
         ));
 
-        given(rankingClient.getCharacterWorldRanking(
+        given(loadCharacterRankingPort.loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
-        )).willReturn(new OverallRankingResponse(List.of()));
+        )).willReturn(List.of());
 
-        given(rankingClient.getCharacterClassRanking(
+        given(loadCharacterRankingPort.loadClassRanking(
                 OCID,
                 "팬텀-전체 전직",
                 rankingDate
@@ -316,7 +311,7 @@ class CharacterRankingQueryServiceTest {
                 null
         ));
 
-        given(rankingClient.getCharacterWorldClassRanking(
+        given(loadCharacterRankingPort.loadWorldClassRanking(
                 OCID,
                 WORLD_NAME,
                 "팬텀-전체 전직",
@@ -356,7 +351,7 @@ class CharacterRankingQueryServiceTest {
 
         LocalDate rankingDate = LocalDate.of(2026, 7, 21);
 
-        given(rankingClient.getCharacterOverallRanking(
+        given(loadCharacterRankingPort.loadOverallRanking(
                 OCID,
                 rankingDate
         )).willThrow(new RankingException(failure));
@@ -388,7 +383,7 @@ class CharacterRankingQueryServiceTest {
             String instant
     ) {
         return new CharacterRankingQueryService(
-                rankingClient,
+                loadCharacterRankingPort,
                 Clock.fixed(
                         Instant.parse(instant),
                         ZoneId.of("Asia/Seoul")
@@ -401,7 +396,7 @@ class CharacterRankingQueryServiceTest {
             String className,
             String subClassName
     ) {
-        given(rankingClient.getCharacterOverallRanking(
+        given(loadCharacterRankingPort.loadOverallRanking(
                 OCID,
                 rankingDate
         )).willReturn(createRankingResponse(
@@ -411,7 +406,7 @@ class CharacterRankingQueryServiceTest {
                 subClassName
         ));
 
-        given(rankingClient.getCharacterWorldRanking(
+        given(loadCharacterRankingPort.loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
@@ -427,7 +422,7 @@ class CharacterRankingQueryServiceTest {
                         ? className + "-전체 전직"
                         : className + "-" + subClassName;
 
-        given(rankingClient.getCharacterClassRanking(
+        given(loadCharacterRankingPort.loadClassRanking(
                 OCID,
                 classRankingFilter,
                 rankingDate
@@ -438,7 +433,7 @@ class CharacterRankingQueryServiceTest {
                 subClassName
         ));
 
-        given(rankingClient.getCharacterWorldClassRanking(
+        given(loadCharacterRankingPort.loadWorldClassRanking(
                 OCID,
                 WORLD_NAME,
                 classRankingFilter,
@@ -455,68 +450,60 @@ class CharacterRankingQueryServiceTest {
             LocalDate rankingDate,
             String classRankingFilter
     ) {
-        verify(rankingClient).getCharacterOverallRanking(
+        verify(loadCharacterRankingPort).loadOverallRanking(
                 OCID,
                 rankingDate
         );
 
-        verify(rankingClient).getCharacterWorldRanking(
+        verify(loadCharacterRankingPort).loadWorldRanking(
                 OCID,
                 WORLD_NAME,
                 rankingDate
         );
 
-        verify(rankingClient).getCharacterClassRanking(
+        verify(loadCharacterRankingPort).loadClassRanking(
                 OCID,
                 classRankingFilter,
                 rankingDate
         );
 
-        verify(rankingClient).getCharacterWorldClassRanking(
+        verify(loadCharacterRankingPort).loadWorldClassRanking(
                 OCID,
                 WORLD_NAME,
                 classRankingFilter,
                 rankingDate
         );
 
-        verifyNoMoreInteractions(rankingClient);
+        verifyNoMoreInteractions(loadCharacterRankingPort);
     }
 
-    private OverallRankingResponse createRankingResponse(
+    private List<RankingEntry> createRankingResponse(
             String characterName,
             int ranking,
             String className,
             String subClassName
     ) {
-        return new OverallRankingResponse(
-                List.of(
-                        createRanking(
-                                characterName,
-                                ranking,
-                                className,
-                                subClassName
-                        )
+        return List.of(
+                createRanking(
+                        characterName,
+                        ranking,
+                        className,
+                        subClassName
                 )
         );
     }
 
-    private OverallRankingResponse.Ranking createRanking(
+    private RankingEntry createRanking(
             String characterName,
             int ranking,
             String className,
             String subClassName
     ) {
-        return new OverallRankingResponse.Ranking(
-                "2026-07-21",
+        return new RankingEntry(
                 ranking,
                 characterName,
-                WORLD_NAME,
                 className,
-                subClassName,
-                290,
-                123456789L,
-                321,
-                "메이플"
+                subClassName
         );
     }
 }
