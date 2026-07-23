@@ -1,0 +1,1 @@
+DROP INDEX idx_p_character_equipment_character;
