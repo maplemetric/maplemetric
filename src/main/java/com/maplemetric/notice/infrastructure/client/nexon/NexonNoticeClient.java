@@ -1,13 +1,13 @@
-package com.maplemetric.notice.infrastructure.client;
+package com.maplemetric.notice.infrastructure.client.nexon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
-import com.maplemetric.notice.domain.exception.NoticeErrorCode;
-import com.maplemetric.notice.domain.exception.NoticeException;
-import com.maplemetric.notice.infrastructure.client.dto.CashshopNoticeListResponse;
-import com.maplemetric.notice.infrastructure.client.dto.NoticeListResponse;
-import com.maplemetric.notice.infrastructure.client.dto.UpdateNoticeListResponse;
+import com.maplemetric.notice.application.exception.NoticeException;
+import com.maplemetric.notice.application.exception.NoticeFailure;
+import com.maplemetric.notice.infrastructure.client.nexon.response.CashshopNoticeListResponse;
+import com.maplemetric.notice.infrastructure.client.nexon.response.NoticeListResponse;
+import com.maplemetric.notice.infrastructure.client.nexon.response.UpdateNoticeListResponse;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 @Component
-public class NoticeClientImpl implements NoticeClient {
+class NexonNoticeClient {
 
     private static final String NOTICE_PATH =
             "/maplestory/v1/notice";
@@ -37,7 +37,7 @@ public class NoticeClientImpl implements NoticeClient {
 
     private final NexonApiRequester nexonApiRequester;
 
-    public NoticeClientImpl(
+    NexonNoticeClient(
             @Qualifier("nexonRestClient") RestClient nexonRestClient,
             ObjectMapper objectMapper
     ) {
@@ -49,8 +49,7 @@ public class NoticeClientImpl implements NoticeClient {
         );
     }
 
-    @Override
-    public NoticeListResponse getNotices() {
+    NoticeListResponse getNotices() {
         NoticeListResponse response = request(
                 NOTICE_PATH,
                 NoticeListResponse.class,
@@ -63,8 +62,7 @@ public class NoticeClientImpl implements NoticeClient {
         return response;
     }
 
-    @Override
-    public UpdateNoticeListResponse getUpdateNotices() {
+    UpdateNoticeListResponse getUpdateNotices() {
         UpdateNoticeListResponse response = request(
                 UPDATE_NOTICE_PATH,
                 UpdateNoticeListResponse.class,
@@ -77,8 +75,7 @@ public class NoticeClientImpl implements NoticeClient {
         return response;
     }
 
-    @Override
-    public CashshopNoticeListResponse getCashshopNotices() {
+    CashshopNoticeListResponse getCashshopNotices() {
         CashshopNoticeListResponse response = request(
                 CASHSHOP_NOTICE_PATH,
                 CashshopNoticeListResponse.class,
@@ -112,7 +109,7 @@ public class NoticeClientImpl implements NoticeClient {
                 || notices.stream()
                 .anyMatch(notice -> notice == null)) {
             throw new NoticeException(
-                    NoticeErrorCode.NEXON_API_RESPONSE_INVALID
+                    NoticeFailure.RESPONSE_INVALID
             );
         }
     }
@@ -120,17 +117,17 @@ public class NoticeClientImpl implements NoticeClient {
     private NoticeException createException(
             NexonApiFailure failure
     ) {
-        NoticeErrorCode errorCode = switch (failure) {
+        NoticeFailure noticeFailure = switch (failure) {
             case NOT_FOUND, CLIENT_ERROR ->
-                    NoticeErrorCode.NEXON_API_CLIENT_ERROR;
+                    NoticeFailure.CLIENT_ERROR;
             case SERVER_ERROR ->
-                    NoticeErrorCode.NEXON_API_SERVER_ERROR;
+                    NoticeFailure.SERVER_ERROR;
             case TIMEOUT ->
-                    NoticeErrorCode.NEXON_API_TIMEOUT;
+                    NoticeFailure.TIMEOUT;
             case RESPONSE_INVALID ->
-                    NoticeErrorCode.NEXON_API_RESPONSE_INVALID;
+                    NoticeFailure.RESPONSE_INVALID;
         };
 
-        return new NoticeException(errorCode);
+        return new NoticeException(noticeFailure);
     }
 }

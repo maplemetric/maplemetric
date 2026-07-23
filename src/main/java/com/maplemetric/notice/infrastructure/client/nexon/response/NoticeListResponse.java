@@ -1,4 +1,4 @@
-package com.maplemetric.notice.infrastructure.client.dto;
+package com.maplemetric.notice.infrastructure.client.nexon.response;
 
 import java.util.List;
 
