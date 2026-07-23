@@ -6,11 +6,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.maplemetric.event.application.exception.EventException;
+import com.maplemetric.event.application.exception.EventFailure;
 import com.maplemetric.event.application.result.GetOngoingEventListResult;
 import com.maplemetric.event.application.service.EventQueryService;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,6 +30,24 @@ class EventControllerTest {
 
     @MockitoBean
     private EventQueryService eventQueryService;
+
+    @ParameterizedTest
+    @MethodSource("eventFailures")
+    void 이벤트조회오류를HTTP응답으로변환한다(
+            EventFailure failure,
+            int expectedStatus,
+            String expectedCode
+    ) throws Exception {
+        given(eventQueryService.getOngoingEvents())
+                .willThrow(new EventException(failure));
+
+        mockMvc.perform(
+                        get("/api/v1/events")
+                )
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(expectedCode));
+    }
 
     @Test
     void 진행중이벤트목록을반환한다()
@@ -90,6 +114,31 @@ class EventControllerTest {
                 ),
                 1,
                 "NEXON_OPEN_API"
+        );
+    }
+
+    private static Stream<Arguments> eventFailures() {
+        return Stream.of(
+                Arguments.of(
+                        EventFailure.CLIENT_ERROR,
+                        502,
+                        "EVENT_001"
+                ),
+                Arguments.of(
+                        EventFailure.SERVER_ERROR,
+                        502,
+                        "EVENT_002"
+                ),
+                Arguments.of(
+                        EventFailure.TIMEOUT,
+                        504,
+                        "EVENT_003"
+                ),
+                Arguments.of(
+                        EventFailure.RESPONSE_INVALID,
+                        502,
+                        "EVENT_004"
+                )
         );
     }
 }
