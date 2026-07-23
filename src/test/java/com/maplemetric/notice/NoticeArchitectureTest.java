@@ -47,7 +47,8 @@ class NoticeArchitectureTest {
                         "..notice.application..",
                         "..notice.infrastructure..",
                         "..notice.presentation..",
-                        "..common.nexon.."
+                        "..common.nexon..",
+                        "org.springframework.."
                 )
                 .check(noticeClasses);
     }

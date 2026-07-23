@@ -1,7 +1,7 @@
 package com.maplemetric.notice.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -95,12 +95,13 @@ class NoticeQueryServiceTest {
 
     @Test
     void 지원하지않는공지분류는외부조회를하지않는다() {
-        catchThrowableOfType(
+        assertThatExceptionOfType(
+                InvalidNoticeCategoryException.class
+        ).isThrownBy(
                 () -> noticeQueryService.getNotices(
                         "event",
                         20
-                ),
-                InvalidNoticeCategoryException.class
+                )
         );
 
         verifyNoInteractions(loadNoticeListPort);
