@@ -78,14 +78,24 @@ class NexonRankingListAdapterTest {
                 .extracting(
                         ranking -> ranking.ranking(),
                         ranking -> ranking.characterName(),
+                        ranking -> ranking.worldName(),
+                        ranking -> ranking.className(),
+                        ranking -> ranking.subClassName(),
+                        ranking -> ranking.characterLevel(),
                         ranking -> ranking.characterExp(),
+                        ranking -> ranking.characterPopularity(),
                         ranking -> ranking.characterGuildName()
                 )
                 .containsExactly(
                         tuple(
                                 1,
                                 "감점",
+                                "루나",
+                                "팬텀",
+                                "",
+                                290,
                                 1_234_567L,
+                                321,
                                 "메이플"
                         )
                 );
@@ -165,22 +175,50 @@ class NexonRankingListAdapterTest {
                 );
 
         assertThat(unionResult.ranking())
-                .singleElement()
-                .satisfies(ranking -> {
-                    assertThat(ranking.unionLevel())
-                            .isEqualTo(9000);
-                    assertThat(ranking.unionPower())
-                            .isEqualTo(123_456_789L);
-                });
+                .extracting(
+                        ranking -> ranking.ranking(),
+                        ranking -> ranking.characterName(),
+                        ranking -> ranking.worldName(),
+                        ranking -> ranking.className(),
+                        ranking -> ranking.subClassName(),
+                        ranking -> ranking.unionLevel(),
+                        ranking -> ranking.unionPower()
+                )
+                .containsExactly(
+                        tuple(
+                                10,
+                                "감점",
+                                "루나",
+                                "팬텀",
+                                "",
+                                9000,
+                                123_456_789L
+                        )
+                );
 
         assertThat(dojangResult.ranking())
-                .singleElement()
-                .satisfies(ranking -> {
-                    assertThat(ranking.dojangFloor())
-                            .isEqualTo(80);
-                    assertThat(ranking.dojangTimeRecord())
-                            .isEqualTo(600);
-                });
+                .extracting(
+                        ranking -> ranking.ranking(),
+                        ranking -> ranking.characterName(),
+                        ranking -> ranking.worldName(),
+                        ranking -> ranking.className(),
+                        ranking -> ranking.subClassName(),
+                        ranking -> ranking.characterLevel(),
+                        ranking -> ranking.dojangFloor(),
+                        ranking -> ranking.dojangTimeRecord()
+                )
+                .containsExactly(
+                        tuple(
+                                20,
+                                "감점",
+                                "루나",
+                                "팬텀",
+                                "",
+                                290,
+                                80,
+                                600
+                        )
+                );
     }
 
     @Test
