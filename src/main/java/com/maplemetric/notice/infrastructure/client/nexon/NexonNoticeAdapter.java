@@ -13,7 +13,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 @Component
 class NexonNoticeAdapter
@@ -105,7 +104,7 @@ class NexonNoticeAdapter
     }
 
     private LocalDate parseDate(String value) {
-        if (!StringUtils.hasText(value)) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 
@@ -121,7 +120,7 @@ class NexonNoticeAdapter
     }
 
     private Boolean parseBoolean(String value) {
-        if (!StringUtils.hasText(value)) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 
