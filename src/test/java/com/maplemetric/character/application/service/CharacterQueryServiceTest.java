@@ -19,6 +19,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.FinalStat;
+import com.maplemetric.character.application.port.out.LoadCharacterUnionPort;
+import com.maplemetric.character.application.port.out.LoadCharacterUnionPort.CharacterUnion;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
@@ -34,7 +36,6 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillRes
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
@@ -73,6 +74,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterStatPort loadCharacterStatPort;
 
     @Mock
+    private LoadCharacterUnionPort loadCharacterUnionPort;
+
+    @Mock
     private CharacterRankingQuery characterRankingQuery;
 
     private AdditionalOptionCalculator additionalOptionCalculator;
@@ -97,6 +101,7 @@ class CharacterQueryServiceTest {
                         loadCharacterBasicPort,
                         loadCharacterEquipmentPort,
                         loadCharacterStatPort,
+                        loadCharacterUnionPort,
                         additionalOptionCalculator,
                         characterRankingQuery,
                         clock
@@ -134,7 +139,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -275,7 +280,7 @@ class CharacterQueryServiceTest {
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
-        verify(characterClient).getCharacterUnion(OCID);
+        verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
@@ -284,6 +289,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
     @Test
@@ -317,7 +323,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -345,7 +351,7 @@ class CharacterQueryServiceTest {
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
-        verify(characterClient).getCharacterUnion(OCID);
+        verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
@@ -354,6 +360,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
     @Test
@@ -372,7 +379,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -403,7 +410,7 @@ class CharacterQueryServiceTest {
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
-        verify(characterClient).getCharacterUnion(OCID);
+        verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
@@ -412,6 +419,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
     @Test
@@ -437,7 +445,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -468,7 +476,7 @@ class CharacterQueryServiceTest {
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
-        verify(characterClient).getCharacterUnion(OCID);
+        verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
@@ -477,6 +485,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
     @Test
@@ -497,7 +506,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -532,7 +541,7 @@ class CharacterQueryServiceTest {
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
-        verify(characterClient).getCharacterUnion(OCID);
+        verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
@@ -541,6 +550,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
     @Test
@@ -574,7 +584,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -613,7 +623,7 @@ class CharacterQueryServiceTest {
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
         verifyRankingCall();
-        verify(characterClient).getCharacterUnion(OCID);
+        verify(loadCharacterUnionPort).loadCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
@@ -622,6 +632,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoMoreInteractions(loadCharacterUnionPort);
     }
 
     @ParameterizedTest
@@ -667,6 +678,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
+        verifyNoInteractions(loadCharacterUnionPort);
 
         verify(characterRankingQuery).getCharacterRanking(
                 OCID,
@@ -743,6 +755,7 @@ class CharacterQueryServiceTest {
         verifyNoInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(loadCharacterStatPort);
+        verifyNoInteractions(loadCharacterUnionPort);
         verifyNoInteractions(characterRankingQuery);
     }
 
@@ -828,6 +841,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(loadCharacterStatPort);
+        verifyNoInteractions(loadCharacterUnionPort);
     }
 
     private void givenSummaryResponses() {
@@ -842,7 +856,7 @@ class CharacterQueryServiceTest {
 
         givenRankingResponse();
 
-        given(characterClient.getCharacterUnion(OCID))
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
                 .willReturn(createUnionResponse());
 
         given(characterClient.getCharacterSymbol(OCID))
@@ -973,8 +987,8 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterUnionResponse createUnionResponse() {
-        return new CharacterUnionResponse(
+    private CharacterUnion createUnionResponse() {
+        return new CharacterUnion(
                 9000,
                 50
         );
