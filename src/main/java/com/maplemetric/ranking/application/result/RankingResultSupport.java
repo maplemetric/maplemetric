@@ -1,7 +1,7 @@
 package com.maplemetric.ranking.application.result;
 
+import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.domain.exception.RankingException;
-import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -65,7 +65,7 @@ final class RankingResultSupport {
 
     private static RankingException invalidResponseException() {
         return new RankingException(
-                RankingErrorCode.NEXON_API_RESPONSE_INVALID
+                NexonApiFailure.RESPONSE_INVALID
         );
     }
 }

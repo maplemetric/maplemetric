@@ -2,6 +2,7 @@ package com.maplemetric.ranking.presentation.code;
 
 import com.maplemetric.common.ErrorCode;
 import com.maplemetric.common.nexon.NexonApiFailure;
+import java.util.Objects;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
@@ -51,5 +52,22 @@ public enum RankingErrorCode implements ErrorCode {
         this.code = code;
         this.message = message;
         this.failure = failure;
+    }
+
+    public static RankingErrorCode from(
+            NexonApiFailure failure
+    ) {
+        Objects.requireNonNull(failure);
+
+        return switch (failure) {
+            case NOT_FOUND, CLIENT_ERROR ->
+                    NEXON_API_CLIENT_ERROR;
+            case SERVER_ERROR ->
+                    NEXON_API_SERVER_ERROR;
+            case TIMEOUT ->
+                    NEXON_API_TIMEOUT;
+            case RESPONSE_INVALID ->
+                    NEXON_API_RESPONSE_INVALID;
+        };
     }
 }

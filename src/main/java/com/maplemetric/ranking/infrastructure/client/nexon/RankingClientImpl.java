@@ -7,7 +7,6 @@ import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
-import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -248,7 +247,7 @@ public class RankingClientImpl implements RankingClient {
                 || ranking.stream()
                 .anyMatch(item -> item == null)) {
             throw new RankingException(
-                    RankingErrorCode.NEXON_API_RESPONSE_INVALID
+                    NexonApiFailure.RESPONSE_INVALID
             );
         }
     }
@@ -288,17 +287,6 @@ public class RankingClientImpl implements RankingClient {
     private RankingException createException(
             NexonApiFailure failure
     ) {
-        RankingErrorCode errorCode = switch (failure) {
-            case NOT_FOUND, CLIENT_ERROR ->
-                    RankingErrorCode.NEXON_API_CLIENT_ERROR;
-            case SERVER_ERROR ->
-                    RankingErrorCode.NEXON_API_SERVER_ERROR;
-            case TIMEOUT ->
-                    RankingErrorCode.NEXON_API_TIMEOUT;
-            case RESPONSE_INVALID ->
-                    RankingErrorCode.NEXON_API_RESPONSE_INVALID;
-        };
-
-        return new RankingException(errorCode);
+        return new RankingException(failure);
     }
 }

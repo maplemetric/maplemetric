@@ -1,7 +1,6 @@
 package com.maplemetric.common.nexon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.common.BusinessException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
@@ -29,14 +28,14 @@ public final class NexonApiRequester {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final Function<NexonApiFailure, ? extends BusinessException>
+    private final Function<NexonApiFailure, ? extends RuntimeException>
             exceptionFactory;
     private final BiPredicate<String, String> notFoundPredicate;
 
     public NexonApiRequester(
             RestClient restClient,
             ObjectMapper objectMapper,
-            Function<NexonApiFailure, ? extends BusinessException>
+            Function<NexonApiFailure, ? extends RuntimeException>
                     exceptionFactory,
             BiPredicate<String, String> notFoundPredicate
     ) {
@@ -236,7 +235,7 @@ public final class NexonApiRequester {
         }
     }
 
-    private BusinessException convertClientErrorException(
+    private RuntimeException convertClientErrorException(
             HttpClientErrorException exception,
             String apiName,
             String identifierName,
@@ -334,7 +333,7 @@ public final class NexonApiRequester {
         }
     }
 
-    private BusinessException convertResourceAccessException(
+    private RuntimeException convertResourceAccessException(
             ResourceAccessException exception,
             String apiName,
             String identifierName,
@@ -492,7 +491,7 @@ public final class NexonApiRequester {
         return false;
     }
 
-    private BusinessException createException(
+    private RuntimeException createException(
             NexonApiFailure failure
     ) {
         return exceptionFactory.apply(failure);
