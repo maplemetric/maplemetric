@@ -6,9 +6,9 @@ import com.maplemetric.analysis.application.result.InsightResult;
 import com.maplemetric.analysis.application.service.InsightGenerator;
 import com.maplemetric.analysis.domain.model.InsightFacts;
 import com.maplemetric.analysis.domain.model.InsightSentiment;
-import com.maplemetric.ranking.CharacterRanking;
-import com.maplemetric.ranking.CharacterRankingQuery;
-import com.maplemetric.ranking.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRanking;
+import com.maplemetric.ranking.api.CharacterRankingQuery;
+import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
@@ -225,6 +225,14 @@ class ModulithStructureTest {
         assertThat(
                 rankingModule.getNamedInterfaces()
                         .getUnnamedInterface()
+                        .asJavaClasses()
+                        .map(type -> type.getName())
+        ).isEmpty();
+
+        assertThat(
+                rankingModule.getNamedInterfaces()
+                        .getByName("api")
+                        .orElseThrow()
                         .asJavaClasses()
                         .map(type -> type.getName())
         ).containsExactlyInAnyOrder(

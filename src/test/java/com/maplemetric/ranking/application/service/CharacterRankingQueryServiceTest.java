@@ -10,8 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.maplemetric.common.nexon.NexonApiFailure;
-import com.maplemetric.ranking.CharacterRanking;
-import com.maplemetric.ranking.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRanking;
+import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort.RankingEntry;
 import com.maplemetric.ranking.domain.exception.RankingException;
