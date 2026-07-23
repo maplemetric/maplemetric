@@ -1,4 +1,4 @@
-package com.maplemetric.ranking;
+package com.maplemetric.ranking.api;
 
 public interface CharacterRankingQuery {
 

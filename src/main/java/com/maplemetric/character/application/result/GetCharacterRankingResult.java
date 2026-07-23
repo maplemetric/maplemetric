@@ -1,7 +1,7 @@
 package com.maplemetric.character.application.result;
 
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
-import com.maplemetric.ranking.CharacterRanking;
+import com.maplemetric.ranking.api.CharacterRanking;
 
 public record GetCharacterRankingResult(
         Integer overallRank,

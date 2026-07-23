@@ -31,9 +31,9 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
-import com.maplemetric.ranking.CharacterRanking;
-import com.maplemetric.ranking.CharacterRankingQuery;
-import com.maplemetric.ranking.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRanking;
+import com.maplemetric.ranking.api.CharacterRankingQuery;
+import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.regex.Pattern;
