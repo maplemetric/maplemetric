@@ -1,6 +1,8 @@
 package com.maplemetric.character.application.service;
 
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.CharacterAbility;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
 import com.maplemetric.character.application.port.out.LoadCharacterDojangPort;
@@ -33,7 +35,6 @@ import com.maplemetric.character.application.result.GetCharacterUnionResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
-import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
@@ -61,6 +62,7 @@ public class CharacterQueryService {
     private static final int ENGLISH_NUMBER_CHARACTER_WEIGHT = 1;
 
     private final CharacterClient characterClient;
+    private final LoadCharacterAbilityPort loadCharacterAbilityPort;
     private final LoadCharacterBasicPort loadCharacterBasicPort;
     private final LoadCharacterDojangPort loadCharacterDojangPort;
     private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
@@ -76,6 +78,7 @@ public class CharacterQueryService {
     @Autowired
     public CharacterQueryService(
             CharacterClient characterClient,
+            LoadCharacterAbilityPort loadCharacterAbilityPort,
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
@@ -89,6 +92,7 @@ public class CharacterQueryService {
     ) {
         this(
                 characterClient,
+                loadCharacterAbilityPort,
                 loadCharacterBasicPort,
                 loadCharacterDojangPort,
                 loadCharacterEquipmentPort,
@@ -105,6 +109,7 @@ public class CharacterQueryService {
 
     CharacterQueryService(
             CharacterClient characterClient,
+            LoadCharacterAbilityPort loadCharacterAbilityPort,
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
@@ -118,6 +123,7 @@ public class CharacterQueryService {
             Clock clock
     ) {
         this.characterClient = characterClient;
+        this.loadCharacterAbilityPort = loadCharacterAbilityPort;
         this.loadCharacterBasicPort =
                 loadCharacterBasicPort;
         this.loadCharacterDojangPort = loadCharacterDojangPort;
@@ -190,8 +196,9 @@ public class CharacterQueryService {
                 loadCharacterHyperStatPort
                         .loadCharacterHyperStat(ocid);
 
-        CharacterAbilityResponse abilityResponse =
-                characterClient.getCharacterAbility(ocid);
+        CharacterAbility ability =
+                loadCharacterAbilityPort
+                        .loadCharacterAbility(ocid);
 
         CharacterUnion union =
                 loadCharacterUnionPort.loadCharacterUnion(ocid);
@@ -258,7 +265,7 @@ public class CharacterQueryService {
                         hyperStat
                 ),
                 GetCharacterAbilityResult.from(
-                        abilityResponse
+                        ability
                 ),
                 GetCharacterDojangResult.from(
                         dojang
