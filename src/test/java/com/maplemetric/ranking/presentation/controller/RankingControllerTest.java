@@ -7,13 +7,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
 import com.maplemetric.ranking.application.result.GetUnionRankingResult;
 import com.maplemetric.ranking.application.service.RankingQueryService;
+import com.maplemetric.ranking.domain.exception.RankingException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -30,6 +36,29 @@ class RankingControllerTest {
 
     @MockitoBean
     private RankingQueryService rankingQueryService;
+
+    @ParameterizedTest
+    @MethodSource("rankingFailures")
+    void 랭킹조회오류를HTTP응답으로변환한다(
+            NexonApiFailure failure,
+            int expectedStatus,
+            String expectedCode
+    ) throws Exception {
+        given(rankingQueryService.getOverallRanking(
+                null,
+                null,
+                null,
+                null,
+                1
+        )).willThrow(new RankingException(failure));
+
+        mockMvc.perform(
+                        get("/api/v1/rankings/overall")
+                )
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(expectedCode));
+    }
 
     @Test
     void 종합랭킹조회응답을반환한다() throws Exception {
@@ -100,6 +129,36 @@ class RankingControllerTest {
                 0,
                 "팬텀-전체 전직",
                 2
+        );
+    }
+
+    private static Stream<Arguments> rankingFailures() {
+        return Stream.of(
+                Arguments.of(
+                        NexonApiFailure.NOT_FOUND,
+                        502,
+                        "RANKING_001"
+                ),
+                Arguments.of(
+                        NexonApiFailure.CLIENT_ERROR,
+                        502,
+                        "RANKING_001"
+                ),
+                Arguments.of(
+                        NexonApiFailure.SERVER_ERROR,
+                        502,
+                        "RANKING_002"
+                ),
+                Arguments.of(
+                        NexonApiFailure.TIMEOUT,
+                        504,
+                        "RANKING_003"
+                ),
+                Arguments.of(
+                        NexonApiFailure.RESPONSE_INVALID,
+                        502,
+                        "RANKING_004"
+                )
         );
     }
 

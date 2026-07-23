@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
 import com.maplemetric.ranking.application.result.GetUnionRankingResult;
@@ -14,7 +15,6 @@ import com.maplemetric.ranking.infrastructure.client.nexon.RankingClient;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
-import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -383,10 +383,8 @@ class RankingQueryServiceTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_RESPONSE_INVALID
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.RESPONSE_INVALID);
     }
 
     @Test
@@ -414,10 +412,8 @@ class RankingQueryServiceTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_RESPONSE_INVALID
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.RESPONSE_INVALID);
     }
 
     private RankingQueryService createService(

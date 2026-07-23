@@ -15,7 +15,6 @@ import com.maplemetric.ranking.CharacterRankingQueryException;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.nexon.RankingClient;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
-import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -26,7 +25,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -350,8 +348,7 @@ class CharacterRankingQueryServiceTest {
     @ParameterizedTest
     @MethodSource("rankingFailures")
     void 랭킹외부API오류를공개실패유형으로변환한다(
-            RankingErrorCode errorCode,
-            NexonApiFailure expectedFailure
+            NexonApiFailure failure
     ) {
         CharacterRankingQueryService service = createService(
                 "2026-07-21T00:30:00Z"
@@ -362,7 +359,7 @@ class CharacterRankingQueryServiceTest {
         given(rankingClient.getCharacterOverallRanking(
                 OCID,
                 rankingDate
-        )).willThrow(new RankingException(errorCode));
+        )).willThrow(new RankingException(failure));
 
         CharacterRankingQueryException exception =
                 catchThrowableOfType(
@@ -375,27 +372,15 @@ class CharacterRankingQueryServiceTest {
                 );
 
         assertThat(exception.getFailure())
-                .isEqualTo(expectedFailure);
+                .isEqualTo(failure);
     }
 
-    private static Stream<Arguments> rankingFailures() {
+    private static Stream<NexonApiFailure> rankingFailures() {
         return Stream.of(
-                Arguments.of(
-                        RankingErrorCode.NEXON_API_CLIENT_ERROR,
-                        NexonApiFailure.CLIENT_ERROR
-                ),
-                Arguments.of(
-                        RankingErrorCode.NEXON_API_SERVER_ERROR,
-                        NexonApiFailure.SERVER_ERROR
-                ),
-                Arguments.of(
-                        RankingErrorCode.NEXON_API_TIMEOUT,
-                        NexonApiFailure.TIMEOUT
-                ),
-                Arguments.of(
-                        RankingErrorCode.NEXON_API_RESPONSE_INVALID,
-                        NexonApiFailure.RESPONSE_INVALID
-                )
+                NexonApiFailure.CLIENT_ERROR,
+                NexonApiFailure.SERVER_ERROR,
+                NexonApiFailure.TIMEOUT,
+                NexonApiFailure.RESPONSE_INVALID
         );
     }
 

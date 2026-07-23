@@ -6,11 +6,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.UnionRankingResponse;
-import com.maplemetric.ranking.presentation.code.RankingErrorCode;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
@@ -261,10 +261,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_CLIENT_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.CLIENT_ERROR);
 
         assertThat(output)
                 .contains("캐릭터 직업 랭킹 정보")
@@ -298,10 +296,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_RESPONSE_INVALID
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.RESPONSE_INVALID);
 
         assertSensitiveValuesAreNotLogged(output);
 
@@ -329,10 +325,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_CLIENT_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.NOT_FOUND);
 
         assertSensitiveValuesAreNotLogged(output);
 
@@ -409,10 +403,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_CLIENT_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.CLIENT_ERROR);
 
         assertThat(output)
                 .contains("retryCount=1")
@@ -440,10 +432,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_TIMEOUT
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.TIMEOUT);
 
         assertSensitiveValuesAreNotLogged(output);
     }
@@ -620,10 +610,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_RESPONSE_INVALID
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.RESPONSE_INVALID);
 
         mockServer.verify();
     }
@@ -650,10 +638,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_CLIENT_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.NOT_FOUND);
 
         mockServer.verify();
     }
@@ -694,10 +680,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_CLIENT_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.CLIENT_ERROR);
 
         assertThat(output)
                 .contains("무릉도장 랭킹 목록")
@@ -728,10 +712,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_SERVER_ERROR
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.SERVER_ERROR);
 
         mockServer.verify();
     }
@@ -753,10 +735,8 @@ class RankingClientImplTest {
                 RankingException.class
         );
 
-        assertThat(exception.getErrorCode())
-                .isEqualTo(
-                        RankingErrorCode.NEXON_API_TIMEOUT
-                );
+        assertThat(exception.getFailure())
+                .isEqualTo(NexonApiFailure.TIMEOUT);
     }
 
     private ResponseCreator emptyRankingResponse() {
