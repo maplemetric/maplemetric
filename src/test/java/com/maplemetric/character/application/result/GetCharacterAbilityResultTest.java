@@ -2,15 +2,15 @@ package com.maplemetric.character.application.result;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.CharacterAbility;
 import org.junit.jupiter.api.Test;
 
 class GetCharacterAbilityResultTest {
 
     @Test
     void null옵션과프리셋을빈목록으로변환한다() {
-        CharacterAbilityResponse response =
-                new CharacterAbilityResponse(
+        CharacterAbility ability =
+                new CharacterAbility(
                         "2026-07-19T00:00+09:00",
                         null,
                         null,
@@ -22,7 +22,7 @@ class GetCharacterAbilityResultTest {
                 );
 
         GetCharacterAbilityResult result =
-                GetCharacterAbilityResult.from(response);
+                GetCharacterAbilityResult.from(ability);
 
         assertThat(result.currentOptions())
                 .isEmpty();

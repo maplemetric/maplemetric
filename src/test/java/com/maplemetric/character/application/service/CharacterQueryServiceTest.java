@@ -10,6 +10,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculationPolicyV1;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.AbilityOption;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.AbilityPreset;
+import com.maplemetric.character.application.port.out.LoadCharacterAbilityPort.CharacterAbility;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
 import com.maplemetric.character.application.port.out.LoadCharacterDojangPort;
@@ -37,7 +41,6 @@ import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
-import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
@@ -69,6 +72,9 @@ class CharacterQueryServiceTest {
     private static final String OCID = "test-ocid";
     @Mock
     private CharacterClient characterClient;
+
+    @Mock
+    private LoadCharacterAbilityPort loadCharacterAbilityPort;
 
     @Mock
     private LoadCharacterBasicPort loadCharacterBasicPort;
@@ -116,6 +122,7 @@ class CharacterQueryServiceTest {
         characterQueryService =
                 new CharacterQueryService(
                         characterClient,
+                        loadCharacterAbilityPort,
                         loadCharacterBasicPort,
                         loadCharacterDojangPort,
                         loadCharacterEquipmentPort,
@@ -939,7 +946,8 @@ class CharacterQueryServiceTest {
                 .loadCharacterHyperStat(OCID))
                 .willReturn(createHyperStatResponse());
 
-        given(characterClient.getCharacterAbility(OCID))
+        given(loadCharacterAbilityPort
+                .loadCharacterAbility(OCID))
                 .willReturn(createAbilityResponse());
 
         given(characterClient.getCharacterSkill(OCID, "5"))
@@ -968,8 +976,8 @@ class CharacterQueryServiceTest {
         verify(loadCharacterHyperStatPort)
                 .loadCharacterHyperStat(OCID);
 
-        verify(characterClient)
-                .getCharacterAbility(OCID);
+        verify(loadCharacterAbilityPort)
+                .loadCharacterAbility(OCID);
 
         verify(characterClient)
                 .getCharacterSkill(OCID, "5");
@@ -991,6 +999,7 @@ class CharacterQueryServiceTest {
 
         verifyNoMoreInteractions(loadCharacterPopularityPort);
         verifyNoMoreInteractions(loadCharacterHyperStatPort);
+        verifyNoMoreInteractions(loadCharacterAbilityPort);
     }
 
     private CharacterBasic createBasic() {
@@ -1058,26 +1067,26 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterAbilityResponse createAbilityResponse() {
-        CharacterAbilityResponse.AbilityInfo abilityInfo =
-                new CharacterAbilityResponse.AbilityInfo(
+    private CharacterAbility createAbilityResponse() {
+        AbilityOption abilityOption =
+                new AbilityOption(
                         "1",
                         "레전드리",
                         "보스 몬스터 공격 시 데미지 20% 증가"
                 );
 
-        return new CharacterAbilityResponse(
+        return new CharacterAbility(
                 "2026-07-19T00:00+09:00",
                 "레전드리",
-                List.of(abilityInfo),
+                List.of(abilityOption),
                 100L,
                 1,
-                new CharacterAbilityResponse.AbilityPreset(
+                new AbilityPreset(
                         "레전드리",
-                        List.of(abilityInfo)
+                        List.of(abilityOption)
                 ),
                 null,
-                new CharacterAbilityResponse.AbilityPreset(
+                new AbilityPreset(
                         "에픽",
                         null
                 )
