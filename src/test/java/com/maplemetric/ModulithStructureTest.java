@@ -9,6 +9,7 @@ import com.maplemetric.analysis.domain.model.InsightSentiment;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
@@ -238,7 +239,8 @@ class ModulithStructureTest {
         ).containsExactlyInAnyOrder(
                 CharacterRanking.class.getName(),
                 CharacterRankingQuery.class.getName(),
-                CharacterRankingQueryException.class.getName()
+                CharacterRankingQueryException.class.getName(),
+                CharacterRankingQueryFailure.class.getName()
         );
 
         assertThat(

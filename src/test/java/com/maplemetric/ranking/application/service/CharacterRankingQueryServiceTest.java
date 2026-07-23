@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort;
 import com.maplemetric.ranking.application.port.out.LoadCharacterRankingPort.RankingEntry;
 import com.maplemetric.ranking.domain.exception.RankingException;
@@ -25,6 +26,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -343,7 +345,8 @@ class CharacterRankingQueryServiceTest {
     @ParameterizedTest
     @MethodSource("rankingFailures")
     void 랭킹외부API오류를공개실패유형으로변환한다(
-            NexonApiFailure failure
+            NexonApiFailure failure,
+            CharacterRankingQueryFailure expectedFailure
     ) {
         CharacterRankingQueryService service = createService(
                 "2026-07-21T00:30:00Z"
@@ -367,15 +370,31 @@ class CharacterRankingQueryServiceTest {
                 );
 
         assertThat(exception.getFailure())
-                .isEqualTo(failure);
+                .isEqualTo(expectedFailure);
     }
 
-    private static Stream<NexonApiFailure> rankingFailures() {
+    private static Stream<Arguments> rankingFailures() {
         return Stream.of(
-                NexonApiFailure.CLIENT_ERROR,
-                NexonApiFailure.SERVER_ERROR,
-                NexonApiFailure.TIMEOUT,
-                NexonApiFailure.RESPONSE_INVALID
+                Arguments.of(
+                        NexonApiFailure.NOT_FOUND,
+                        CharacterRankingQueryFailure.NOT_FOUND
+                ),
+                Arguments.of(
+                        NexonApiFailure.CLIENT_ERROR,
+                        CharacterRankingQueryFailure.CLIENT_ERROR
+                ),
+                Arguments.of(
+                        NexonApiFailure.SERVER_ERROR,
+                        CharacterRankingQueryFailure.SERVER_ERROR
+                ),
+                Arguments.of(
+                        NexonApiFailure.TIMEOUT,
+                        CharacterRankingQueryFailure.TIMEOUT
+                ),
+                Arguments.of(
+                        NexonApiFailure.RESPONSE_INVALID,
+                        CharacterRankingQueryFailure.RESPONSE_INVALID
+                )
         );
     }
 

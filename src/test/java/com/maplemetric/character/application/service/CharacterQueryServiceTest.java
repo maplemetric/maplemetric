@@ -31,10 +31,10 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.FinalStat;
-import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
+import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -568,7 +568,7 @@ class CharacterQueryServiceTest {
     @ParameterizedTest
     @MethodSource("characterRankingFailures")
     void 랭킹조회실패를기존캐릭터오류로변환한다(
-            NexonApiFailure failure,
+            CharacterRankingQueryFailure failure,
             CharacterErrorCode expectedErrorCode
     ) {
         given(characterClient.getOcid(CHARACTER_NAME))
@@ -615,23 +615,23 @@ class CharacterQueryServiceTest {
     private static Stream<Arguments> characterRankingFailures() {
         return Stream.of(
                 Arguments.of(
-                        NexonApiFailure.NOT_FOUND,
+                        CharacterRankingQueryFailure.NOT_FOUND,
                         CharacterErrorCode.NEXON_API_CLIENT_ERROR
                 ),
                 Arguments.of(
-                        NexonApiFailure.CLIENT_ERROR,
+                        CharacterRankingQueryFailure.CLIENT_ERROR,
                         CharacterErrorCode.NEXON_API_CLIENT_ERROR
                 ),
                 Arguments.of(
-                        NexonApiFailure.SERVER_ERROR,
+                        CharacterRankingQueryFailure.SERVER_ERROR,
                         CharacterErrorCode.NEXON_API_SERVER_ERROR
                 ),
                 Arguments.of(
-                        NexonApiFailure.TIMEOUT,
+                        CharacterRankingQueryFailure.TIMEOUT,
                         CharacterErrorCode.NEXON_API_TIMEOUT
                 ),
                 Arguments.of(
-                        NexonApiFailure.RESPONSE_INVALID,
+                        CharacterRankingQueryFailure.RESPONSE_INVALID,
                         CharacterErrorCode.NEXON_API_RESPONSE_INVALID
                 )
         );
