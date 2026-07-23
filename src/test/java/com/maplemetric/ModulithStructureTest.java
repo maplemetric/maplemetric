@@ -51,6 +51,14 @@ class ModulithStructureTest {
             "com.maplemetric.character.infrastructure.persistence."
                     + "CharacterSnapshotRepository";
 
+    private static final String CHARACTER_EQUIPMENT_SNAPSHOT_ENTITY =
+            "com.maplemetric.character.infrastructure.persistence."
+                    + "CharacterEquipmentSnapshotEntity";
+
+    private static final String CHARACTER_EQUIPMENT_SNAPSHOT_REPOSITORY =
+            "com.maplemetric.character.infrastructure.persistence."
+                    + "CharacterEquipmentSnapshotRepository";
+
     private final ApplicationModules modules =
             ApplicationModules.of(
                     MaplemetricServiceApplication.class
@@ -125,6 +133,22 @@ class ModulithStructureTest {
         assertThat(
                 characterModule.getType(
                                 CHARACTER_SNAPSHOT_REPOSITORY
+                        )
+                        .map(type -> characterModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                characterModule.getType(
+                                CHARACTER_EQUIPMENT_SNAPSHOT_ENTITY
+                        )
+                        .map(type -> characterModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                characterModule.getType(
+                                CHARACTER_EQUIPMENT_SNAPSHOT_REPOSITORY
                         )
                         .map(type -> characterModule.isExposed(type))
                         .orElseThrow()
