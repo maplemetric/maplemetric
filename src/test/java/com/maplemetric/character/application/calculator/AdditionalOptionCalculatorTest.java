@@ -3,10 +3,10 @@ package com.maplemetric.character.application.calculator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.application.result.AdditionalOptionEvaluationResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import java.math.BigDecimal;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ class AdditionalOptionCalculatorTest {
     @MethodSource("generalProfileOptions")
     void 일반직업의추가옵션점수를계산한다(
             String characterClass,
-            CharacterEquipmentResponse.ItemOption option,
+            ItemOption option,
             String calculationType
     ) {
         AdditionalOptionEvaluationResult result =
@@ -48,7 +48,7 @@ class AdditionalOptionCalculatorTest {
 
     @Test
     void 마법직업은공격력이아닌마력을사용한다() {
-        CharacterEquipmentResponse.ItemOption option = option(
+        ItemOption option = option(
                 "0", "0", "80", "40",
                 "0", "100", "6", "5"
         );
@@ -264,7 +264,7 @@ class AdditionalOptionCalculatorTest {
         );
     }
 
-    private static CharacterEquipmentResponse.ItemOption option(
+    private static ItemOption option(
             String str,
             String dex,
             String intelligence,
@@ -274,7 +274,7 @@ class AdditionalOptionCalculatorTest {
             String magicPower,
             String allStat
     ) {
-        return new CharacterEquipmentResponse.ItemOption(
+        return new ItemOption(
                 str,
                 dex,
                 intelligence,
