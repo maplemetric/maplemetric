@@ -1,6 +1,6 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
 
 public record GetCharacterPopularityResult(
         String date,
@@ -8,11 +8,11 @@ public record GetCharacterPopularityResult(
 ) {
 
     public static GetCharacterPopularityResult from(
-            CharacterPopularityResponse response
+            CharacterPopularity popularity
     ) {
         return new GetCharacterPopularityResult(
-                response.date(),
-                response.popularity()
+                popularity.date(),
+                popularity.popularity()
         );
     }
 }

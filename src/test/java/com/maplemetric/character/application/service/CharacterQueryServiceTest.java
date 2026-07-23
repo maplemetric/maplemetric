@@ -18,6 +18,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
+import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
+import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.FinalStat;
@@ -37,7 +39,6 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixRe
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
@@ -77,6 +78,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterEquipmentPort loadCharacterEquipmentPort;
 
     @Mock
+    private LoadCharacterPopularityPort loadCharacterPopularityPort;
+
+    @Mock
     private LoadCharacterStatPort loadCharacterStatPort;
 
     @Mock
@@ -110,6 +114,7 @@ class CharacterQueryServiceTest {
                         loadCharacterBasicPort,
                         loadCharacterDojangPort,
                         loadCharacterEquipmentPort,
+                        loadCharacterPopularityPort,
                         loadCharacterStatPort,
                         loadCharacterSymbolPort,
                         loadCharacterUnionPort,
@@ -920,7 +925,8 @@ class CharacterQueryServiceTest {
     }
 
     private void givenExtendedSummaryResponses() {
-        given(characterClient.getCharacterPopularity(OCID))
+        given(loadCharacterPopularityPort
+                .loadCharacterPopularity(OCID))
                 .willReturn(createPopularityResponse());
 
         given(characterClient.getCharacterHyperStat(OCID))
@@ -949,8 +955,8 @@ class CharacterQueryServiceTest {
     }
 
     private void verifyExtendedSummaryCalls() {
-        verify(characterClient)
-                .getCharacterPopularity(OCID);
+        verify(loadCharacterPopularityPort)
+                .loadCharacterPopularity(OCID);
 
         verify(characterClient)
                 .getCharacterHyperStat(OCID);
@@ -975,6 +981,8 @@ class CharacterQueryServiceTest {
 
         verify(characterClient)
                 .getCharacterHexaMatrixStat(OCID);
+
+        verifyNoMoreInteractions(loadCharacterPopularityPort);
     }
 
     private CharacterBasic createBasic() {
@@ -1013,8 +1021,8 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterPopularityResponse createPopularityResponse() {
-        return new CharacterPopularityResponse(
+    private CharacterPopularity createPopularityResponse() {
+        return new CharacterPopularity(
                 "2026-07-19T00:00+09:00",
                 1234L
         );
