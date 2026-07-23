@@ -12,6 +12,10 @@ import com.maplemetric.character.application.calculator.AdditionalOptionCalculat
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.application.result.GetCharacterEquipmentResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
@@ -20,7 +24,6 @@ import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
@@ -63,6 +66,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterBasicPort loadCharacterBasicPort;
 
     @Mock
+    private LoadCharacterEquipmentPort loadCharacterEquipmentPort;
+
+    @Mock
     private CharacterRankingQuery characterRankingQuery;
 
     private AdditionalOptionCalculator additionalOptionCalculator;
@@ -85,6 +91,7 @@ class CharacterQueryServiceTest {
                 new CharacterQueryService(
                         characterClient,
                         loadCharacterBasicPort,
+                        loadCharacterEquipmentPort,
                         additionalOptionCalculator,
                         characterRankingQuery,
                         clock
@@ -106,7 +113,7 @@ class CharacterQueryServiceTest {
                         )
                 );
 
-        CharacterEquipmentResponse equipmentResponse =
+        CharacterEquipment equipment =
                 createEquipmentResponse(
                         List.of()
                 );
@@ -130,8 +137,9 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
-                .willReturn(equipmentResponse);
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
+                .willReturn(equipment);
 
         GetCharacterSummaryResult result =
                 characterQueryService.getCharacterSummary(
@@ -265,9 +273,11 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     @Test
@@ -309,7 +319,8 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
                 );
@@ -331,9 +342,11 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     @Test
@@ -360,7 +373,8 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
                 );
@@ -385,9 +399,11 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     @Test
@@ -421,7 +437,8 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
                 );
@@ -446,14 +463,16 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     @Test
     void 장비목록이비어있어도종합정보를반환한다() {
-        CharacterEquipmentResponse equipmentResponse =
+        CharacterEquipment equipment =
                 createEquipmentResponse(List.of());
 
         given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
@@ -477,8 +496,9 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
-                .willReturn(equipmentResponse);
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
+                .willReturn(equipment);
 
         GetCharacterSummaryResult result =
                 characterQueryService.getCharacterSummary(
@@ -506,9 +526,11 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     @Test
@@ -550,7 +572,8 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of())
                 );
@@ -583,9 +606,11 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterUnion(OCID);
         verify(characterClient).getCharacterSymbol(OCID);
         verifyExtendedSummaryCalls();
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     @ParameterizedTest
@@ -629,6 +654,7 @@ class CharacterQueryServiceTest {
         verify(characterClient).getCharacterStat(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoInteractions(loadCharacterEquipmentPort);
 
         verify(characterRankingQuery).getCharacterRanking(
                 OCID,
@@ -703,17 +729,19 @@ class CharacterQueryServiceTest {
 
         verifyNoInteractions(characterClient);
         verifyNoInteractions(loadCharacterBasicPort);
+        verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(characterRankingQuery);
     }
 
     @Test
     void 종합조회장비네목록에추가옵션계산결과를포함한다() {
-        CharacterEquipmentResponse.ItemEquipment item =
+        ItemEquipment item =
                 createItemEquipment();
 
         givenSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(List.of(item))
                 );
@@ -759,7 +787,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
                 .willReturn(OCID);
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(
                         createEquipmentResponse(
                                 List.of(createItemEquipment())
@@ -780,9 +809,11 @@ class CharacterQueryServiceTest {
 
         verify(loadCharacterBasicPort)
                 .resolveOcid(CHARACTER_NAME);
-        verify(characterClient).getCharacterEquipment(OCID);
+        verify(loadCharacterEquipmentPort)
+                .loadCharacterEquipment(OCID);
         verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
+        verifyNoMoreInteractions(loadCharacterEquipmentPort);
     }
 
     private void givenSummaryResponses() {
@@ -805,7 +836,8 @@ class CharacterQueryServiceTest {
 
         givenExtendedSummaryResponses();
 
-        given(characterClient.getCharacterEquipment(OCID))
+        given(loadCharacterEquipmentPort
+                .loadCharacterEquipment(OCID))
                 .willReturn(createEquipmentResponse(List.of()));
     }
 
@@ -1126,10 +1158,10 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterEquipmentResponse createEquipmentResponse(
-            List<CharacterEquipmentResponse.ItemEquipment> items
+    private CharacterEquipment createEquipmentResponse(
+            List<ItemEquipment> items
     ) {
-        return new CharacterEquipmentResponse(
+        return new CharacterEquipment(
                 null,
                 "남",
                 "팬텀",
@@ -1141,8 +1173,8 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterEquipmentResponse.ItemEquipment createItemEquipment() {
-        return new CharacterEquipmentResponse.ItemEquipment(
+    private ItemEquipment createItemEquipment() {
+        return new ItemEquipment(
                 "장갑",
                 "장갑",
                 "테스트 장갑",
@@ -1180,8 +1212,8 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterEquipmentResponse.ItemOption createAdditionalOption() {
-        return new CharacterEquipmentResponse.ItemOption(
+    private ItemOption createAdditionalOption() {
+        return new ItemOption(
                 "0",
                 "40",
                 "0",

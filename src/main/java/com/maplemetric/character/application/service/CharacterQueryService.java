@@ -3,6 +3,8 @@ package com.maplemetric.character.application.service;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort;
 import com.maplemetric.character.application.port.out.LoadCharacterBasicPort.CharacterBasic;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.result.GetCharacterAbilityResult;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterDojangResult;
@@ -21,7 +23,6 @@ import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
@@ -55,6 +56,7 @@ public class CharacterQueryService {
 
     private final CharacterClient characterClient;
     private final LoadCharacterBasicPort loadCharacterBasicPort;
+    private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
     private final AdditionalOptionCalculator additionalOptionCalculator;
     private final CharacterRankingQuery characterRankingQuery;
     private final Clock clock;
@@ -63,12 +65,14 @@ public class CharacterQueryService {
     public CharacterQueryService(
             CharacterClient characterClient,
             LoadCharacterBasicPort loadCharacterBasicPort,
+            LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery
     ) {
         this(
                 characterClient,
                 loadCharacterBasicPort,
+                loadCharacterEquipmentPort,
                 additionalOptionCalculator,
                 characterRankingQuery,
                 Clock.systemUTC()
@@ -78,6 +82,7 @@ public class CharacterQueryService {
     CharacterQueryService(
             CharacterClient characterClient,
             LoadCharacterBasicPort loadCharacterBasicPort,
+            LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery,
             Clock clock
@@ -85,6 +90,8 @@ public class CharacterQueryService {
         this.characterClient = characterClient;
         this.loadCharacterBasicPort =
                 loadCharacterBasicPort;
+        this.loadCharacterEquipmentPort =
+                loadCharacterEquipmentPort;
         this.additionalOptionCalculator =
                 additionalOptionCalculator;
         this.characterRankingQuery = characterRankingQuery;
@@ -107,12 +114,13 @@ public class CharacterQueryService {
     ) {
         String ocid = getValidatedOcid(characterName);
 
-        CharacterEquipmentResponse equipmentResponse =
-                characterClient.getCharacterEquipment(ocid);
+        CharacterEquipment equipment =
+                loadCharacterEquipmentPort
+                        .loadCharacterEquipment(ocid);
 
         return GetCharacterEquipmentResult.from(
-                equipmentResponse,
-                equipmentResponse.characterClass(),
+                equipment,
+                equipment.characterClass(),
                 additionalOptionCalculator
         );
     }
@@ -176,8 +184,9 @@ public class CharacterQueryService {
         CharacterHexaMatrixStatResponse hexaStatResponse =
                 characterClient.getCharacterHexaMatrixStat(ocid);
 
-        CharacterEquipmentResponse equipmentResponse =
-                characterClient.getCharacterEquipment(ocid);
+        CharacterEquipment equipment =
+                loadCharacterEquipmentPort
+                        .loadCharacterEquipment(ocid);
 
         return GetCharacterSummaryResult.of(
                 GetCharacterBasicResult.from(basic),
@@ -199,7 +208,7 @@ public class CharacterQueryService {
                         sixthSkillResponse
                 ),
                 GetCharacterEquipmentResult.from(
-                        equipmentResponse,
+                        equipment,
                         basic.characterClass(),
                         additionalOptionCalculator
                 ),

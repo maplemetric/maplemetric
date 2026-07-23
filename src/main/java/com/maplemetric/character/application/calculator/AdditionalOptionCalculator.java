@@ -1,9 +1,9 @@
 package com.maplemetric.character.application.calculator;
 
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.application.result.AdditionalOptionEvaluationResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
@@ -29,7 +29,7 @@ public class AdditionalOptionCalculator {
 
     public AdditionalOptionEvaluationResult calculate(
             String characterClass,
-            CharacterEquipmentResponse.ItemOption option
+            ItemOption option
     ) {
         CharacterStatProfile profile =
                 CharacterStatProfile.from(characterClass)
@@ -80,7 +80,7 @@ public class AdditionalOptionCalculator {
     }
 
     private AdditionalOptionValues convert(
-            CharacterEquipmentResponse.ItemOption option
+            ItemOption option
     ) {
         return new AdditionalOptionValues(
                 convertNumber(option.str()),
