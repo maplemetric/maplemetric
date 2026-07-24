@@ -12,8 +12,17 @@ public interface OverallRankingStatisticsQueryDslRepository {
 
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
 
+    List<WorldNameAggregate> aggregateByWorldName(UUID collectionId);
+
     record ClassNameAggregate(
             String className,
+            long count,
+            BigDecimal averageLevel
+    ) {
+    }
+
+    record WorldNameAggregate(
+            String worldName,
             long count,
             BigDecimal averageLevel
     ) {

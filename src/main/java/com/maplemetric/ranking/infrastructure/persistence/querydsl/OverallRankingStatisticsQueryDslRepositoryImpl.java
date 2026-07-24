@@ -81,4 +81,34 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 .orderBy(count.desc(), snapshot.className.asc())
                 .fetch();
     }
+
+    @Override
+    public List<WorldNameAggregate> aggregateByWorldName(
+            UUID collectionId
+    ) {
+        QOverallRankingSnapshotEntity snapshot =
+                QOverallRankingSnapshotEntity.overallRankingSnapshotEntity;
+
+        NumberExpression<BigDecimal> averageLevel =
+                Expressions.numberTemplate(
+                        BigDecimal.class,
+                        "avg({0})",
+                        snapshot.characterLevel
+                );
+
+        NumberExpression<Long> count = snapshot.count();
+
+        return queryFactory
+                .select(Projections.constructor(
+                        WorldNameAggregate.class,
+                        snapshot.worldName,
+                        count,
+                        averageLevel
+                ))
+                .from(snapshot)
+                .where(snapshot.collection.id.eq(collectionId))
+                .groupBy(snapshot.worldName)
+                .orderBy(count.desc(), snapshot.worldName.asc())
+                .fetch();
+    }
 }
