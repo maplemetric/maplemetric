@@ -94,8 +94,69 @@ class StatisticsControllerTest {
                                 .value("NEXON_OPEN_API")
                 )
                 .andExpect(
+                        jsonPath("$.data.collectedAt")
+                                .value("2026-07-24T01:00:00Z")
+                )
+                .andExpect(
                         jsonPath("$.data.pageCount")
                                 .value(13)
+                )
+                .andExpect(
+                        jsonPath("$.data.requestedMaxPages")
+                                .value(100)
+                )
+                .andExpect(
+                        jsonPath("$.data.truncated")
+                                .value(false)
+                );
+    }
+
+    @Test
+    void sampleSize가0이면빈jobs와메타데이터를정상반환한다() throws Exception {
+        given(statisticsQueryService.getJobStatistics())
+                .willReturn(
+                        new GetJobStatisticsResult(
+                                List.of(),
+                                0,
+                                SNAPSHOT_DATE,
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                1,
+                                100,
+                                false
+                        )
+                );
+
+        mockMvc.perform(get("/api/v1/statistics/jobs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.data.sampleSize")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs")
+                                .isArray()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.asOf")
+                                .value("2026-07-24")
+                )
+                .andExpect(
+                        jsonPath("$.data.source")
+                                .value("NEXON_OPEN_API")
+                )
+                .andExpect(
+                        jsonPath("$.data.collectedAt")
+                                .value("2026-07-24T01:00:00Z")
+                )
+                .andExpect(
+                        jsonPath("$.data.pageCount")
+                                .value(1)
                 )
                 .andExpect(
                         jsonPath("$.data.requestedMaxPages")
