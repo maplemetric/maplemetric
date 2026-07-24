@@ -66,16 +66,19 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                         snapshot.characterLevel
                 );
 
+        NumberExpression<Long> count = snapshot.count();
+
         return queryFactory
                 .select(Projections.constructor(
                         ClassNameAggregate.class,
                         snapshot.className,
-                        snapshot.count(),
+                        count,
                         averageLevel
                 ))
                 .from(snapshot)
                 .where(snapshot.collection.id.eq(collectionId))
                 .groupBy(snapshot.className)
+                .orderBy(count.desc(), snapshot.className.asc())
                 .fetch();
     }
 }

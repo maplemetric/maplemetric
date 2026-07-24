@@ -148,6 +148,30 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
     }
 
     @Test
+    void count내림차순동률은className오름차순으로정렬한다() {
+        OverallRankingCollectionEntity collection =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 24),
+                        new Row[] {
+                                row(1, "히어로", null, 200),
+                                row(2, "히어로", null, 205),
+                                row(3, "히어로", null, 210),
+                                row(4, "데몬슬레이어", null, 220),
+                                row(5, "데몬슬레이어", null, 225),
+                                row(6, "나이트로드", null, 230),
+                                row(7, "나이트로드", null, 235)
+                        }
+                );
+
+        var aggregates =
+                repository.aggregateByClassName(collection.getId());
+
+        assertThat(aggregates)
+                .extracting(aggregate -> aggregate.className())
+                .containsExactly("히어로", "나이트로드", "데몬슬레이어");
+    }
+
+    @Test
     void 평균레벨을BigDecimal로반환한다() {
         OverallRankingCollectionEntity collection =
                 saveAllConditionCollection(

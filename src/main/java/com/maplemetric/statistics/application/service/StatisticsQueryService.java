@@ -4,7 +4,6 @@ import com.maplemetric.ranking.api.OverallRankingStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StatisticsQueryService {
@@ -17,7 +16,6 @@ public class StatisticsQueryService {
         this.overallRankingStatisticsQuery = overallRankingStatisticsQuery;
     }
 
-    @Transactional(readOnly = true)
     public GetJobStatisticsResult getJobStatistics() {
         OverallRankingStatisticsSnapshot snapshot =
                 overallRankingStatisticsQuery.getLatestJobStatistics();
