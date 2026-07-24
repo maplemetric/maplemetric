@@ -1,6 +1,11 @@
 package com.maplemetric.ranking.application.service;
 
 import com.maplemetric.common.nexon.NexonApiFailure;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
+import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import com.maplemetric.ranking.application.command.CollectOverallRankingSnapshotCommand;
 import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
 import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPort;
@@ -14,17 +19,22 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
-public class OverallRankingSnapshotCollectionService {
+public class OverallRankingSnapshotCollectionService
+        implements CollectOverallRankingSnapshotUseCase {
 
     private static final String SOURCE = "NEXON_OPEN_API";
 
     private final LoadRankingListPort loadRankingListPort;
     private final SaveOverallRankingSnapshotPort saveOverallRankingSnapshotPort;
     private final Clock clock;
+    private final AtomicBoolean collectionInProgress = new AtomicBoolean(false);
 
     @Autowired
     public OverallRankingSnapshotCollectionService(
@@ -140,5 +150,76 @@ public class OverallRankingSnapshotCollectionService {
                 rows.size(),
                 truncated
         );
+    }
+
+    @Override
+    public CollectOverallRankingSnapshotOutcome collect(
+            CollectOverallRankingSnapshotRequest request
+    ) {
+        if (!collectionInProgress.compareAndSet(false, true)) {
+            log.warn("종합 랭킹 Snapshot 수집이 이미 실행 중입니다.");
+            throw new OverallRankingCollectionAlreadyRunningException();
+        }
+
+        try {
+            log.info(
+                    "종합 랭킹 Snapshot 수집을 시작합니다. 기준일={}, 최대 페이지={}",
+                    request.rankingDate(),
+                    request.maxPages()
+            );
+
+            CollectOverallRankingSnapshotResult result =
+                    collectOverallRanking(
+                            new CollectOverallRankingSnapshotCommand(
+                                    request.rankingDate(),
+                                    null,
+                                    null,
+                                    null,
+                                    request.maxPages()
+                            )
+                    );
+
+            if (!result.collected()) {
+                log.info(
+                        "동일한 종합 랭킹 Snapshot이 존재하여 수집을 건너뜁니다. 기준일={}",
+                        result.asOf()
+                );
+
+                return new CollectOverallRankingSnapshotOutcome(
+                        OverallRankingCollectionStatus.SKIPPED,
+                        result.asOf(),
+                        null,
+                        null,
+                        null
+                );
+            }
+
+            log.info(
+                    "종합 랭킹 Snapshot 수집을 완료했습니다. "
+                            + "기준일={}, 페이지 수={}, 표본 수={}, 잘림={}",
+                    result.asOf(),
+                    result.pageCount(),
+                    result.sampleSize(),
+                    result.truncated()
+            );
+
+            return new CollectOverallRankingSnapshotOutcome(
+                    OverallRankingCollectionStatus.COLLECTED,
+                    result.asOf(),
+                    result.pageCount(),
+                    result.sampleSize(),
+                    result.truncated()
+            );
+        } catch (RuntimeException exception) {
+            log.error(
+                    "종합 랭킹 Snapshot 수집에 실패했습니다. 기준일={}",
+                    request.rankingDate(),
+                    exception
+            );
+
+            throw exception;
+        } finally {
+            collectionInProgress.set(false);
+        }
     }
 }
