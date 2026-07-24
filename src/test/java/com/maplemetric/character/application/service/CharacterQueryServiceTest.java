@@ -22,6 +22,12 @@ import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.CharacterHexa;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.HexaCore;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.HexaStatCore;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.LinkedSkill;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.SixthSkill;
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.HyperStat;
@@ -45,10 +51,6 @@ import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.CharacterClient;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
@@ -74,9 +76,6 @@ class CharacterQueryServiceTest {
     private static final String CHARACTER_NAME = "감점";
     private static final String OCID = "test-ocid";
     @Mock
-    private CharacterClient characterClient;
-
-    @Mock
     private LoadCharacterAbilityPort loadCharacterAbilityPort;
 
     @Mock
@@ -87,6 +86,9 @@ class CharacterQueryServiceTest {
 
     @Mock
     private LoadCharacterEquipmentPort loadCharacterEquipmentPort;
+
+    @Mock
+    private LoadCharacterHexaPort loadCharacterHexaPort;
 
     @Mock
     private LoadCharacterHyperStatPort loadCharacterHyperStatPort;
@@ -127,11 +129,11 @@ class CharacterQueryServiceTest {
 
         characterQueryService =
                 new CharacterQueryService(
-                        characterClient,
                         loadCharacterAbilityPort,
                         loadCharacterBasicPort,
                         loadCharacterDojangPort,
                         loadCharacterEquipmentPort,
+                        loadCharacterHexaPort,
                         loadCharacterHyperStatPort,
                         loadCharacterPopularityPort,
                         loadCharacterSkillsPort,
@@ -321,7 +323,6 @@ class CharacterQueryServiceTest {
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -393,7 +394,6 @@ class CharacterQueryServiceTest {
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -453,7 +453,6 @@ class CharacterQueryServiceTest {
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -520,7 +519,6 @@ class CharacterQueryServiceTest {
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -586,7 +584,6 @@ class CharacterQueryServiceTest {
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -669,7 +666,6 @@ class CharacterQueryServiceTest {
         verifyExtendedSummaryCalls();
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -716,7 +712,6 @@ class CharacterQueryServiceTest {
         verify(loadCharacterBasicPort)
                 .loadCharacterBasic(OCID);
         verify(loadCharacterStatPort).loadCharacterStat(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoMoreInteractions(loadCharacterStatPort);
@@ -792,7 +787,6 @@ class CharacterQueryServiceTest {
                         CharacterErrorCode.INVALID_CHARACTER_NAME
                 );
 
-        verifyNoInteractions(characterClient);
         verifyNoInteractions(loadCharacterBasicPort);
         verifyNoInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(loadCharacterStatPort);
@@ -879,7 +873,6 @@ class CharacterQueryServiceTest {
                 .resolveOcid(CHARACTER_NAME);
         verify(loadCharacterEquipmentPort)
                 .loadCharacterEquipment(OCID);
-        verifyNoMoreInteractions(characterClient);
         verifyNoMoreInteractions(loadCharacterBasicPort);
         verifyNoMoreInteractions(loadCharacterEquipmentPort);
         verifyNoInteractions(loadCharacterStatPort);
@@ -960,14 +953,8 @@ class CharacterQueryServiceTest {
         given(loadCharacterSkillsPort.loadCharacterSkills(OCID))
                 .willReturn(createSkillsResponse());
 
-        given(characterClient.getCharacterSkill(OCID, "6"))
-                .willReturn(createSixthSkillResponse());
-
-        given(characterClient.getCharacterHexaMatrix(OCID))
-                .willReturn(createHexaMatrixResponse());
-
-        given(characterClient.getCharacterHexaMatrixStat(OCID))
-                .willReturn(createHexaMatrixStatResponse());
+        given(loadCharacterHexaPort.loadCharacterHexa(OCID))
+                .willReturn(createHexaResponse());
     }
 
     private void verifyExtendedSummaryCalls() {
@@ -983,19 +970,14 @@ class CharacterQueryServiceTest {
         verify(loadCharacterSkillsPort)
                 .loadCharacterSkills(OCID);
 
-        verify(characterClient)
-                .getCharacterSkill(OCID, "6");
-
-        verify(characterClient)
-                .getCharacterHexaMatrix(OCID);
-
-        verify(characterClient)
-                .getCharacterHexaMatrixStat(OCID);
+        verify(loadCharacterHexaPort)
+                .loadCharacterHexa(OCID);
 
         verifyNoMoreInteractions(loadCharacterPopularityPort);
         verifyNoMoreInteractions(loadCharacterHyperStatPort);
         verifyNoMoreInteractions(loadCharacterAbilityPort);
         verifyNoMoreInteractions(loadCharacterSkillsPort);
+        verifyNoMoreInteractions(loadCharacterHexaPort);
     }
 
     private CharacterBasic createBasic() {
@@ -1153,51 +1135,34 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterSkillResponse createSixthSkillResponse() {
-        return new CharacterSkillResponse(
-                null,
-                "팬텀",
-                "6",
+    private CharacterHexa createHexaResponse() {
+        return new CharacterHexa(
                 List.of(
-                        new CharacterSkillResponse.Skill(
+                        new HexaCore(
                                 "템페스트 오브 카드 VI",
-                                18,
-                                "https://example.com/tempest-vi.png"
-                        )
-                )
-        );
-    }
-
-    private CharacterHexaMatrixResponse createHexaMatrixResponse() {
-        return new CharacterHexaMatrixResponse(
-                null,
-                List.of(
-                        new CharacterHexaMatrixResponse.HexaCore(
-                                "템페스트 오브 카드 VI",
-                                18,
                                 "마스터리 코어",
+                                18,
                                 List.of(
-                                        new CharacterHexaMatrixResponse.LinkedSkill(
+                                        new LinkedSkill(
                                                 "템페스트 오브 카드 VI"
                                         )
                                 )
                         )
-                )
-        );
-    }
-
-    private CharacterHexaMatrixStatResponse createHexaMatrixStatResponse() {
-        return new CharacterHexaMatrixStatResponse(
-                null,
-                "팬텀",
+                ),
                 List.of(
-                        new CharacterHexaMatrixStatResponse.HexaStatCore(
+                        new SixthSkill(
+                                "템페스트 오브 카드 VI",
+                                "https://example.com/tempest-vi.png"
+                        )
+                ),
+                List.of(
+                        new HexaStatCore(
                                 "0",
                                 "크리티컬 데미지 증가",
-                                "공격력 증가",
-                                "주력 스탯 증가",
                                 4,
+                                "공격력 증가",
                                 8,
+                                "주력 스탯 증가",
                                 8
                         )
                 ),

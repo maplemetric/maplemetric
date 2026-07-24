@@ -9,6 +9,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterDojangPort;
 import com.maplemetric.character.application.port.out.LoadCharacterDojangPort.CharacterDojang;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.CharacterHexa;
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
@@ -36,10 +38,6 @@ import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterUnionResult;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.CharacterClient;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
@@ -61,11 +59,11 @@ public class CharacterQueryService {
     private static final int KOREAN_CHARACTER_WEIGHT = 2;
     private static final int ENGLISH_NUMBER_CHARACTER_WEIGHT = 1;
 
-    private final CharacterClient characterClient;
     private final LoadCharacterAbilityPort loadCharacterAbilityPort;
     private final LoadCharacterBasicPort loadCharacterBasicPort;
     private final LoadCharacterDojangPort loadCharacterDojangPort;
     private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
+    private final LoadCharacterHexaPort loadCharacterHexaPort;
     private final LoadCharacterHyperStatPort loadCharacterHyperStatPort;
     private final LoadCharacterPopularityPort loadCharacterPopularityPort;
     private final LoadCharacterSkillsPort loadCharacterSkillsPort;
@@ -78,11 +76,11 @@ public class CharacterQueryService {
 
     @Autowired
     public CharacterQueryService(
-            CharacterClient characterClient,
             LoadCharacterAbilityPort loadCharacterAbilityPort,
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
+            LoadCharacterHexaPort loadCharacterHexaPort,
             LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
             LoadCharacterSkillsPort loadCharacterSkillsPort,
@@ -93,11 +91,11 @@ public class CharacterQueryService {
             CharacterRankingQuery characterRankingQuery
     ) {
         this(
-                characterClient,
                 loadCharacterAbilityPort,
                 loadCharacterBasicPort,
                 loadCharacterDojangPort,
                 loadCharacterEquipmentPort,
+                loadCharacterHexaPort,
                 loadCharacterHyperStatPort,
                 loadCharacterPopularityPort,
                 loadCharacterSkillsPort,
@@ -111,11 +109,11 @@ public class CharacterQueryService {
     }
 
     CharacterQueryService(
-            CharacterClient characterClient,
             LoadCharacterAbilityPort loadCharacterAbilityPort,
             LoadCharacterBasicPort loadCharacterBasicPort,
             LoadCharacterDojangPort loadCharacterDojangPort,
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
+            LoadCharacterHexaPort loadCharacterHexaPort,
             LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
             LoadCharacterSkillsPort loadCharacterSkillsPort,
@@ -126,13 +124,13 @@ public class CharacterQueryService {
             CharacterRankingQuery characterRankingQuery,
             Clock clock
     ) {
-        this.characterClient = characterClient;
         this.loadCharacterAbilityPort = loadCharacterAbilityPort;
         this.loadCharacterBasicPort =
                 loadCharacterBasicPort;
         this.loadCharacterDojangPort = loadCharacterDojangPort;
         this.loadCharacterEquipmentPort =
                 loadCharacterEquipmentPort;
+        this.loadCharacterHexaPort = loadCharacterHexaPort;
         this.loadCharacterHyperStatPort = loadCharacterHyperStatPort;
         this.loadCharacterPopularityPort =
                 loadCharacterPopularityPort;
@@ -215,17 +213,9 @@ public class CharacterQueryService {
                 loadCharacterSkillsPort
                         .loadCharacterSkills(ocid);
 
-        CharacterSkillResponse sixthSkillResponse =
-                characterClient.getCharacterSkill(
-                        ocid,
-                        "6"
-                );
-
-        CharacterHexaMatrixResponse hexaMatrixResponse =
-                characterClient.getCharacterHexaMatrix(ocid);
-
-        CharacterHexaMatrixStatResponse hexaStatResponse =
-                characterClient.getCharacterHexaMatrixStat(ocid);
+        CharacterHexa hexa =
+                loadCharacterHexaPort
+                        .loadCharacterHexa(ocid);
 
         CharacterEquipment equipment =
                 loadCharacterEquipmentPort
@@ -243,10 +233,8 @@ public class CharacterQueryService {
                 GetCharacterSkillsResult.from(
                         skills
                 ),
-                GetCharacterHexaResult.of(
-                        hexaMatrixResponse,
-                        hexaStatResponse,
-                        sixthSkillResponse
+                GetCharacterHexaResult.from(
+                        hexa
                 ),
                 GetCharacterEquipmentResult.from(
                         equipment,

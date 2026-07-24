@@ -1,29 +1,30 @@
 package com.maplemetric.character.application.result;
 
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.CharacterHexa;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.HexaCore;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.HexaStatCore;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.LinkedSkill;
+import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.SixthSkill;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.springframework.util.StringUtils;
 
 public record GetCharacterHexaResult(
         List<HexaCoreResult> cores,
         List<HexaStatResult> stats
 ) {
 
-    public static GetCharacterHexaResult of(
-            CharacterHexaMatrixResponse matrixResponse,
-            CharacterHexaMatrixStatResponse statResponse,
-            CharacterSkillResponse sixthSkillResponse
+    public static GetCharacterHexaResult from(
+            CharacterHexa hexa
     ) {
-        Map<String, CharacterSkillResponse.Skill> sixthSkills =
-                CharacterSkillResultMapper.createSkillMap(
-                        sixthSkillResponse
+        Map<String, SixthSkill> sixthSkills =
+                createSixthSkillMap(
+                        hexa.sixthSkills()
                 );
 
         List<HexaStatResult> stats =
@@ -31,31 +32,50 @@ public record GetCharacterHexaResult(
 
         stats.addAll(convertStats(
                 1,
-                statResponse.characterHexaStatCore()
+                hexa.hexaStatCore1()
         ));
 
         stats.addAll(convertStats(
                 2,
-                statResponse.characterHexaStatCore2()
+                hexa.hexaStatCore2()
         ));
 
         stats.addAll(convertStats(
                 3,
-                statResponse.characterHexaStatCore3()
+                hexa.hexaStatCore3()
         ));
 
         return new GetCharacterHexaResult(
                 convertCores(
-                        matrixResponse.characterHexaCoreEquipment(),
+                        hexa.hexaCoreEquipment(),
                         sixthSkills
                 ),
                 List.copyOf(stats)
         );
     }
 
+    private static Map<String, SixthSkill> createSixthSkillMap(
+            List<SixthSkill> sixthSkills
+    ) {
+        if (sixthSkills == null) {
+            return Map.of();
+        }
+
+        return sixthSkills.stream()
+                .filter(skill -> skill != null)
+                .filter(skill -> skill.skillName() != null
+                        && !skill.skillName().isBlank())
+                .collect(Collectors.toMap(
+                        skill -> skill.skillName(),
+                        skill -> skill,
+                        (firstSkill, ignoredSkill) -> firstSkill,
+                        () -> new LinkedHashMap<>()
+                ));
+    }
+
     private static List<HexaCoreResult> convertCores(
-            List<CharacterHexaMatrixResponse.HexaCore> cores,
-            Map<String, CharacterSkillResponse.Skill> sixthSkills
+            List<HexaCore> cores,
+            Map<String, SixthSkill> sixthSkills
     ) {
         if (cores == null) {
             return List.of();
@@ -68,7 +88,7 @@ public record GetCharacterHexaResult(
                         core.hexaCoreType(),
                         core.hexaCoreLevel(),
                         convertLinkedSkills(
-                                core.linkedSkill(),
+                                core.linkedSkills(),
                                 sixthSkills
                         )
                 ))
@@ -76,8 +96,8 @@ public record GetCharacterHexaResult(
     }
 
     private static List<LinkedSkillResult> convertLinkedSkills(
-            List<CharacterHexaMatrixResponse.LinkedSkill> linkedSkills,
-            Map<String, CharacterSkillResponse.Skill> sixthSkills
+            List<LinkedSkill> linkedSkills,
+            Map<String, SixthSkill> sixthSkills
     ) {
         if (linkedSkills == null) {
             return List.of();
@@ -86,7 +106,7 @@ public record GetCharacterHexaResult(
         return linkedSkills.stream()
                 .filter(linkedSkill -> linkedSkill != null)
                 .map(linkedSkill -> {
-                    CharacterSkillResponse.Skill skill =
+                    SixthSkill skill =
                             sixthSkills.get(
                                     linkedSkill.hexaSkillId()
                             );
@@ -103,7 +123,7 @@ public record GetCharacterHexaResult(
 
     private static List<HexaStatResult> convertStats(
             int statCoreNo,
-            List<CharacterHexaMatrixStatResponse.HexaStatCore> stats
+            List<HexaStatCore> stats
     ) {
         if (stats == null) {
             return List.of();
@@ -122,7 +142,7 @@ public record GetCharacterHexaResult(
     }
 
     private static List<SubStatResult> convertSubStats(
-            CharacterHexaMatrixStatResponse.HexaStatCore stat
+            HexaStatCore stat
     ) {
         return Stream.of(
                         new SubStatResult(
@@ -134,16 +154,15 @@ public record GetCharacterHexaResult(
                                 stat.subStatLevel2()
                         )
                 )
-                .filter(subStat -> StringUtils.hasText(
-                        subStat.statName()
-                ))
+                .filter(subStat -> subStat.statName() != null
+                        && !subStat.statName().isBlank())
                 .toList();
     }
 
     private static Integer convertSlotNo(
             String slotId
     ) {
-        if (!StringUtils.hasText(slotId)) {
+        if (slotId == null || slotId.isBlank()) {
             throw new CharacterException(
                     CharacterErrorCode.NEXON_API_RESPONSE_INVALID
             );
