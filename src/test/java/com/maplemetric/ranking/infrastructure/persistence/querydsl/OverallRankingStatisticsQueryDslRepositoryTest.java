@@ -190,6 +190,78 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 .isEqualByComparingTo(new BigDecimal("200.5"));
     }
 
+    @Test
+    void worldName기준으로집계한다() {
+        OverallRankingCollectionEntity collection =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 24),
+                        new WorldRow[] {
+                                worldRow(1, "루나", 200),
+                                worldRow(2, "루나", 210),
+                                worldRow(3, "베라", 220)
+                        }
+                );
+
+        var aggregates =
+                repository.aggregateByWorldName(collection.getId());
+
+        assertThat(aggregates)
+                .extracting(aggregate -> aggregate.worldName())
+                .containsExactlyInAnyOrder("루나", "베라");
+
+        var luna = aggregates.stream()
+                .filter(aggregate -> aggregate.worldName().equals("루나"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(luna.count()).isEqualTo(2);
+        assertThat(luna.averageLevel())
+                .isEqualByComparingTo(BigDecimal.valueOf(205));
+    }
+
+    @Test
+    void count내림차순동률은worldName오름차순으로정렬한다() {
+        OverallRankingCollectionEntity collection =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 24),
+                        new WorldRow[] {
+                                worldRow(1, "루나", 200),
+                                worldRow(2, "루나", 205),
+                                worldRow(3, "루나", 210),
+                                worldRow(4, "베라", 220),
+                                worldRow(5, "베라", 225),
+                                worldRow(6, "이노시스", 230),
+                                worldRow(7, "이노시스", 235)
+                        }
+                );
+
+        var aggregates =
+                repository.aggregateByWorldName(collection.getId());
+
+        assertThat(aggregates)
+                .extracting(aggregate -> aggregate.worldName())
+                .containsExactly("루나", "베라", "이노시스");
+    }
+
+    @Test
+    void 월드별평균레벨을BigDecimal로반환한다() {
+        OverallRankingCollectionEntity collection =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 24),
+                        new WorldRow[] {
+                                worldRow(1, "루나", 200),
+                                worldRow(2, "루나", 201)
+                        }
+                );
+
+        var aggregates =
+                repository.aggregateByWorldName(collection.getId());
+
+        assertThat(aggregates).hasSize(1);
+        assertThat(aggregates.get(0).averageLevel())
+                .isEqualByComparingTo(new BigDecimal("200.5"));
+    }
+
     private OverallRankingCollectionEntity saveAllConditionCollection(
             LocalDate snapshotDate,
             Row[] rows
@@ -241,6 +313,59 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
             int ranking,
             String className,
             String subClassName,
+            int characterLevel
+    ) {
+    }
+
+    private OverallRankingCollectionEntity saveAllConditionCollectionByWorld(
+            LocalDate snapshotDate,
+            WorldRow[] rows
+    ) {
+        OverallRankingCollectionEntity collection =
+                OverallRankingCollectionEntity.create(
+                        snapshotDate,
+                        null,
+                        null,
+                        null,
+                        "NEXON_OPEN_API",
+                        1,
+                        100,
+                        false,
+                        rows.length,
+                        COLLECTED_AT
+                );
+
+        for (WorldRow row : rows) {
+            collection.addSnapshot(
+                    OverallRankingSnapshotEntity.create(
+                            collection,
+                            row.ranking(),
+                            "캐릭터" + row.ranking(),
+                            row.worldName(),
+                            "히어로",
+                            null,
+                            row.characterLevel(),
+                            0L,
+                            0,
+                            null
+                    )
+            );
+        }
+
+        return collectionRepository.saveAndFlush(collection);
+    }
+
+    private WorldRow worldRow(
+            int ranking,
+            String worldName,
+            int characterLevel
+    ) {
+        return new WorldRow(ranking, worldName, characterLevel);
+    }
+
+    private record WorldRow(
+            int ranking,
+            String worldName,
             int characterLevel
     ) {
     }
