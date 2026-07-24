@@ -2,6 +2,7 @@ package com.maplemetric.statistics.presentation.controller;
 
 import com.maplemetric.common.ApiResponse;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
+import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.statistics.presentation.code.StatisticsErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +22,17 @@ public class StatisticsExceptionHandler {
                 .body(ApiResponse.error(errorCode));
     }
 
+    @ExceptionHandler(OverallRankingWorldStatisticsQueryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOverallRankingWorldStatisticsQueryException(
+            OverallRankingWorldStatisticsQueryException exception
+    ) {
+        StatisticsErrorCode errorCode = resolveErrorCode(exception);
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ApiResponse.error(errorCode));
+    }
+
     private StatisticsErrorCode resolveErrorCode(
             OverallRankingStatisticsQueryException exception
     ) {
@@ -29,6 +41,17 @@ public class StatisticsExceptionHandler {
                     StatisticsErrorCode.JOB_STATISTICS_SNAPSHOT_NOT_FOUND;
             case DATA_INVALID ->
                     StatisticsErrorCode.JOB_STATISTICS_DATA_INVALID;
+        };
+    }
+
+    private StatisticsErrorCode resolveErrorCode(
+            OverallRankingWorldStatisticsQueryException exception
+    ) {
+        return switch (exception.getFailure()) {
+            case NOT_FOUND ->
+                    StatisticsErrorCode.WORLD_STATISTICS_SNAPSHOT_NOT_FOUND;
+            case DATA_INVALID ->
+                    StatisticsErrorCode.WORLD_STATISTICS_DATA_INVALID;
         };
     }
 }
