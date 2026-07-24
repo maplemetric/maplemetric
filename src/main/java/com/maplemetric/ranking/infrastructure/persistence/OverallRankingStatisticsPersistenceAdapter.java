@@ -1,0 +1,52 @@
+package com.maplemetric.ranking.infrastructure.persistence;
+
+import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort;
+import com.maplemetric.ranking.infrastructure.persistence.querydsl.OverallRankingStatisticsQueryDslRepository;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Component;
+
+@Component
+class OverallRankingStatisticsPersistenceAdapter
+        implements LoadOverallRankingStatisticsPort {
+
+    private final OverallRankingStatisticsQueryDslRepository queryDslRepository;
+
+    OverallRankingStatisticsPersistenceAdapter(
+            OverallRankingStatisticsQueryDslRepository queryDslRepository
+    ) {
+        this.queryDslRepository = queryDslRepository;
+    }
+
+    @Override
+    public Optional<LatestCollection> loadLatestAllConditionCollection() {
+        return queryDslRepository
+                .findLatestAllConditionCollection()
+                .map(collection -> new LatestCollection(
+                        collection.getId(),
+                        collection.getSnapshotDate(),
+                        collection.getSource(),
+                        collection.getCollectedAt(),
+                        collection.getSampleSize(),
+                        collection.getPageCount(),
+                        collection.getRequestedMaxPages(),
+                        collection.isTruncated()
+                ));
+    }
+
+    @Override
+    public List<ClassNameAggregate> aggregateByClassName(
+            UUID collectionId
+    ) {
+        return queryDslRepository
+                .aggregateByClassName(collectionId)
+                .stream()
+                .map(aggregate -> new ClassNameAggregate(
+                        aggregate.className(),
+                        aggregate.count(),
+                        aggregate.averageLevel()
+                ))
+                .toList();
+    }
+}

@@ -1,0 +1,34 @@
+package com.maplemetric.statistics.presentation.controller;
+
+import com.maplemetric.common.ApiResponse;
+import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
+import com.maplemetric.statistics.presentation.code.StatisticsErrorCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice(assignableTypes = StatisticsController.class)
+public class StatisticsExceptionHandler {
+
+    @ExceptionHandler(OverallRankingStatisticsQueryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOverallRankingStatisticsQueryException(
+            OverallRankingStatisticsQueryException exception
+    ) {
+        StatisticsErrorCode errorCode = resolveErrorCode(exception);
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ApiResponse.error(errorCode));
+    }
+
+    private StatisticsErrorCode resolveErrorCode(
+            OverallRankingStatisticsQueryException exception
+    ) {
+        return switch (exception.getFailure()) {
+            case NOT_FOUND ->
+                    StatisticsErrorCode.JOB_STATISTICS_SNAPSHOT_NOT_FOUND;
+            case DATA_INVALID ->
+                    StatisticsErrorCode.JOB_STATISTICS_DATA_INVALID;
+        };
+    }
+}

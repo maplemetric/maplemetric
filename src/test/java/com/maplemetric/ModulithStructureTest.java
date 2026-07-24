@@ -10,6 +10,10 @@ import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
+import com.maplemetric.ranking.api.OverallRankingStatisticsQuery;
+import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
+import com.maplemetric.ranking.api.OverallRankingStatisticsQueryFailure;
+import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
@@ -240,7 +244,12 @@ class ModulithStructureTest {
                 CharacterRanking.class.getName(),
                 CharacterRankingQuery.class.getName(),
                 CharacterRankingQueryException.class.getName(),
-                CharacterRankingQueryFailure.class.getName()
+                CharacterRankingQueryFailure.class.getName(),
+                OverallRankingStatisticsSnapshot.class.getName(),
+                OverallRankingStatisticsSnapshot.JobCount.class.getName(),
+                OverallRankingStatisticsQuery.class.getName(),
+                OverallRankingStatisticsQueryException.class.getName(),
+                OverallRankingStatisticsQueryFailure.class.getName()
         );
 
         assertThat(
