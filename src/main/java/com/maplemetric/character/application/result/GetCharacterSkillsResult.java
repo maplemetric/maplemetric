@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.springframework.util.StringUtils;
 
 public record GetCharacterSkillsResult(
         VMatrixResult vMatrix,
@@ -70,9 +69,8 @@ public record GetCharacterSkillsResult(
 
         return fifthSkills.stream()
                 .filter(skill -> skill != null)
-                .filter(skill -> StringUtils.hasText(
-                        skill.skillName()
-                ))
+                .filter(skill -> skill.skillName() != null
+                        && !skill.skillName().isBlank())
                 .collect(Collectors.toMap(
                         skill -> skill.skillName(),
                         skill -> skill,
