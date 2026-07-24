@@ -36,9 +36,9 @@ import lombok.Getter;
 )
 public class OverallRankingCollectionEntity {
 
-    static final String ALL_WORLD_NAME = "ALL";
-    static final int ALL_WORLD_TYPE = -1;
-    static final String ALL_CLASS_NAME = "ALL";
+    public static final String ALL_WORLD_NAME = "ALL";
+    public static final int ALL_WORLD_TYPE = -1;
+    public static final String ALL_CLASS_NAME = "ALL";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
