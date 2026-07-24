@@ -10,6 +10,11 @@ import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
+import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryFailure;
@@ -258,7 +263,12 @@ class ModulithStructureTest {
                 OverallRankingWorldStatisticsSnapshot.WorldCount.class.getName(),
                 OverallRankingWorldStatisticsQuery.class.getName(),
                 OverallRankingWorldStatisticsQueryException.class.getName(),
-                OverallRankingWorldStatisticsQueryFailure.class.getName()
+                OverallRankingWorldStatisticsQueryFailure.class.getName(),
+                CollectOverallRankingSnapshotUseCase.class.getName(),
+                CollectOverallRankingSnapshotRequest.class.getName(),
+                CollectOverallRankingSnapshotOutcome.class.getName(),
+                OverallRankingCollectionStatus.class.getName(),
+                OverallRankingCollectionAlreadyRunningException.class.getName()
         );
 
         assertThat(
@@ -280,5 +290,12 @@ class ModulithStructureTest {
                         .map(type -> rankingModule.isExposed(type))
                         .orElseThrow()
         ).isFalse();
+    }
+
+    @Test
+    void Internal모듈은ranking공개api만사용한다() {
+        assertThat(
+                modules.getModuleByName("internal")
+        ).isPresent();
     }
 }

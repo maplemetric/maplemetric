@@ -9,6 +9,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
+import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import com.maplemetric.ranking.application.command.CollectOverallRankingSnapshotCommand;
 import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
 import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPort;
@@ -321,6 +325,222 @@ class OverallRankingSnapshotCollectionServiceTest {
                 );
 
         assertThat(exception).isNotNull();
+    }
+
+    @Test
+    void 공개Request의월드조건을모두null로고정하여Command로변환한다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(false);
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willReturn(
+                createRanking(List.of(1), RANKING_DATE)
+        );
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 2
+        )).willReturn(
+                createRanking(List.of(), RANKING_DATE)
+        );
+
+        CollectOverallRankingSnapshotOutcome outcome =
+                service.collect(
+                        new CollectOverallRankingSnapshotRequest(
+                                RANKING_DATE, 10
+                        )
+                );
+
+        assertThat(outcome.status())
+                .isEqualTo(OverallRankingCollectionStatus.COLLECTED);
+        assertThat(outcome.asOf()).isEqualTo(RANKING_DATE);
+        assertThat(outcome.pageCount()).isEqualTo(2);
+        assertThat(outcome.sampleSize()).isEqualTo(1);
+        assertThat(outcome.truncated()).isFalse();
+
+        verify(loadRankingListPort).loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        );
+        verify(loadRankingListPort).loadOverallRanking(
+                RANKING_DATE, null, null, null, 2
+        );
+    }
+
+    @Test
+    void SKIPPED_Outcome은수치필드를null로변환한다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(true);
+
+        CollectOverallRankingSnapshotOutcome outcome =
+                service.collect(
+                        new CollectOverallRankingSnapshotRequest(
+                                RANKING_DATE, 10
+                        )
+                );
+
+        assertThat(outcome.status())
+                .isEqualTo(OverallRankingCollectionStatus.SKIPPED);
+        assertThat(outcome.asOf()).isEqualTo(RANKING_DATE);
+        assertThat(outcome.pageCount()).isNull();
+        assertThat(outcome.sampleSize()).isNull();
+        assertThat(outcome.truncated()).isNull();
+
+        verifyNoInteractions(loadRankingListPort);
+    }
+
+    @Test
+    void 실행중동일Collection이중복실행되면AlreadyRunning예외를던지고Nexon을호출하지않는다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        CollectOverallRankingSnapshotRequest request =
+                new CollectOverallRankingSnapshotRequest(
+                        RANKING_DATE, 10
+                );
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willAnswer(invocation -> {
+                    OverallRankingCollectionAlreadyRunningException
+                            concurrentException =
+                            catchThrowableOfType(
+                                    () -> service.collect(request),
+                                    OverallRankingCollectionAlreadyRunningException.class
+                            );
+
+                    assertThat(concurrentException).isNotNull();
+
+                    return false;
+                });
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willReturn(
+                createRanking(List.of(), RANKING_DATE)
+        );
+
+        CollectOverallRankingSnapshotOutcome outcome =
+                service.collect(request);
+
+        assertThat(outcome.status())
+                .isEqualTo(OverallRankingCollectionStatus.COLLECTED);
+
+        verify(loadRankingListPort, times(1))
+                .loadOverallRanking(
+                        RANKING_DATE, null, null, null, 1
+                );
+    }
+
+    @Test
+    void 성공후Guard가해제되어다시수집할수있다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        CollectOverallRankingSnapshotRequest request =
+                new CollectOverallRankingSnapshotRequest(
+                        RANKING_DATE, 10
+                );
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(false);
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willReturn(
+                createRanking(List.of(), RANKING_DATE)
+        );
+
+        service.collect(request);
+
+        CollectOverallRankingSnapshotOutcome second =
+                service.collect(request);
+
+        assertThat(second.status())
+                .isEqualTo(OverallRankingCollectionStatus.COLLECTED);
+    }
+
+    @Test
+    void Skip후Guard가해제되어다시수집할수있다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        CollectOverallRankingSnapshotRequest request =
+                new CollectOverallRankingSnapshotRequest(
+                        RANKING_DATE, 10
+                );
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(true);
+
+        service.collect(request);
+
+        CollectOverallRankingSnapshotOutcome second =
+                service.collect(request);
+
+        assertThat(second.status())
+                .isEqualTo(OverallRankingCollectionStatus.SKIPPED);
+    }
+
+    @Test
+    void 예외후Guard가해제되어다시수집할수있다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        CollectOverallRankingSnapshotRequest request =
+                new CollectOverallRankingSnapshotRequest(
+                        RANKING_DATE, 10
+                );
+
+        LocalDate otherDate = RANKING_DATE.plusDays(1);
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(false);
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willReturn(
+                createRanking(List.of(1), otherDate)
+        );
+
+        catchThrowableOfType(
+                () -> service.collect(request),
+                RankingException.class
+        );
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willReturn(
+                createRanking(List.of(), RANKING_DATE)
+        );
+
+        CollectOverallRankingSnapshotOutcome second =
+                service.collect(request);
+
+        assertThat(second.status())
+                .isEqualTo(OverallRankingCollectionStatus.COLLECTED);
     }
 
     private OverallRankingCollection captureSavedCollection() {
