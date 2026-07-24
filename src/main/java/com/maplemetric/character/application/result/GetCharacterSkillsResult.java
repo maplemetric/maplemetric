@@ -1,8 +1,10 @@
 package com.maplemetric.character.application.result;
 
-import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.CharacterSkills;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.FifthSkill;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.LinkSkill;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.VCore;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -12,40 +14,38 @@ public record GetCharacterSkillsResult(
         LinkSkillsResult linkSkills
 ) {
 
-    public static GetCharacterSkillsResult of(
-            CharacterVMatrixResponse vMatrixResponse,
-            CharacterSkillResponse fifthSkillResponse,
-            CharacterLinkSkillResponse linkSkillResponse
+    public static GetCharacterSkillsResult from(
+            CharacterSkills skills
     ) {
-        Map<String, CharacterSkillResponse.Skill> fifthSkills =
-                CharacterSkillResultMapper.createSkillMap(
-                        fifthSkillResponse
+        Map<String, FifthSkill> fifthSkills =
+                createFifthSkillMap(
+                        skills.fifthSkills()
                 );
 
         List<LinkPresetResult> presets = List.of(
                 createPreset(
                         1,
-                        linkSkillResponse.characterLinkSkillPreset1()
+                        skills.linkSkillPreset1()
                 ),
                 createPreset(
                         2,
-                        linkSkillResponse.characterLinkSkillPreset2()
+                        skills.linkSkillPreset2()
                 ),
                 createPreset(
                         3,
-                        linkSkillResponse.characterLinkSkillPreset3()
+                        skills.linkSkillPreset3()
                 )
         );
 
         List<LinkSkillResult> currentSkills =
                 convertTransferredLinkSkills(
-                        linkSkillResponse.characterLinkSkill()
+                        skills.currentLinkSkills()
                 );
 
         return new GetCharacterSkillsResult(
                 new VMatrixResult(
                         convertVCores(
-                                vMatrixResponse.characterVCoreEquipment(),
+                                skills.vCores(),
                                 fifthSkills
                         )
                 ),
@@ -60,9 +60,28 @@ public record GetCharacterSkillsResult(
         );
     }
 
+    private static Map<String, FifthSkill> createFifthSkillMap(
+            List<FifthSkill> fifthSkills
+    ) {
+        if (fifthSkills == null) {
+            return Map.of();
+        }
+
+        return fifthSkills.stream()
+                .filter(skill -> skill != null)
+                .filter(skill -> skill.skillName() != null
+                        && !skill.skillName().isBlank())
+                .collect(Collectors.toMap(
+                        skill -> skill.skillName(),
+                        skill -> skill,
+                        (firstSkill, ignoredSkill) -> firstSkill,
+                        () -> new LinkedHashMap<>()
+                ));
+    }
+
     private static List<VCoreResult> convertVCores(
-            List<CharacterVMatrixResponse.VCore> cores,
-            Map<String, CharacterSkillResponse.Skill> fifthSkills
+            List<VCore> cores,
+            Map<String, FifthSkill> fifthSkills
     ) {
         if (cores == null) {
             return List.of();
@@ -71,7 +90,7 @@ public record GetCharacterSkillsResult(
         return cores.stream()
                 .filter(core -> core != null)
                 .map(core -> {
-                    CharacterSkillResponse.Skill skill =
+                    FifthSkill skill =
                             fifthSkills.get(core.vCoreName());
 
                     List<SkillResult> skills =
@@ -96,7 +115,7 @@ public record GetCharacterSkillsResult(
 
     private static LinkPresetResult createPreset(
             int presetNo,
-            List<CharacterLinkSkillResponse.LinkSkill> skills
+            List<LinkSkill> skills
     ) {
         return new LinkPresetResult(
                 presetNo,
@@ -105,7 +124,7 @@ public record GetCharacterSkillsResult(
     }
 
     private static List<LinkSkillResult> convertTransferredLinkSkills(
-            List<CharacterLinkSkillResponse.LinkSkill> skills
+            List<LinkSkill> skills
     ) {
         if (skills == null) {
             return List.of();
