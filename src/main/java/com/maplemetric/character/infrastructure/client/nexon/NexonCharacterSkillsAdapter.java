@@ -10,6 +10,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillRes
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import java.util.List;
+import java.util.function.Function;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -43,77 +44,62 @@ class NexonCharacterSkillsAdapter
                 characterClient.getCharacterLinkSkill(ocid);
 
         return new CharacterSkills(
-                convertVCores(
-                        vMatrixResponse.characterVCoreEquipment()
+                convertList(
+                        vMatrixResponse.characterVCoreEquipment(),
+                        core -> new VCore(
+                                core.vCoreName(),
+                                core.vCoreType(),
+                                core.vCoreLevel()
+                        )
                 ),
-                convertFifthSkills(
-                        fifthSkillResponse.characterSkill()
+                convertList(
+                        fifthSkillResponse.characterSkill(),
+                        skill -> new FifthSkill(
+                                skill.skillName(),
+                                skill.skillIcon()
+                        )
                 ),
-                convertLinkSkills(
-                        linkSkillResponse.characterLinkSkill()
+                convertList(
+                        linkSkillResponse.characterLinkSkill(),
+                        skill -> toLinkSkill(skill)
                 ),
-                convertLinkSkills(
-                        linkSkillResponse.characterLinkSkillPreset1()
+                convertList(
+                        linkSkillResponse.characterLinkSkillPreset1(),
+                        skill -> toLinkSkill(skill)
                 ),
-                convertLinkSkills(
-                        linkSkillResponse.characterLinkSkillPreset2()
+                convertList(
+                        linkSkillResponse.characterLinkSkillPreset2(),
+                        skill -> toLinkSkill(skill)
                 ),
-                convertLinkSkills(
-                        linkSkillResponse.characterLinkSkillPreset3()
+                convertList(
+                        linkSkillResponse.characterLinkSkillPreset3(),
+                        skill -> toLinkSkill(skill)
                 )
         );
     }
 
-    private List<VCore> convertVCores(
-            List<CharacterVMatrixResponse.VCore> cores
+    private LinkSkill toLinkSkill(
+            CharacterLinkSkillResponse.LinkSkill skill
     ) {
-        if (cores == null) {
-            return null;
-        }
-
-        return cores.stream()
-                .map(core -> core == null
-                        ? null
-                        : new VCore(
-                                core.vCoreName(),
-                                core.vCoreType(),
-                                core.vCoreLevel()
-                        ))
-                .toList();
+        return new LinkSkill(
+                skill.skillName(),
+                skill.skillLevel(),
+                skill.skillIcon()
+        );
     }
 
-    private List<FifthSkill> convertFifthSkills(
-            List<CharacterSkillResponse.Skill> skills
+    private <S, T> List<T> convertList(
+            List<S> source,
+            Function<S, T> mapper
     ) {
-        if (skills == null) {
+        if (source == null) {
             return null;
         }
 
-        return skills.stream()
-                .map(skill -> skill == null
+        return source.stream()
+                .map(item -> item == null
                         ? null
-                        : new FifthSkill(
-                                skill.skillName(),
-                                skill.skillIcon()
-                        ))
-                .toList();
-    }
-
-    private List<LinkSkill> convertLinkSkills(
-            List<CharacterLinkSkillResponse.LinkSkill> skills
-    ) {
-        if (skills == null) {
-            return null;
-        }
-
-        return skills.stream()
-                .map(skill -> skill == null
-                        ? null
-                        : new LinkSkill(
-                                skill.skillName(),
-                                skill.skillLevel(),
-                                skill.skillIcon()
-                        ))
+                        : mapper.apply(item))
                 .toList();
     }
 }
