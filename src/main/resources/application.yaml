@@ -61,3 +61,15 @@ maplemetric:
     model: ${OPENAI_MODEL:}
     connect-timeout: ${OPENAI_CONNECT_TIMEOUT:3s}
     read-timeout: ${OPENAI_READ_TIMEOUT:10s}
+
+  internal:
+    api-key: ${MAPLEMETRIC_INTERNAL_API_KEY:}
+
+    ranking:
+      overall-ranking-collection:
+        max-pages: ${RANKING_COLLECTION_MAX_PAGES:10}
+
+        scheduler:
+          enabled: ${RANKING_COLLECTION_SCHEDULER_ENABLED:false}
+          cron: ${RANKING_COLLECTION_SCHEDULER_CRON:0 40 9 * * *}
+          zone: ${RANKING_COLLECTION_SCHEDULER_ZONE:Asia/Seoul}
