@@ -7,8 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryFailure;
+import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
+import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.statistics.application.service.StatisticsQueryService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -195,6 +199,145 @@ class StatisticsControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(
                         jsonPath("$.code").value("STATISTICS_002")
+                );
+    }
+
+    @Test
+    void 월드별통계응답을반환한다() throws Exception {
+        given(statisticsQueryService.getWorldStatistics())
+                .willReturn(
+                        new GetWorldStatisticsResult(
+                                List.of(
+                                        new WorldStatisticsResult(
+                                                "루나",
+                                                320L,
+                                                new BigDecimal("12.40"),
+                                                new BigDecimal("187.3")
+                                        )
+                                ),
+                                2581,
+                                SNAPSHOT_DATE,
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                13,
+                                100,
+                                false
+                        )
+                );
+
+        mockMvc.perform(get("/api/v1/statistics/worlds"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.code")
+                                .value("WORLD_STATISTICS_SEARCH_SUCCESS")
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[0].worldName")
+                                .value("루나")
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[0].count")
+                                .value(320)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[0].percentage")
+                                .value(12.40)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[0].averageLevel")
+                                .value(187.3)
+                )
+                .andExpect(
+                        jsonPath("$.data.sampleSize")
+                                .value(2581)
+                )
+                .andExpect(
+                        jsonPath("$.data.asOf")
+                                .value("2026-07-24")
+                )
+                .andExpect(
+                        jsonPath("$.data.source")
+                                .value("NEXON_OPEN_API")
+                )
+                .andExpect(
+                        jsonPath("$.data.collectedAt")
+                                .value("2026-07-24T01:00:00Z")
+                )
+                .andExpect(
+                        jsonPath("$.data.pageCount")
+                                .value(13)
+                )
+                .andExpect(
+                        jsonPath("$.data.requestedMaxPages")
+                                .value(100)
+                )
+                .andExpect(
+                        jsonPath("$.data.truncated")
+                                .value(false)
+                );
+    }
+
+    @Test
+    void 월드별sampleSize가0이면빈worlds와메타데이터를정상반환한다() throws Exception {
+        given(statisticsQueryService.getWorldStatistics())
+                .willReturn(
+                        new GetWorldStatisticsResult(
+                                List.of(),
+                                0,
+                                SNAPSHOT_DATE,
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                1,
+                                100,
+                                false
+                        )
+                );
+
+        mockMvc.perform(get("/api/v1/statistics/worlds"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.data.sampleSize")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds")
+                                .isArray()
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds")
+                                .isEmpty()
+                );
+    }
+
+    @Test
+    void 월드별Snapshot이없으면404를반환한다() throws Exception {
+        given(statisticsQueryService.getWorldStatistics())
+                .willThrow(new OverallRankingWorldStatisticsQueryException(
+                        OverallRankingWorldStatisticsQueryFailure.NOT_FOUND
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(
+                        jsonPath("$.code").value("STATISTICS_003")
+                );
+    }
+
+    @Test
+    void 월드별집계데이터가정합하지않으면500을반환한다() throws Exception {
+        given(statisticsQueryService.getWorldStatistics())
+                .willThrow(new OverallRankingWorldStatisticsQueryException(
+                        OverallRankingWorldStatisticsQueryFailure.DATA_INVALID
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(
+                        jsonPath("$.code").value("STATISTICS_004")
                 );
     }
 }
