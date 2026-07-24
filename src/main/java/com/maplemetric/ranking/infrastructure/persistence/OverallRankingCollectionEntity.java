@@ -67,6 +67,12 @@ public class OverallRankingCollectionEntity {
     @Column(name = "page_count", nullable = false, updatable = false)
     private int pageCount;
 
+    @Column(name = "requested_max_pages", nullable = false, updatable = false)
+    private int requestedMaxPages;
+
+    @Column(name = "truncated", nullable = false, updatable = false)
+    private boolean truncated;
+
     @Column(name = "sample_size", nullable = false, updatable = false)
     private int sampleSize;
 
@@ -94,6 +100,8 @@ public class OverallRankingCollectionEntity {
             String className,
             String source,
             int pageCount,
+            int requestedMaxPages,
+            boolean truncated,
             int sampleSize,
             Instant collectedAt
     ) {
@@ -115,6 +123,12 @@ public class OverallRankingCollectionEntity {
             );
         }
 
+        if (requestedMaxPages < 1) {
+            throw new IllegalArgumentException(
+                    "요청한 최대 수집 페이지 수는 1 이상이어야 합니다."
+            );
+        }
+
         if (sampleSize < 0) {
             throw new IllegalArgumentException(
                     "표본 크기는 0 이상이어야 합니다."
@@ -122,6 +136,8 @@ public class OverallRankingCollectionEntity {
         }
 
         this.pageCount = pageCount;
+        this.requestedMaxPages = requestedMaxPages;
+        this.truncated = truncated;
         this.sampleSize = sampleSize;
         this.collectedAt = requireNonNull(
                 collectedAt,
@@ -136,6 +152,8 @@ public class OverallRankingCollectionEntity {
             String className,
             String source,
             int pageCount,
+            int requestedMaxPages,
+            boolean truncated,
             int sampleSize,
             Instant collectedAt
     ) {
@@ -146,6 +164,8 @@ public class OverallRankingCollectionEntity {
                 className,
                 source,
                 pageCount,
+                requestedMaxPages,
+                truncated,
                 sampleSize,
                 collectedAt
         );

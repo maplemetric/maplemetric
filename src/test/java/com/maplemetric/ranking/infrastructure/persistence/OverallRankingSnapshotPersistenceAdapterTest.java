@@ -88,6 +88,8 @@ class OverallRankingSnapshotPersistenceAdapterTest {
         assertThat(collection.getWorldType()).isEqualTo(-1);
         assertThat(collection.getClassName()).isEqualTo("ALL");
         assertThat(collection.getPageCount()).isEqualTo(1);
+        assertThat(collection.getRequestedMaxPages()).isEqualTo(1);
+        assertThat(collection.isTruncated()).isFalse();
         assertThat(collection.getSampleSize()).isEqualTo(2);
         assertThat(collection.getSource()).isEqualTo("NEXON_OPEN_API");
 
@@ -169,6 +171,34 @@ class OverallRankingSnapshotPersistenceAdapterTest {
     }
 
     @Test
+    void 절단여부를그대로저장한다() {
+        adapter.saveOverallRankingSnapshot(
+                new OverallRankingCollection(
+                        SNAPSHOT_DATE,
+                        null,
+                        null,
+                        null,
+                        "NEXON_OPEN_API",
+                        2,
+                        2,
+                        true,
+                        COLLECTED_AT,
+                        List.of(createRow(1, "감점"))
+                )
+        );
+
+        entityManager.flush();
+        entityManager.clear();
+
+        OverallRankingCollectionEntity collection =
+                collectionRepository.findAll().get(0);
+
+        assertThat(collection.getPageCount()).isEqualTo(2);
+        assertThat(collection.getRequestedMaxPages()).isEqualTo(2);
+        assertThat(collection.isTruncated()).isTrue();
+    }
+
+    @Test
     void 동일기준일과조건의중복수집은저장에실패한다() {
         adapter.saveOverallRankingSnapshot(
                 createCollection(
@@ -206,6 +236,8 @@ class OverallRankingSnapshotPersistenceAdapterTest {
                 className,
                 "NEXON_OPEN_API",
                 1,
+                1,
+                false,
                 COLLECTED_AT,
                 rows
         );

@@ -94,6 +94,7 @@ class OverallRankingSnapshotCollectionServiceTest {
         assertThat(result.asOf()).isEqualTo(RANKING_DATE);
         assertThat(result.pageCount()).isEqualTo(2);
         assertThat(result.sampleSize()).isEqualTo(2);
+        assertThat(result.truncated()).isFalse();
 
         verify(loadRankingListPort).loadOverallRanking(
                 RANKING_DATE, null, null, null, 1
@@ -109,6 +110,8 @@ class OverallRankingSnapshotCollectionServiceTest {
                 captureSavedCollection();
 
         assertThat(saved.pageCount()).isEqualTo(2);
+        assertThat(saved.requestedMaxPages()).isEqualTo(10);
+        assertThat(saved.truncated()).isFalse();
         assertThat(saved.rows()).hasSize(2);
         assertThat(saved.rows())
                 .extracting(row -> row.ranking())
@@ -154,6 +157,7 @@ class OverallRankingSnapshotCollectionServiceTest {
 
         assertThat(result.pageCount()).isEqualTo(2);
         assertThat(result.sampleSize()).isEqualTo(4);
+        assertThat(result.truncated()).isTrue();
 
         verify(loadRankingListPort, never()).loadOverallRanking(
                 RANKING_DATE, "루나", 0, "팬텀", 3
@@ -187,6 +191,49 @@ class OverallRankingSnapshotCollectionServiceTest {
                 RANKING_DATE, null, null, null, 2
         )).willReturn(
                 createRanking(List.of(2), otherDate)
+        );
+
+        RankingException exception =
+                catchThrowableOfType(
+                        () -> service.collectOverallRanking(
+                                new CollectOverallRankingSnapshotCommand(
+                                        RANKING_DATE,
+                                        null,
+                                        null,
+                                        null,
+                                        10
+                                )
+                        ),
+                        RankingException.class
+                );
+
+        assertThat(exception).isNotNull();
+
+        verify(saveOverallRankingSnapshotPort, never())
+                .saveOverallRankingSnapshot(any());
+    }
+
+    @Test
+    void 첫페이지기준일이요청일과다르면예외를던지고저장하지않는다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        LocalDate otherDate =
+                RANKING_DATE.plusDays(1);
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE,
+                        null,
+                        null,
+                        null
+                ))
+                .willReturn(false);
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willReturn(
+                createRanking(List.of(1), otherDate)
         );
 
         RankingException exception =
@@ -252,6 +299,23 @@ class OverallRankingSnapshotCollectionServiceTest {
                                 null,
                                 null,
                                 0
+                        ),
+                        IllegalArgumentException.class
+                );
+
+        assertThat(exception).isNotNull();
+    }
+
+    @Test
+    void 최대수집페이지수가상한을초과하면예외를던진다() {
+        IllegalArgumentException exception =
+                catchThrowableOfType(
+                        () -> new CollectOverallRankingSnapshotCommand(
+                                RANKING_DATE,
+                                null,
+                                null,
+                                null,
+                                101
                         ),
                         IllegalArgumentException.class
                 );

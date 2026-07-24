@@ -24,6 +24,8 @@ public interface SaveOverallRankingSnapshotPort {
             String className,
             String source,
             int pageCount,
+            int requestedMaxPages,
+            boolean truncated,
             Instant collectedAt,
             List<RankingRow> rows
     ) {

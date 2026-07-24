@@ -50,6 +50,8 @@ class OverallRankingSnapshotPersistenceAdapter
                         collection.className(),
                         collection.source(),
                         collection.pageCount(),
+                        collection.requestedMaxPages(),
+                        collection.truncated(),
                         collection.rows().size(),
                         collection.collectedAt()
                 );

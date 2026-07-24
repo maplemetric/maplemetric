@@ -6,19 +6,22 @@ public record CollectOverallRankingSnapshotResult(
         boolean collected,
         LocalDate asOf,
         int pageCount,
-        int sampleSize
+        int sampleSize,
+        boolean truncated
 ) {
 
     public static CollectOverallRankingSnapshotResult collected(
             LocalDate asOf,
             int pageCount,
-            int sampleSize
+            int sampleSize,
+            boolean truncated
     ) {
         return new CollectOverallRankingSnapshotResult(
                 true,
                 asOf,
                 pageCount,
-                sampleSize
+                sampleSize,
+                truncated
         );
     }
 
@@ -29,7 +32,8 @@ public record CollectOverallRankingSnapshotResult(
                 false,
                 asOf,
                 0,
-                0
+                0,
+                false
         );
     }
 }

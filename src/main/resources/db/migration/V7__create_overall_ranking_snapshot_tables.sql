@@ -7,6 +7,8 @@ CREATE TABLE p_overall_ranking_collection
     class_name                    VARCHAR(50)  NOT NULL,
     source                        VARCHAR(50)  NOT NULL,
     page_count                    INTEGER      NOT NULL,
+    requested_max_pages           INTEGER      NOT NULL,
+    truncated                     BOOLEAN      NOT NULL,
     sample_size                   INTEGER      NOT NULL,
     collected_at                  TIMESTAMPTZ  NOT NULL,
     created_at                    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -17,6 +19,8 @@ CREATE TABLE p_overall_ranking_collection
         UNIQUE (snapshot_date, world_name, world_type, class_name),
     CONSTRAINT ck_p_overall_ranking_collection_page_count
         CHECK (page_count >= 1),
+    CONSTRAINT ck_p_overall_ranking_collection_requested_max_pages
+        CHECK (requested_max_pages >= 1),
     CONSTRAINT ck_p_overall_ranking_collection_sample_size
         CHECK (sample_size >= 0)
 );
@@ -48,6 +52,3 @@ CREATE TABLE p_overall_ranking_snapshot
     CONSTRAINT ck_p_overall_ranking_snapshot_exp
         CHECK (character_exp IS NULL OR character_exp >= 0)
 );
-
-CREATE INDEX idx_p_overall_ranking_snapshot_collection
-    ON p_overall_ranking_snapshot (overall_ranking_collection_id);

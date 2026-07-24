@@ -75,8 +75,8 @@ public class OverallRankingSnapshotCollectionService {
         List<GetOverallRankingResult.Ranking> collectedRanking =
                 new ArrayList<>();
 
-        LocalDate asOf = null;
         int pageCount = 0;
+        boolean truncated = true;
 
         for (int page = 1; page <= command.maxPages(); page++) {
             GetOverallRankingResult result =
@@ -90,15 +90,14 @@ public class OverallRankingSnapshotCollectionService {
 
             pageCount = page;
 
-            if (asOf == null) {
-                asOf = result.asOf();
-            } else if (!asOf.equals(result.asOf())) {
+            if (!snapshotDate.equals(result.asOf())) {
                 throw new RankingException(
                         NexonApiFailure.RESPONSE_INVALID
                 );
             }
 
             if (result.ranking().isEmpty()) {
+                truncated = false;
                 break;
             }
 
@@ -122,21 +121,24 @@ public class OverallRankingSnapshotCollectionService {
 
         saveOverallRankingSnapshotPort.saveOverallRankingSnapshot(
                 new OverallRankingCollection(
-                        asOf,
+                        snapshotDate,
                         command.worldName(),
                         command.worldType(),
                         command.className(),
                         SOURCE,
                         pageCount,
+                        command.maxPages(),
+                        truncated,
                         Instant.now(clock),
                         rows
                 )
         );
 
         return CollectOverallRankingSnapshotResult.collected(
-                asOf,
+                snapshotDate,
                 pageCount,
-                rows.size()
+                rows.size(),
+                truncated
         );
     }
 }
