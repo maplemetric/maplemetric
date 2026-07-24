@@ -13,6 +13,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.CharacterSkills;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
 import com.maplemetric.character.application.port.out.LoadCharacterSymbolPort;
@@ -37,9 +39,7 @@ import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
@@ -68,6 +68,7 @@ public class CharacterQueryService {
     private final LoadCharacterEquipmentPort loadCharacterEquipmentPort;
     private final LoadCharacterHyperStatPort loadCharacterHyperStatPort;
     private final LoadCharacterPopularityPort loadCharacterPopularityPort;
+    private final LoadCharacterSkillsPort loadCharacterSkillsPort;
     private final LoadCharacterStatPort loadCharacterStatPort;
     private final LoadCharacterSymbolPort loadCharacterSymbolPort;
     private final LoadCharacterUnionPort loadCharacterUnionPort;
@@ -84,6 +85,7 @@ public class CharacterQueryService {
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
+            LoadCharacterSkillsPort loadCharacterSkillsPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
             LoadCharacterUnionPort loadCharacterUnionPort,
@@ -98,6 +100,7 @@ public class CharacterQueryService {
                 loadCharacterEquipmentPort,
                 loadCharacterHyperStatPort,
                 loadCharacterPopularityPort,
+                loadCharacterSkillsPort,
                 loadCharacterStatPort,
                 loadCharacterSymbolPort,
                 loadCharacterUnionPort,
@@ -115,6 +118,7 @@ public class CharacterQueryService {
             LoadCharacterEquipmentPort loadCharacterEquipmentPort,
             LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
+            LoadCharacterSkillsPort loadCharacterSkillsPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
             LoadCharacterUnionPort loadCharacterUnionPort,
@@ -132,6 +136,7 @@ public class CharacterQueryService {
         this.loadCharacterHyperStatPort = loadCharacterHyperStatPort;
         this.loadCharacterPopularityPort =
                 loadCharacterPopularityPort;
+        this.loadCharacterSkillsPort = loadCharacterSkillsPort;
         this.loadCharacterStatPort = loadCharacterStatPort;
         this.loadCharacterSymbolPort = loadCharacterSymbolPort;
         this.loadCharacterUnionPort = loadCharacterUnionPort;
@@ -206,17 +211,9 @@ public class CharacterQueryService {
         CharacterSymbol characterSymbol =
                 loadCharacterSymbolPort.loadCharacterSymbol(ocid);
 
-        CharacterSkillResponse fifthSkillResponse =
-                characterClient.getCharacterSkill(
-                        ocid,
-                        "5"
-                );
-
-        CharacterVMatrixResponse vMatrixResponse =
-                characterClient.getCharacterVMatrix(ocid);
-
-        CharacterLinkSkillResponse linkSkillResponse =
-                characterClient.getCharacterLinkSkill(ocid);
+        CharacterSkills skills =
+                loadCharacterSkillsPort
+                        .loadCharacterSkills(ocid);
 
         CharacterSkillResponse sixthSkillResponse =
                 characterClient.getCharacterSkill(
@@ -243,10 +240,8 @@ public class CharacterQueryService {
                 ),
                 GetCharacterUnionResult.from(union),
                 GetCharacterSymbolResult.from(characterSymbol),
-                GetCharacterSkillsResult.of(
-                        vMatrixResponse,
-                        fifthSkillResponse,
-                        linkSkillResponse
+                GetCharacterSkillsResult.from(
+                        skills
                 ),
                 GetCharacterHexaResult.of(
                         hexaMatrixResponse,
