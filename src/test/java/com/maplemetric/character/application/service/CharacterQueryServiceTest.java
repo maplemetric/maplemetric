@@ -27,6 +27,11 @@ import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.HyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.CharacterSkills;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.FifthSkill;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.LinkSkill;
+import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.VCore;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.CharacterStat;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort.FinalStat;
@@ -43,9 +48,7 @@ import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
-import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixResponse;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
@@ -92,6 +95,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterPopularityPort loadCharacterPopularityPort;
 
     @Mock
+    private LoadCharacterSkillsPort loadCharacterSkillsPort;
+
+    @Mock
     private LoadCharacterStatPort loadCharacterStatPort;
 
     @Mock
@@ -128,6 +134,7 @@ class CharacterQueryServiceTest {
                         loadCharacterEquipmentPort,
                         loadCharacterHyperStatPort,
                         loadCharacterPopularityPort,
+                        loadCharacterSkillsPort,
                         loadCharacterStatPort,
                         loadCharacterSymbolPort,
                         loadCharacterUnionPort,
@@ -950,14 +957,8 @@ class CharacterQueryServiceTest {
                 .loadCharacterAbility(OCID))
                 .willReturn(createAbilityResponse());
 
-        given(characterClient.getCharacterSkill(OCID, "5"))
-                .willReturn(createFifthSkillResponse());
-
-        given(characterClient.getCharacterVMatrix(OCID))
-                .willReturn(createVMatrixResponse());
-
-        given(characterClient.getCharacterLinkSkill(OCID))
-                .willReturn(createLinkSkillResponse());
+        given(loadCharacterSkillsPort.loadCharacterSkills(OCID))
+                .willReturn(createSkillsResponse());
 
         given(characterClient.getCharacterSkill(OCID, "6"))
                 .willReturn(createSixthSkillResponse());
@@ -979,14 +980,8 @@ class CharacterQueryServiceTest {
         verify(loadCharacterAbilityPort)
                 .loadCharacterAbility(OCID);
 
-        verify(characterClient)
-                .getCharacterSkill(OCID, "5");
-
-        verify(characterClient)
-                .getCharacterVMatrix(OCID);
-
-        verify(characterClient)
-                .getCharacterLinkSkill(OCID);
+        verify(loadCharacterSkillsPort)
+                .loadCharacterSkills(OCID);
 
         verify(characterClient)
                 .getCharacterSkill(OCID, "6");
@@ -1000,6 +995,7 @@ class CharacterQueryServiceTest {
         verifyNoMoreInteractions(loadCharacterPopularityPort);
         verifyNoMoreInteractions(loadCharacterHyperStatPort);
         verifyNoMoreInteractions(loadCharacterAbilityPort);
+        verifyNoMoreInteractions(loadCharacterSkillsPort);
     }
 
     private CharacterBasic createBasic() {
@@ -1128,46 +1124,28 @@ class CharacterQueryServiceTest {
         );
     }
 
-    private CharacterSkillResponse createFifthSkillResponse() {
-        return new CharacterSkillResponse(
-                null,
-                "팬텀",
-                "5",
-                List.of(
-                        new CharacterSkillResponse.Skill(
-                                "조커",
-                                30,
-                                "https://example.com/joker.png"
-                        )
-                )
-        );
-    }
-
-    private CharacterVMatrixResponse createVMatrixResponse() {
-        return new CharacterVMatrixResponse(
-                null,
-                "팬텀",
-                List.of(
-                        new CharacterVMatrixResponse.VCore(
-                                "조커",
-                                "직업 코어",
-                                30
-                        )
-                )
-        );
-    }
-
-    private CharacterLinkSkillResponse createLinkSkillResponse() {
-        CharacterLinkSkillResponse.LinkSkill linkSkill =
-                new CharacterLinkSkillResponse.LinkSkill(
+    private CharacterSkills createSkillsResponse() {
+        LinkSkill linkSkill =
+                new LinkSkill(
                         "데들리 인스팅트",
                         2,
                         "https://example.com/deadly-instinct.png"
                 );
 
-        return new CharacterLinkSkillResponse(
-                null,
-                "팬텀",
+        return new CharacterSkills(
+                List.of(
+                        new VCore(
+                                "조커",
+                                "직업 코어",
+                                30
+                        )
+                ),
+                List.of(
+                        new FifthSkill(
+                                "조커",
+                                "https://example.com/joker.png"
+                        )
+                ),
                 List.of(linkSkill),
                 List.of(linkSkill),
                 List.of(),
