@@ -1,0 +1,223 @@
+package com.maplemetric.ranking.infrastructure.persistence.querydsl;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.maplemetric.common.config.QuerydslConfig;
+import com.maplemetric.ranking.infrastructure.persistence.OverallRankingCollectionEntity;
+import com.maplemetric.ranking.infrastructure.persistence.OverallRankingCollectionJpaRepository;
+import com.maplemetric.ranking.infrastructure.persistence.OverallRankingSnapshotEntity;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+@Testcontainers
+@DataJpaTest(
+        properties = {
+                "spring.jpa.hibernate.ddl-auto=validate",
+                "spring.flyway.enabled=true"
+        }
+)
+@AutoConfigureTestDatabase(
+        replace = AutoConfigureTestDatabase.Replace.NONE
+)
+@Import({
+        QuerydslConfig.class,
+        OverallRankingStatisticsQueryDslRepositoryImpl.class
+})
+class OverallRankingStatisticsQueryDslRepositoryTest {
+
+    private static final String POSTGRES_IMAGE =
+            "postgres:17-alpine";
+
+    private static final Instant COLLECTED_AT =
+            Instant.parse("2026-07-24T01:00:00Z");
+
+    @Container
+    @ServiceConnection
+    private static final PostgreSQLContainer<?> POSTGRES =
+            new PostgreSQLContainer<>(POSTGRES_IMAGE);
+
+    @Autowired
+    private OverallRankingStatisticsQueryDslRepository repository;
+
+    @Autowired
+    private OverallRankingCollectionJpaRepository collectionRepository;
+
+    @Test
+    void 전체조건중가장최신기준일의Collection을선택한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 22),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 23),
+                new Row[] {row(1, "히어로", null, 205)}
+        );
+
+        Optional<OverallRankingCollectionEntity> latest =
+                repository.findLatestAllConditionCollection();
+
+        assertThat(latest).isPresent();
+        assertThat(latest.get().getSnapshotDate())
+                .isEqualTo(LocalDate.of(2026, 7, 24));
+    }
+
+    @Test
+    void 필터가있는Collection은전체조건선택대상에서제외한다() {
+        OverallRankingCollectionEntity collection =
+                OverallRankingCollectionEntity.create(
+                        LocalDate.of(2026, 7, 25),
+                        "루나",
+                        0,
+                        "팬텀",
+                        "NEXON_OPEN_API",
+                        1,
+                        100,
+                        false,
+                        1,
+                        COLLECTED_AT
+                );
+
+        collection.addSnapshot(
+                OverallRankingSnapshotEntity.create(
+                        collection,
+                        1,
+                        "감점",
+                        "루나",
+                        "팬텀",
+                        null,
+                        200,
+                        0L,
+                        0,
+                        null
+                )
+        );
+
+        collectionRepository.saveAndFlush(collection);
+
+        Optional<OverallRankingCollectionEntity> latest =
+                repository.findLatestAllConditionCollection();
+
+        assertThat(latest).isEmpty();
+    }
+
+    @Test
+    void className기준으로집계하고subClassName은사용하지않는다() {
+        OverallRankingCollectionEntity collection =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 24),
+                        new Row[] {
+                                row(1, "아크메이지(불,독)", null, 200),
+                                row(2, "아크메이지(불,독)", "전체 전직", 210),
+                                row(3, "히어로", "", 220)
+                        }
+                );
+
+        var aggregates =
+                repository.aggregateByClassName(collection.getId());
+
+        assertThat(aggregates)
+                .extracting(aggregate -> aggregate.className())
+                .containsExactlyInAnyOrder("아크메이지(불,독)", "히어로");
+
+        var archmage = aggregates.stream()
+                .filter(aggregate -> aggregate.className()
+                        .equals("아크메이지(불,독)"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(archmage.count()).isEqualTo(2);
+        assertThat(archmage.averageLevel())
+                .isEqualByComparingTo(BigDecimal.valueOf(205));
+    }
+
+    @Test
+    void 평균레벨을BigDecimal로반환한다() {
+        OverallRankingCollectionEntity collection =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 24),
+                        new Row[] {
+                                row(1, "히어로", null, 200),
+                                row(2, "히어로", null, 201)
+                        }
+                );
+
+        var aggregates =
+                repository.aggregateByClassName(collection.getId());
+
+        assertThat(aggregates).hasSize(1);
+        assertThat(aggregates.get(0).averageLevel())
+                .isEqualByComparingTo(new BigDecimal("200.5"));
+    }
+
+    private OverallRankingCollectionEntity saveAllConditionCollection(
+            LocalDate snapshotDate,
+            Row[] rows
+    ) {
+        OverallRankingCollectionEntity collection =
+                OverallRankingCollectionEntity.create(
+                        snapshotDate,
+                        null,
+                        null,
+                        null,
+                        "NEXON_OPEN_API",
+                        1,
+                        100,
+                        false,
+                        rows.length,
+                        COLLECTED_AT
+                );
+
+        for (Row row : rows) {
+            collection.addSnapshot(
+                    OverallRankingSnapshotEntity.create(
+                            collection,
+                            row.ranking(),
+                            "캐릭터" + row.ranking(),
+                            "루나",
+                            row.className(),
+                            row.subClassName(),
+                            row.characterLevel(),
+                            0L,
+                            0,
+                            null
+                    )
+            );
+        }
+
+        return collectionRepository.saveAndFlush(collection);
+    }
+
+    private Row row(
+            int ranking,
+            String className,
+            String subClassName,
+            int characterLevel
+    ) {
+        return new Row(ranking, className, subClassName, characterLevel);
+    }
+
+    private record Row(
+            int ranking,
+            String className,
+            String subClassName,
+            int characterLevel
+    ) {
+    }
+}

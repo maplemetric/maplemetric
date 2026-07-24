@@ -1,0 +1,139 @@
+package com.maplemetric.statistics.presentation.controller;
+
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
+import com.maplemetric.ranking.api.OverallRankingStatisticsQueryFailure;
+import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
+import com.maplemetric.statistics.application.service.StatisticsQueryService;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(StatisticsController.class)
+class StatisticsControllerTest {
+
+    private static final LocalDate SNAPSHOT_DATE =
+            LocalDate.of(2026, 7, 24);
+
+    private static final Instant COLLECTED_AT =
+            Instant.parse("2026-07-24T01:00:00Z");
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private StatisticsQueryService statisticsQueryService;
+
+    @Test
+    void 직업별통계응답을반환한다() throws Exception {
+        given(statisticsQueryService.getJobStatistics())
+                .willReturn(
+                        new GetJobStatisticsResult(
+                                List.of(
+                                        new JobStatisticsResult(
+                                                "히어로",
+                                                320L,
+                                                new BigDecimal("12.40"),
+                                                new BigDecimal("187.3")
+                                        )
+                                ),
+                                2581,
+                                SNAPSHOT_DATE,
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                13,
+                                100,
+                                false
+                        )
+                );
+
+        mockMvc.perform(get("/api/v1/statistics/jobs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.code")
+                                .value("JOB_STATISTICS_SEARCH_SUCCESS")
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].jobName")
+                                .value("히어로")
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].count")
+                                .value(320)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].percentage")
+                                .value(12.40)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].averageLevel")
+                                .value(187.3)
+                )
+                .andExpect(
+                        jsonPath("$.data.sampleSize")
+                                .value(2581)
+                )
+                .andExpect(
+                        jsonPath("$.data.asOf")
+                                .value("2026-07-24")
+                )
+                .andExpect(
+                        jsonPath("$.data.source")
+                                .value("NEXON_OPEN_API")
+                )
+                .andExpect(
+                        jsonPath("$.data.pageCount")
+                                .value(13)
+                )
+                .andExpect(
+                        jsonPath("$.data.requestedMaxPages")
+                                .value(100)
+                )
+                .andExpect(
+                        jsonPath("$.data.truncated")
+                                .value(false)
+                );
+    }
+
+    @Test
+    void Snapshot이없으면404를반환한다() throws Exception {
+        given(statisticsQueryService.getJobStatistics())
+                .willThrow(new OverallRankingStatisticsQueryException(
+                        OverallRankingStatisticsQueryFailure.NOT_FOUND
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(
+                        jsonPath("$.code").value("STATISTICS_001")
+                );
+    }
+
+    @Test
+    void 집계데이터가정합하지않으면500을반환한다() throws Exception {
+        given(statisticsQueryService.getJobStatistics())
+                .willThrow(new OverallRankingStatisticsQueryException(
+                        OverallRankingStatisticsQueryFailure.DATA_INVALID
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(
+                        jsonPath("$.code").value("STATISTICS_002")
+                );
+    }
+}
