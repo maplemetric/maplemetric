@@ -5,10 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
-import com.maplemetric.ranking.api.OverallRankingStatisticsQueryFailure;
+import com.maplemetric.ranking.api.OverallRankingComparisonQueryException;
+import com.maplemetric.ranking.api.OverallRankingComparisonQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
+import com.maplemetric.statistics.application.exception.JobStatisticsException;
+import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
@@ -30,6 +32,9 @@ class StatisticsControllerTest {
     private static final LocalDate SNAPSHOT_DATE =
             LocalDate.of(2026, 7, 24);
 
+    private static final LocalDate PREVIOUS_SNAPSHOT_DATE =
+            LocalDate.of(2026, 7, 21);
+
     private static final Instant COLLECTED_AT =
             Instant.parse("2026-07-24T01:00:00Z");
 
@@ -49,7 +54,8 @@ class StatisticsControllerTest {
                                                 "히어로",
                                                 320L,
                                                 new BigDecimal("12.40"),
-                                                new BigDecimal("187.3")
+                                                new BigDecimal("187.3"),
+                                                new BigDecimal("0.80")
                                         )
                                 ),
                                 2581,
@@ -58,7 +64,9 @@ class StatisticsControllerTest {
                                 COLLECTED_AT,
                                 13,
                                 100,
-                                false
+                                false,
+                                PREVIOUS_SNAPSHOT_DATE,
+                                3
                         )
                 );
 
@@ -68,6 +76,18 @@ class StatisticsControllerTest {
                 .andExpect(
                         jsonPath("$.code")
                                 .value("JOB_STATISTICS_SEARCH_SUCCESS")
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].changeRate")
+                                .value(0.80)
+                )
+                .andExpect(
+                        jsonPath("$.data.previousAsOf")
+                                .value("2026-07-21")
+                )
+                .andExpect(
+                        jsonPath("$.data.daysBetween")
+                                .value(3)
                 )
                 .andExpect(
                         jsonPath("$.data.jobs[0].jobName")
@@ -127,7 +147,9 @@ class StatisticsControllerTest {
                                 COLLECTED_AT,
                                 1,
                                 100,
-                                false
+                                false,
+                                null,
+                                null
                         )
                 );
 
@@ -137,6 +159,14 @@ class StatisticsControllerTest {
                 .andExpect(
                         jsonPath("$.data.sampleSize")
                                 .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.data.previousAsOf")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.daysBetween")
+                                .isEmpty()
                 )
                 .andExpect(
                         jsonPath("$.data.jobs")
@@ -173,10 +203,60 @@ class StatisticsControllerTest {
     }
 
     @Test
+    void 이전Snapshot이없으면changeRate가null인응답을반환한다() throws Exception {
+        given(statisticsQueryService.getJobStatistics())
+                .willReturn(
+                        new GetJobStatisticsResult(
+                                List.of(
+                                        new JobStatisticsResult(
+                                                "히어로",
+                                                320L,
+                                                new BigDecimal("12.40"),
+                                                new BigDecimal("187.3"),
+                                                null
+                                        )
+                                ),
+                                2581,
+                                SNAPSHOT_DATE,
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                13,
+                                100,
+                                false,
+                                null,
+                                null
+                        )
+                );
+
+        mockMvc.perform(get("/api/v1/statistics/jobs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.data.jobs[0].percentage")
+                                .value(12.40)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].changeRate")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.previousAsOf")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.daysBetween")
+                                .isEmpty()
+                );
+    }
+
+    @Test
     void Snapshot이없으면404를반환한다() throws Exception {
         given(statisticsQueryService.getJobStatistics())
-                .willThrow(new OverallRankingStatisticsQueryException(
-                        OverallRankingStatisticsQueryFailure.NOT_FOUND
+                .willThrow(new JobStatisticsException(
+                        JobStatisticsFailure.SNAPSHOT_NOT_FOUND,
+                        new OverallRankingComparisonQueryException(
+                                OverallRankingComparisonQueryFailure.NOT_FOUND
+                        )
                 ));
 
         mockMvc.perform(get("/api/v1/statistics/jobs"))
@@ -190,8 +270,11 @@ class StatisticsControllerTest {
     @Test
     void 집계데이터가정합하지않으면500을반환한다() throws Exception {
         given(statisticsQueryService.getJobStatistics())
-                .willThrow(new OverallRankingStatisticsQueryException(
-                        OverallRankingStatisticsQueryFailure.DATA_INVALID
+                .willThrow(new JobStatisticsException(
+                        JobStatisticsFailure.DATA_INVALID,
+                        new OverallRankingComparisonQueryException(
+                                OverallRankingComparisonQueryFailure.DATA_INVALID
+                        )
                 ));
 
         mockMvc.perform(get("/api/v1/statistics/jobs"))

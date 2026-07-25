@@ -1,12 +1,15 @@
 package com.maplemetric.statistics.application.result;
 
+import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot.JobCount;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public record GetJobStatisticsResult(
         List<JobStatisticsResult> jobs,
@@ -16,64 +19,120 @@ public record GetJobStatisticsResult(
         Instant collectedAt,
         int pageCount,
         int requestedMaxPages,
-        boolean truncated
+        boolean truncated,
+        LocalDate previousAsOf,
+        Integer daysBetween
 ) {
 
     private static final int PERCENTAGE_SCALE = 2;
     private static final int AVERAGE_LEVEL_SCALE = 1;
 
+    private static final BigDecimal ABSENT_PERCENTAGE =
+            BigDecimal.ZERO.setScale(PERCENTAGE_SCALE);
+
     public static GetJobStatisticsResult from(
-            OverallRankingStatisticsSnapshot snapshot
+            OverallRankingStatisticsComparisonSnapshot comparison
     ) {
+        OverallRankingStatisticsSnapshot latest = comparison.latest();
+        OverallRankingStatisticsSnapshot previous = comparison.previous();
+
+        boolean comparable = previous != null && previous.sampleSize() > 0;
+
+        Map<String, BigDecimal> previousPercentages = comparable
+                ? toPercentages(previous)
+                : Map.of();
+
         List<JobStatisticsResult> jobs =
-                snapshot.jobCounts()
+                latest.jobCounts()
                         .stream()
                         .map(jobCount -> toJobStatisticsResult(
                                 jobCount,
-                                snapshot.sampleSize()
+                                latest.sampleSize(),
+                                comparable,
+                                previousPercentages
                         ))
                         .toList();
 
         return new GetJobStatisticsResult(
                 jobs,
-                snapshot.sampleSize(),
-                snapshot.asOf(),
-                snapshot.source(),
-                snapshot.collectedAt(),
-                snapshot.pageCount(),
-                snapshot.requestedMaxPages(),
-                snapshot.truncated()
+                latest.sampleSize(),
+                latest.asOf(),
+                latest.source(),
+                latest.collectedAt(),
+                latest.pageCount(),
+                latest.requestedMaxPages(),
+                latest.truncated(),
+                previous == null ? null : previous.asOf(),
+                comparison.daysBetween()
         );
+    }
+
+    private static Map<String, BigDecimal> toPercentages(
+            OverallRankingStatisticsSnapshot snapshot
+    ) {
+        Map<String, BigDecimal> percentages = new HashMap<>();
+
+        snapshot.jobCounts()
+                .forEach(jobCount -> percentages.put(
+                        jobCount.className(),
+                        toPercentage(
+                                jobCount.count(),
+                                snapshot.sampleSize()
+                        )
+                ));
+
+        return percentages;
     }
 
     private static JobStatisticsResult toJobStatisticsResult(
             JobCount jobCount,
+            int sampleSize,
+            boolean comparable,
+            Map<String, BigDecimal> previousPercentages
+    ) {
+        BigDecimal percentage = toPercentage(
+                jobCount.count(),
+                sampleSize
+        );
+
+        BigDecimal averageLevel = jobCount.averageLevel()
+                .setScale(AVERAGE_LEVEL_SCALE, RoundingMode.HALF_UP);
+
+        BigDecimal changeRate = comparable
+                ? percentage.subtract(previousPercentages.getOrDefault(
+                        jobCount.className(),
+                        ABSENT_PERCENTAGE
+                ))
+                : null;
+
+        return new JobStatisticsResult(
+                jobCount.className(),
+                jobCount.count(),
+                percentage,
+                averageLevel,
+                changeRate
+        );
+    }
+
+    private static BigDecimal toPercentage(
+            long count,
             int sampleSize
     ) {
-        BigDecimal percentage = BigDecimal.valueOf(jobCount.count())
+        return BigDecimal.valueOf(count)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(
                         BigDecimal.valueOf(sampleSize),
                         PERCENTAGE_SCALE,
                         RoundingMode.HALF_UP
                 );
-
-        BigDecimal averageLevel = jobCount.averageLevel()
-                .setScale(AVERAGE_LEVEL_SCALE, RoundingMode.HALF_UP);
-
-        return new JobStatisticsResult(
-                jobCount.className(),
-                jobCount.count(),
-                percentage,
-                averageLevel
-        );
     }
 
     public record JobStatisticsResult(
             String jobName,
             long count,
             BigDecimal percentage,
-            BigDecimal averageLevel
+            BigDecimal averageLevel,
+            BigDecimal changeRate
     ) {
     }
 }
