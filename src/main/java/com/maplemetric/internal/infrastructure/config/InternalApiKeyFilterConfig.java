@@ -20,7 +20,7 @@ class InternalApiKeyFilterConfig {
                         new InternalApiKeyFilter(properties, objectMapper)
                 );
 
-        registration.addUrlPatterns("/*");
+        registration.addUrlPatterns("/internal/*");
 
         return registration;
     }

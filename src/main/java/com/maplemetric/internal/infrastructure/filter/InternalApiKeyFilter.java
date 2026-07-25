@@ -20,7 +20,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class InternalApiKeyFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-Internal-API-Key";
-    private static final String PROTECTED_PATH_PREFIX = "/internal";
+    private static final String PROTECTED_PATH = "/internal";
+    private static final String PROTECTED_PATH_PREFIX = PROTECTED_PATH + "/";
 
     private final InternalApiProperties properties;
     private final ObjectMapper objectMapper;
@@ -35,8 +36,27 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI()
-                .startsWith(PROTECTED_PATH_PREFIX);
+        String path = resolveApplicationPath(request);
+
+        return !PROTECTED_PATH.equals(path)
+                && !path.startsWith(PROTECTED_PATH_PREFIX);
+    }
+
+    private String resolveApplicationPath(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+
+        if (requestUri == null) {
+            return "";
+        }
+
+        String contextPath = request.getContextPath();
+
+        if (StringUtils.hasLength(contextPath)
+                && requestUri.startsWith(contextPath)) {
+            return requestUri.substring(contextPath.length());
+        }
+
+        return requestUri;
     }
 
     @Override
