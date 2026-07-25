@@ -1,9 +1,12 @@
 package com.maplemetric.statistics.application.service;
 
-import com.maplemetric.ranking.api.OverallRankingStatisticsQuery;
-import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
+import com.maplemetric.ranking.api.OverallRankingComparisonQuery;
+import com.maplemetric.ranking.api.OverallRankingComparisonQueryException;
+import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
+import com.maplemetric.statistics.application.exception.JobStatisticsException;
+import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import org.springframework.stereotype.Service;
@@ -11,22 +14,42 @@ import org.springframework.stereotype.Service;
 @Service
 public class StatisticsQueryService {
 
-    private final OverallRankingStatisticsQuery overallRankingStatisticsQuery;
+    private final OverallRankingComparisonQuery overallRankingComparisonQuery;
     private final OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery;
 
     public StatisticsQueryService(
-            OverallRankingStatisticsQuery overallRankingStatisticsQuery,
+            OverallRankingComparisonQuery overallRankingComparisonQuery,
             OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery
     ) {
-        this.overallRankingStatisticsQuery = overallRankingStatisticsQuery;
+        this.overallRankingComparisonQuery = overallRankingComparisonQuery;
         this.overallRankingWorldStatisticsQuery = overallRankingWorldStatisticsQuery;
     }
 
     public GetJobStatisticsResult getJobStatistics() {
-        OverallRankingStatisticsSnapshot snapshot =
-                overallRankingStatisticsQuery.getLatestJobStatistics();
+        OverallRankingStatisticsComparisonSnapshot comparison =
+                loadJobStatisticsComparison();
 
-        return GetJobStatisticsResult.from(snapshot);
+        return GetJobStatisticsResult.from(comparison);
+    }
+
+    private OverallRankingStatisticsComparisonSnapshot loadJobStatisticsComparison() {
+        try {
+            return overallRankingComparisonQuery.getJobStatisticsComparison();
+        } catch (OverallRankingComparisonQueryException exception) {
+            throw new JobStatisticsException(
+                    toJobStatisticsFailure(exception),
+                    exception
+            );
+        }
+    }
+
+    private JobStatisticsFailure toJobStatisticsFailure(
+            OverallRankingComparisonQueryException exception
+    ) {
+        return switch (exception.getFailure()) {
+            case NOT_FOUND -> JobStatisticsFailure.SNAPSHOT_NOT_FOUND;
+            case DATA_INVALID -> JobStatisticsFailure.DATA_INVALID;
+        };
     }
 
     public GetWorldStatisticsResult getWorldStatistics() {
