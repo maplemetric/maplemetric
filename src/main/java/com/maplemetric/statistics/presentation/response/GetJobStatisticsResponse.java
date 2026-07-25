@@ -15,7 +15,9 @@ public record GetJobStatisticsResponse(
         Instant collectedAt,
         int pageCount,
         int requestedMaxPages,
-        boolean truncated
+        boolean truncated,
+        LocalDate previousAsOf,
+        Integer daysBetween
 ) {
 
     public static GetJobStatisticsResponse from(
@@ -27,7 +29,8 @@ public record GetJobStatisticsResponse(
                         job.jobName(),
                         job.count(),
                         job.percentage(),
-                        job.averageLevel()
+                        job.averageLevel(),
+                        job.changeRate()
                 ))
                 .toList();
 
@@ -39,7 +42,9 @@ public record GetJobStatisticsResponse(
                 result.collectedAt(),
                 result.pageCount(),
                 result.requestedMaxPages(),
-                result.truncated()
+                result.truncated(),
+                result.previousAsOf(),
+                result.daysBetween()
         );
     }
 
@@ -47,7 +52,8 @@ public record GetJobStatisticsResponse(
             String jobName,
             long count,
             BigDecimal percentage,
-            BigDecimal averageLevel
+            BigDecimal averageLevel,
+            BigDecimal changeRate
     ) {
     }
 }
