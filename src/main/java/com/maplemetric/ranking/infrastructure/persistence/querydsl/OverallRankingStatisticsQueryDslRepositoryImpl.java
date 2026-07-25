@@ -4,10 +4,12 @@ import com.maplemetric.ranking.infrastructure.persistence.OverallRankingCollecti
 import com.maplemetric.ranking.infrastructure.persistence.QOverallRankingCollectionEntity;
 import com.maplemetric.ranking.infrastructure.persistence.QOverallRankingSnapshotEntity;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,16 +34,28 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
 
         OverallRankingCollectionEntity result = queryFactory
                 .selectFrom(collection)
+                .where(allCondition(collection))
+                .orderBy(
+                        collection.snapshotDate.desc(),
+                        collection.collectedAt.desc()
+                )
+                .fetchFirst();
+
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<OverallRankingCollectionEntity> findPreviousAllConditionCollection(
+            LocalDate baseSnapshotDate
+    ) {
+        QOverallRankingCollectionEntity collection =
+                QOverallRankingCollectionEntity.overallRankingCollectionEntity;
+
+        OverallRankingCollectionEntity result = queryFactory
+                .selectFrom(collection)
                 .where(
-                        collection.worldName.eq(
-                                OverallRankingCollectionEntity.ALL_WORLD_NAME
-                        ),
-                        collection.worldType.eq(
-                                OverallRankingCollectionEntity.ALL_WORLD_TYPE
-                        ),
-                        collection.className.eq(
-                                OverallRankingCollectionEntity.ALL_CLASS_NAME
-                        )
+                        allCondition(collection),
+                        collection.snapshotDate.lt(baseSnapshotDate)
                 )
                 .orderBy(
                         collection.snapshotDate.desc(),
@@ -50,6 +64,19 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 .fetchFirst();
 
         return Optional.ofNullable(result);
+    }
+
+    private BooleanExpression allCondition(
+            QOverallRankingCollectionEntity collection
+    ) {
+        return collection.worldName
+                .eq(OverallRankingCollectionEntity.ALL_WORLD_NAME)
+                .and(collection.worldType.eq(
+                        OverallRankingCollectionEntity.ALL_WORLD_TYPE
+                ))
+                .and(collection.className.eq(
+                        OverallRankingCollectionEntity.ALL_CLASS_NAME
+                ));
     }
 
     @Override
