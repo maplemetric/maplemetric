@@ -17,10 +17,15 @@ import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningExcepti
 import com.maplemetric.ranking.api.OverallRankingCollectionException;
 import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
+import com.maplemetric.ranking.api.OverallRankingComparisonQuery;
+import com.maplemetric.ranking.api.OverallRankingComparisonQueryException;
+import com.maplemetric.ranking.api.OverallRankingComparisonQueryFailure;
+import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
+import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
@@ -266,6 +271,11 @@ class ModulithStructureTest {
                 OverallRankingWorldStatisticsQuery.class.getName(),
                 OverallRankingWorldStatisticsQueryException.class.getName(),
                 OverallRankingWorldStatisticsQueryFailure.class.getName(),
+                OverallRankingStatisticsComparisonSnapshot.class.getName(),
+                OverallRankingWorldStatisticsComparisonSnapshot.class.getName(),
+                OverallRankingComparisonQuery.class.getName(),
+                OverallRankingComparisonQueryException.class.getName(),
+                OverallRankingComparisonQueryFailure.class.getName(),
                 CollectOverallRankingSnapshotUseCase.class.getName(),
                 CollectOverallRankingSnapshotRequest.class.getName(),
                 CollectOverallRankingSnapshotOutcome.class.getName(),
