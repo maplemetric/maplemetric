@@ -1,19 +1,26 @@
 package com.maplemetric.internal.presentation.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.internal.infrastructure.properties.OverallRankingCollectionProperties;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionException;
+import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -23,14 +30,16 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(OverallRankingCollectionController.class)
 class OverallRankingCollectionControllerTest {
 
+    private static final String COLLECTION_PATH =
+            "/internal/v1/collections/rankings/overall";
+
     private static final LocalDate RANKING_DATE =
             LocalDate.of(2026, 7, 24);
 
-    @Autowired
-    private MockMvc mockMvc;
+    private static final int CONFIGURED_MAX_PAGES = 10;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private MockMvc mockMvc;
 
     @MockitoBean
     private CollectOverallRankingSnapshotUseCase
@@ -40,7 +49,7 @@ class OverallRankingCollectionControllerTest {
     private OverallRankingCollectionProperties properties;
 
     @Test
-    void 수집성공시200과COLLECTED를반환한다() throws Exception {
+    void 수집성공시200과COLLECTED응답전체필드를반환한다() throws Exception {
         given(collectOverallRankingSnapshotUseCase.collect(any()))
                 .willReturn(new CollectOverallRankingSnapshotOutcome(
                         OverallRankingCollectionStatus.COLLECTED,
@@ -51,7 +60,7 @@ class OverallRankingCollectionControllerTest {
                 ));
 
         mockMvc.perform(
-                        post("/internal/v1/collections/rankings/overall")
+                        post(COLLECTION_PATH)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {"rankingDate":"2026-07-24","maxPages":10}
@@ -67,6 +76,9 @@ class OverallRankingCollectionControllerTest {
                         jsonPath("$.data.status").value("COLLECTED")
                 )
                 .andExpect(
+                        jsonPath("$.data.asOf").value("2026-07-24")
+                )
+                .andExpect(
                         jsonPath("$.data.pageCount").value(10)
                 )
                 .andExpect(
@@ -78,7 +90,68 @@ class OverallRankingCollectionControllerTest {
     }
 
     @Test
-    void 중복Skip시200과SKIPPED를반환하며수치는null이다() throws Exception {
+    void 명시한rankingDate와maxPages를그대로UseCase에전달한다() throws Exception {
+        given(collectOverallRankingSnapshotUseCase.collect(any()))
+                .willReturn(collectedOutcome());
+
+        mockMvc.perform(
+                        post(COLLECTION_PATH)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"rankingDate":"2026-07-24","maxPages":3}
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        verify(collectOverallRankingSnapshotUseCase).collect(
+                new CollectOverallRankingSnapshotRequest(RANKING_DATE, 3)
+        );
+    }
+
+    @Test
+    void Body가빈객체이면설정된maxPages기본값을전달한다() throws Exception {
+        given(properties.maxPages()).willReturn(CONFIGURED_MAX_PAGES);
+        given(collectOverallRankingSnapshotUseCase.collect(any()))
+                .willReturn(collectedOutcome());
+
+        mockMvc.perform(
+                        post(COLLECTION_PATH)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}")
+                )
+                .andExpect(status().isOk());
+
+        verify(collectOverallRankingSnapshotUseCase).collect(
+                new CollectOverallRankingSnapshotRequest(
+                        null,
+                        CONFIGURED_MAX_PAGES
+                )
+        );
+    }
+
+    @Test
+    void Body가없으면설정된maxPages기본값을전달한다() throws Exception {
+        given(properties.maxPages()).willReturn(CONFIGURED_MAX_PAGES);
+        given(collectOverallRankingSnapshotUseCase.collect(any()))
+                .willReturn(collectedOutcome());
+
+        mockMvc.perform(
+                        post(COLLECTION_PATH)
+                                .contentType(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk());
+
+        verify(collectOverallRankingSnapshotUseCase).collect(
+                new CollectOverallRankingSnapshotRequest(
+                        null,
+                        CONFIGURED_MAX_PAGES
+                )
+        );
+    }
+
+    @Test
+    void 중복Skip시200과SKIPPED를반환하며수치는명시적null이다() throws Exception {
+        given(properties.maxPages()).willReturn(CONFIGURED_MAX_PAGES);
         given(collectOverallRankingSnapshotUseCase.collect(any()))
                 .willReturn(new CollectOverallRankingSnapshotOutcome(
                         OverallRankingCollectionStatus.SKIPPED,
@@ -89,7 +162,7 @@ class OverallRankingCollectionControllerTest {
                 ));
 
         mockMvc.perform(
-                        post("/internal/v1/collections/rankings/overall")
+                        post(COLLECTION_PATH)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{}")
                 )
@@ -103,23 +176,30 @@ class OverallRankingCollectionControllerTest {
                         jsonPath("$.data.status").value("SKIPPED")
                 )
                 .andExpect(
-                        jsonPath("$.data.pageCount").doesNotExist()
+                        jsonPath("$.data.asOf").value("2026-07-24")
+                )
+                .andExpect(jsonPath("$.data.pageCount").hasJsonPath())
+                .andExpect(jsonPath("$.data.sampleSize").hasJsonPath())
+                .andExpect(jsonPath("$.data.truncated").hasJsonPath())
+                .andExpect(
+                        jsonPath("$.data.pageCount").value(nullValue())
                 )
                 .andExpect(
-                        jsonPath("$.data.sampleSize").doesNotExist()
+                        jsonPath("$.data.sampleSize").value(nullValue())
                 )
                 .andExpect(
-                        jsonPath("$.data.truncated").doesNotExist()
+                        jsonPath("$.data.truncated").value(nullValue())
                 );
     }
 
     @Test
     void 이미실행중이면409를반환한다() throws Exception {
+        given(properties.maxPages()).willReturn(CONFIGURED_MAX_PAGES);
         given(collectOverallRankingSnapshotUseCase.collect(any()))
                 .willThrow(new OverallRankingCollectionAlreadyRunningException());
 
         mockMvc.perform(
-                        post("/internal/v1/collections/rankings/overall")
+                        post(COLLECTION_PATH)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{}")
                 )
@@ -130,25 +210,59 @@ class OverallRankingCollectionControllerTest {
                 );
     }
 
-    @Test
-    void maxPages가0이면400을반환한다() throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+            "EXTERNAL_API_CLIENT_ERROR, 502, INTERNAL_003",
+            "EXTERNAL_API_SERVER_ERROR, 502, INTERNAL_004",
+            "EXTERNAL_API_TIMEOUT, 504, INTERNAL_005",
+            "EXTERNAL_API_RESPONSE_INVALID, 502, INTERNAL_006"
+    })
+    void Nexon수집실패는표준ApiResponse오류계약으로반환한다(
+            OverallRankingCollectionFailure failure,
+            int expectedStatus,
+            String expectedCode
+    ) throws Exception {
+        given(properties.maxPages()).willReturn(CONFIGURED_MAX_PAGES);
+        given(collectOverallRankingSnapshotUseCase.collect(any()))
+                .willThrow(new OverallRankingCollectionException(failure));
+
         mockMvc.perform(
-                        post("/internal/v1/collections/rankings/overall")
+                        post(COLLECTION_PATH)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"maxPages\":0}")
+                                .content("{}")
                 )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(expectedCode))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
-    @Test
-    void maxPages가101이면400을반환한다() throws Exception {
+    @ParameterizedTest
+    @CsvSource({"0", "101"})
+    void maxPages가범위를벗어나면400을반환하고UseCase를호출하지않는다(
+            int maxPages
+    ) throws Exception {
         mockMvc.perform(
-                        post("/internal/v1/collections/rankings/overall")
+                        post(COLLECTION_PATH)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"maxPages\":101}")
+                                .content(
+                                        "{\"maxPages\":" + maxPages + "}"
+                                )
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
+
+        verify(collectOverallRankingSnapshotUseCase, never())
+                .collect(any());
+    }
+
+    private CollectOverallRankingSnapshotOutcome collectedOutcome() {
+        return new CollectOverallRankingSnapshotOutcome(
+                OverallRankingCollectionStatus.COLLECTED,
+                RANKING_DATE,
+                1,
+                1,
+                false
+        );
     }
 }

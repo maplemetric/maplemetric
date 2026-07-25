@@ -297,7 +297,7 @@ class ModulithStructureTest {
     }
 
     @Test
-    void Internal모듈은ranking공개api만사용한다() {
+    void Internal모듈이존재한다() {
         assertThat(
                 modules.getModuleByName("internal")
         ).isPresent();
