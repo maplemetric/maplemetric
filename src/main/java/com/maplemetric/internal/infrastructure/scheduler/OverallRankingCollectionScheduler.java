@@ -3,6 +3,7 @@ package com.maplemetric.internal.infrastructure.scheduler;
 import com.maplemetric.internal.infrastructure.properties.OverallRankingCollectionProperties;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
+import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,11 +38,16 @@ public class OverallRankingCollectionScheduler {
                     + ".overall-ranking-collection.scheduler.zone}"
     )
     public void collectOverallRanking() {
-        collectOverallRankingSnapshotUseCase.collect(
-                new CollectOverallRankingSnapshotRequest(
-                        null,
-                        properties.maxPages()
-                )
-        );
+        try {
+            collectOverallRankingSnapshotUseCase.collect(
+                    new CollectOverallRankingSnapshotRequest(
+                            null,
+                            properties.maxPages()
+                    )
+            );
+        } catch (OverallRankingCollectionAlreadyRunningException exception) {
+            // 중복 실행 차단은 정상 동작이므로 Scheduler 기본 Handler로
+            // 전파해 ERROR로 기록되지 않게 한다. 로그는 UseCase Bridge가 남긴다.
+        }
     }
 }
