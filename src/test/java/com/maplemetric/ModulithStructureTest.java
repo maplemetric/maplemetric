@@ -14,6 +14,8 @@ import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionException;
+import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingStatisticsQueryException;
@@ -268,7 +270,9 @@ class ModulithStructureTest {
                 CollectOverallRankingSnapshotRequest.class.getName(),
                 CollectOverallRankingSnapshotOutcome.class.getName(),
                 OverallRankingCollectionStatus.class.getName(),
-                OverallRankingCollectionAlreadyRunningException.class.getName()
+                OverallRankingCollectionAlreadyRunningException.class.getName(),
+                OverallRankingCollectionException.class.getName(),
+                OverallRankingCollectionFailure.class.getName()
         );
 
         assertThat(

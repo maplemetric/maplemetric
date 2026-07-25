@@ -5,6 +5,8 @@ import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionException;
+import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import com.maplemetric.ranking.application.command.CollectOverallRankingSnapshotCommand;
 import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
@@ -210,6 +212,16 @@ public class OverallRankingSnapshotCollectionService
                     result.sampleSize(),
                     result.truncated()
             );
+        } catch (RankingException exception) {
+            log.error(
+                    "종합 랭킹 Snapshot 수집에 실패했습니다. 기준일={}",
+                    request.rankingDate(),
+                    exception
+            );
+
+            throw new OverallRankingCollectionException(
+                    toCollectionFailure(exception.getFailure())
+            );
         } catch (RuntimeException exception) {
             log.error(
                     "종합 랭킹 Snapshot 수집에 실패했습니다. 기준일={}",
@@ -221,5 +233,21 @@ public class OverallRankingSnapshotCollectionService
         } finally {
             collectionInProgress.set(false);
         }
+    }
+
+    private OverallRankingCollectionFailure toCollectionFailure(
+            NexonApiFailure failure
+    ) {
+        return switch (failure) {
+            case NOT_FOUND, CLIENT_ERROR ->
+                    OverallRankingCollectionFailure.EXTERNAL_API_CLIENT_ERROR;
+            case SERVER_ERROR ->
+                    OverallRankingCollectionFailure.EXTERNAL_API_SERVER_ERROR;
+            case TIMEOUT ->
+                    OverallRankingCollectionFailure.EXTERNAL_API_TIMEOUT;
+            case RESPONSE_INVALID ->
+                    OverallRankingCollectionFailure
+                            .EXTERNAL_API_RESPONSE_INVALID;
+        };
     }
 }

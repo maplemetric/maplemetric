@@ -1,6 +1,7 @@
 package com.maplemetric.ranking.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -9,9 +10,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
+import com.maplemetric.ranking.api.OverallRankingCollectionException;
+import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import com.maplemetric.ranking.application.command.CollectOverallRankingSnapshotCommand;
 import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
@@ -27,6 +31,8 @@ import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -527,7 +533,7 @@ class OverallRankingSnapshotCollectionServiceTest {
 
         catchThrowableOfType(
                 () -> service.collect(request),
-                RankingException.class
+                OverallRankingCollectionException.class
         );
 
         given(loadRankingListPort.loadOverallRanking(
@@ -541,6 +547,90 @@ class OverallRankingSnapshotCollectionServiceTest {
 
         assertThat(second.status())
                 .isEqualTo(OverallRankingCollectionStatus.COLLECTED);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "NOT_FOUND, EXTERNAL_API_CLIENT_ERROR",
+            "CLIENT_ERROR, EXTERNAL_API_CLIENT_ERROR",
+            "SERVER_ERROR, EXTERNAL_API_SERVER_ERROR",
+            "TIMEOUT, EXTERNAL_API_TIMEOUT",
+            "RESPONSE_INVALID, EXTERNAL_API_RESPONSE_INVALID"
+    })
+    void Nexon실패는공개Collection실패로변환된다(
+            NexonApiFailure nexonApiFailure,
+            OverallRankingCollectionFailure expected
+    ) {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(false);
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willThrow(new RankingException(nexonApiFailure));
+
+        OverallRankingCollectionException exception =
+                catchThrowableOfType(
+                        () -> service.collect(
+                                new CollectOverallRankingSnapshotRequest(
+                                        RANKING_DATE, 10
+                                )
+                        ),
+                        OverallRankingCollectionException.class
+                );
+
+        assertThat(exception).isNotNull();
+        assertThat(exception.getFailure()).isEqualTo(expected);
+
+        verify(saveOverallRankingSnapshotPort, never())
+                .saveOverallRankingSnapshot(any());
+    }
+
+    @Test
+    void 내부RankingException은공개계약밖으로전파되지않는다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willReturn(false);
+
+        given(loadRankingListPort.loadOverallRanking(
+                RANKING_DATE, null, null, null, 1
+        )).willThrow(
+                new RankingException(NexonApiFailure.SERVER_ERROR)
+        );
+
+        assertThatThrownBy(() -> service.collect(
+                new CollectOverallRankingSnapshotRequest(RANKING_DATE, 10)
+        ))
+                .isInstanceOf(OverallRankingCollectionException.class)
+                .isNotInstanceOf(RankingException.class);
+    }
+
+    @Test
+    void 예상하지못한예외는그대로전파된다() {
+        OverallRankingSnapshotCollectionService service =
+                createService();
+
+        given(saveOverallRankingSnapshotPort
+                .existsOverallRankingCollection(
+                        RANKING_DATE, null, null, null
+                ))
+                .willThrow(new IllegalStateException("boom"));
+
+        assertThatThrownBy(() -> service.collect(
+                new CollectOverallRankingSnapshotRequest(RANKING_DATE, 10)
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("boom");
     }
 
     private OverallRankingCollection captureSavedCollection() {
