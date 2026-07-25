@@ -299,23 +299,28 @@ class OverallRankingComparisonQueryServiceTest {
     }
 
     @Test
-    void 이전기준일이최신기준일이후이면DATA_INVALID예외를던진다() {
+    void 이전기준일이최신기준일과같으면DATA_INVALID예외를던진다() {
         OverallRankingComparisonQueryService service = createService();
 
         givenLatestCollection(1);
+        givenPreviousCollectionOf(LATEST_SNAPSHOT_DATE);
 
-        given(loadOverallRankingStatisticsPort
-                .loadPreviousAllConditionCollection(LATEST_SNAPSHOT_DATE))
-                .willReturn(Optional.of(new LatestCollection(
-                        PREVIOUS_COLLECTION_ID,
-                        LATEST_SNAPSHOT_DATE,
-                        "NEXON_OPEN_API",
-                        COLLECTED_AT,
-                        1,
-                        1,
-                        100,
-                        false
-                )));
+        OverallRankingComparisonQueryException exception =
+                catchThrowableOfType(
+                        service::getJobStatisticsComparison,
+                        OverallRankingComparisonQueryException.class
+                );
+
+        assertThat(exception.getFailure())
+                .isEqualTo(OverallRankingComparisonQueryFailure.DATA_INVALID);
+    }
+
+    @Test
+    void 이전기준일이최신기준일보다늦으면DATA_INVALID예외를던진다() {
+        OverallRankingComparisonQueryService service = createService();
+
+        givenLatestCollection(1);
+        givenPreviousCollectionOf(LATEST_SNAPSHOT_DATE.plusDays(1));
 
         OverallRankingComparisonQueryException exception =
                 catchThrowableOfType(
@@ -364,6 +369,16 @@ class OverallRankingComparisonQueryServiceTest {
                         PREVIOUS_COLLECTION_ID,
                         PREVIOUS_SNAPSHOT_DATE,
                         sampleSize
+                )));
+    }
+
+    private void givenPreviousCollectionOf(LocalDate snapshotDate) {
+        given(loadOverallRankingStatisticsPort
+                .loadPreviousAllConditionCollection(LATEST_SNAPSHOT_DATE))
+                .willReturn(Optional.of(createCollection(
+                        PREVIOUS_COLLECTION_ID,
+                        snapshotDate,
+                        1
                 )));
     }
 
