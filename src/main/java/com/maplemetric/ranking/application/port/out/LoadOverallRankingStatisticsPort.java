@@ -11,6 +11,10 @@ public interface LoadOverallRankingStatisticsPort {
 
     Optional<LatestCollection> loadLatestAllConditionCollection();
 
+    Optional<LatestCollection> loadPreviousAllConditionCollection(
+            LocalDate baseSnapshotDate
+    );
+
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
 
     List<WorldNameAggregate> aggregateByWorldName(UUID collectionId);

@@ -2,6 +2,7 @@ package com.maplemetric.ranking.infrastructure.persistence;
 
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort;
 import com.maplemetric.ranking.infrastructure.persistence.querydsl.OverallRankingStatisticsQueryDslRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,16 +24,31 @@ class OverallRankingStatisticsPersistenceAdapter
     public Optional<LatestCollection> loadLatestAllConditionCollection() {
         return queryDslRepository
                 .findLatestAllConditionCollection()
-                .map(collection -> new LatestCollection(
-                        collection.getId(),
-                        collection.getSnapshotDate(),
-                        collection.getSource(),
-                        collection.getCollectedAt(),
-                        collection.getSampleSize(),
-                        collection.getPageCount(),
-                        collection.getRequestedMaxPages(),
-                        collection.isTruncated()
-                ));
+                .map(collection -> toLatestCollection(collection));
+    }
+
+    @Override
+    public Optional<LatestCollection> loadPreviousAllConditionCollection(
+            LocalDate baseSnapshotDate
+    ) {
+        return queryDslRepository
+                .findPreviousAllConditionCollection(baseSnapshotDate)
+                .map(collection -> toLatestCollection(collection));
+    }
+
+    private LatestCollection toLatestCollection(
+            OverallRankingCollectionEntity collection
+    ) {
+        return new LatestCollection(
+                collection.getId(),
+                collection.getSnapshotDate(),
+                collection.getSource(),
+                collection.getCollectedAt(),
+                collection.getSampleSize(),
+                collection.getPageCount(),
+                collection.getRequestedMaxPages(),
+                collection.isTruncated()
+        );
     }
 
     @Override

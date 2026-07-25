@@ -1,6 +1,7 @@
 package com.maplemetric.ranking.infrastructure.persistence.querydsl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.maplemetric.common.config.QuerydslConfig;
 import com.maplemetric.ranking.infrastructure.persistence.OverallRankingCollectionEntity;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -115,6 +117,149 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 repository.findLatestAllConditionCollection();
 
         assertThat(latest).isEmpty();
+    }
+
+    @Test
+    void 기준일보다이전인Collection중가장가까운Collection을선택한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 21),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 23),
+                new Row[] {row(1, "히어로", null, 205)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        Optional<OverallRankingCollectionEntity> previous =
+                repository.findPreviousAllConditionCollection(
+                        LocalDate.of(2026, 7, 24)
+                );
+
+        assertThat(previous).isPresent();
+        assertThat(previous.get().getSnapshotDate())
+                .isEqualTo(LocalDate.of(2026, 7, 23));
+    }
+
+    @Test
+    void 전일Collection이없으면더이전의가장가까운Collection을선택한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 18),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 21),
+                new Row[] {row(1, "히어로", null, 205)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        Optional<OverallRankingCollectionEntity> previous =
+                repository.findPreviousAllConditionCollection(
+                        LocalDate.of(2026, 7, 24)
+                );
+
+        assertThat(previous).isPresent();
+        assertThat(previous.get().getSnapshotDate())
+                .isEqualTo(LocalDate.of(2026, 7, 21));
+    }
+
+    @Test
+    void 기준일과같거나이후인Collection은이전선택대상에서제외한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 25),
+                new Row[] {row(1, "히어로", null, 215)}
+        );
+
+        Optional<OverallRankingCollectionEntity> previous =
+                repository.findPreviousAllConditionCollection(
+                        LocalDate.of(2026, 7, 24)
+                );
+
+        assertThat(previous).isEmpty();
+    }
+
+    @Test
+    void 필터가있는Collection은이전선택대상에서제외한다() {
+        OverallRankingCollectionEntity collection =
+                OverallRankingCollectionEntity.create(
+                        LocalDate.of(2026, 7, 23),
+                        "루나",
+                        0,
+                        "팬텀",
+                        "NEXON_OPEN_API",
+                        1,
+                        100,
+                        false,
+                        1,
+                        COLLECTED_AT
+                );
+
+        collection.addSnapshot(
+                OverallRankingSnapshotEntity.create(
+                        collection,
+                        1,
+                        "감점",
+                        "루나",
+                        "팬텀",
+                        null,
+                        200,
+                        0L,
+                        0,
+                        null
+                )
+        );
+
+        collectionRepository.saveAndFlush(collection);
+
+        Optional<OverallRankingCollectionEntity> previous =
+                repository.findPreviousAllConditionCollection(
+                        LocalDate.of(2026, 7, 24)
+                );
+
+        assertThat(previous).isEmpty();
+    }
+
+    @Test
+    void 이전Collection이없으면빈결과를반환한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        Optional<OverallRankingCollectionEntity> previous =
+                repository.findPreviousAllConditionCollection(
+                        LocalDate.of(2026, 7, 24)
+                );
+
+        assertThat(previous).isEmpty();
+    }
+
+    @Test
+    void 같은기준일의전체조건Collection중복저장은Unique제약으로실패한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        assertThatThrownBy(() -> saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "팬텀", null, 215)}
+        )).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
