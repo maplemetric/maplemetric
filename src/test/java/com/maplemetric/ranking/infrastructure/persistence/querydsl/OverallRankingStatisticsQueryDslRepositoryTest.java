@@ -10,6 +10,7 @@ import com.maplemetric.ranking.infrastructure.persistence.OverallRankingSnapshot
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -405,6 +406,203 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
         assertThat(aggregates).hasSize(1);
         assertThat(aggregates.get(0).averageLevel())
                 .isEqualByComparingTo(new BigDecimal("200.5"));
+    }
+
+    @Test
+    void 기준일로부터지정한일수이내의전체조건Collection만조회한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 22),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 23),
+                new Row[] {row(1, "히어로", null, 205)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        var collections = repository.findAllConditionCollectionsWithin(
+                LocalDate.of(2026, 7, 24),
+                3
+        );
+
+        assertThat(collections)
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(
+                        LocalDate.of(2026, 7, 22),
+                        LocalDate.of(2026, 7, 23),
+                        LocalDate.of(2026, 7, 24)
+                );
+    }
+
+    @Test
+    void 기간밖의더오래된Collection은제외한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 20),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        var collections = repository.findAllConditionCollectionsWithin(
+                LocalDate.of(2026, 7, 24),
+                3
+        );
+
+        assertThat(collections)
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(LocalDate.of(2026, 7, 24));
+    }
+
+    @Test
+    void 기준일보다미래인Collection은제외한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 25),
+                new Row[] {row(1, "히어로", null, 215)}
+        );
+
+        var collections = repository.findAllConditionCollectionsWithin(
+                LocalDate.of(2026, 7, 24),
+                3
+        );
+
+        assertThat(collections)
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(LocalDate.of(2026, 7, 24));
+    }
+
+    @Test
+    void 월드직업필터가적용된Collection은기간조회대상에서제외한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        OverallRankingCollectionEntity filtered =
+                OverallRankingCollectionEntity.create(
+                        LocalDate.of(2026, 7, 23),
+                        "루나",
+                        0,
+                        "팬텀",
+                        "NEXON_OPEN_API",
+                        1,
+                        100,
+                        false,
+                        1,
+                        COLLECTED_AT
+                );
+
+        filtered.addSnapshot(
+                OverallRankingSnapshotEntity.create(
+                        filtered,
+                        1,
+                        "감점",
+                        "루나",
+                        "팬텀",
+                        null,
+                        200,
+                        0L,
+                        0,
+                        null
+                )
+        );
+
+        collectionRepository.saveAndFlush(filtered);
+
+        var collections = repository.findAllConditionCollectionsWithin(
+                LocalDate.of(2026, 7, 24),
+                3
+        );
+
+        assertThat(collections)
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(LocalDate.of(2026, 7, 24));
+    }
+
+    @Test
+    void 수집누락일이있으면존재하는Collection만반환한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 20),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        var collections = repository.findAllConditionCollectionsWithin(
+                LocalDate.of(2026, 7, 24),
+                7
+        );
+
+        assertThat(collections)
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(
+                        LocalDate.of(2026, 7, 20),
+                        LocalDate.of(2026, 7, 24)
+                );
+    }
+
+    @Test
+    void 기간내대상Collection이없으면빈결과를반환한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 6, 1),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        var collections = repository.findAllConditionCollectionsWithin(
+                LocalDate.of(2026, 7, 24),
+                3
+        );
+
+        assertThat(collections).isEmpty();
+    }
+
+    @Test
+    void 여러collectionId의직업집계를한번의조회로반환한다() {
+        OverallRankingCollectionEntity first =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 23),
+                        new Row[] {row(1, "히어로", null, 200)}
+                );
+
+        OverallRankingCollectionEntity second =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 24),
+                        new Row[] {
+                                row(1, "히어로", null, 210),
+                                row(2, "팬텀", null, 220)
+                        }
+                );
+
+        var aggregates = repository.aggregateByClassName(
+                List.of(first.getId(), second.getId())
+        );
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(first.getId()))
+                .extracting(aggregate -> aggregate.className())
+                .containsExactly("히어로");
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(second.getId()))
+                .extracting(aggregate -> aggregate.className())
+                .containsExactlyInAnyOrder("히어로", "팬텀");
     }
 
     private OverallRankingCollectionEntity saveAllConditionCollection(
