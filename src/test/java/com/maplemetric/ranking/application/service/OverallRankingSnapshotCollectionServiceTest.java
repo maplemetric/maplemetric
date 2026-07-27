@@ -49,6 +49,9 @@ class OverallRankingSnapshotCollectionServiceTest {
     @Mock
     private SaveOverallRankingSnapshotPort saveOverallRankingSnapshotPort;
 
+    @Mock
+    private OverallRankingSnapshotStoreService overallRankingSnapshotStoreService;
+
     @Test
     void 빈페이지를만나면수집을종료하고저장한다() {
         OverallRankingSnapshotCollectionService service =
@@ -219,8 +222,8 @@ class OverallRankingSnapshotCollectionServiceTest {
 
         assertThat(exception).isNotNull();
 
-        verify(saveOverallRankingSnapshotPort, never())
-                .saveOverallRankingSnapshot(any());
+        verify(overallRankingSnapshotStoreService, never())
+                .store(any());
     }
 
     @Test
@@ -262,8 +265,8 @@ class OverallRankingSnapshotCollectionServiceTest {
 
         assertThat(exception).isNotNull();
 
-        verify(saveOverallRankingSnapshotPort, never())
-                .saveOverallRankingSnapshot(any());
+        verify(overallRankingSnapshotStoreService, never())
+                .store(any());
     }
 
     @Test
@@ -295,8 +298,8 @@ class OverallRankingSnapshotCollectionServiceTest {
         assertThat(result.asOf()).isEqualTo(RANKING_DATE);
 
         verifyNoInteractions(loadRankingListPort);
-        verify(saveOverallRankingSnapshotPort, never())
-                .saveOverallRankingSnapshot(any());
+        verify(overallRankingSnapshotStoreService, never())
+                .store(any());
     }
 
     @Test
@@ -587,8 +590,8 @@ class OverallRankingSnapshotCollectionServiceTest {
         assertThat(exception).isNotNull();
         assertThat(exception.getFailure()).isEqualTo(expected);
 
-        verify(saveOverallRankingSnapshotPort, never())
-                .saveOverallRankingSnapshot(any());
+        verify(overallRankingSnapshotStoreService, never())
+                .store(any());
     }
 
     @Test
@@ -639,8 +642,8 @@ class OverallRankingSnapshotCollectionServiceTest {
                         OverallRankingCollection.class
                 );
 
-        verify(saveOverallRankingSnapshotPort, times(1))
-                .saveOverallRankingSnapshot(captor.capture());
+        verify(overallRankingSnapshotStoreService, times(1))
+                .store(captor.capture());
 
         return captor.getValue();
     }
@@ -676,6 +679,7 @@ class OverallRankingSnapshotCollectionServiceTest {
         return new OverallRankingSnapshotCollectionService(
                 loadRankingListPort,
                 saveOverallRankingSnapshotPort,
+                overallRankingSnapshotStoreService,
                 Clock.fixed(
                         Instant.parse("2026-07-21T00:30:00Z"),
                         ZoneId.of("Asia/Seoul")

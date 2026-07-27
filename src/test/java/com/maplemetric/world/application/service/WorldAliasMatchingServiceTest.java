@@ -111,6 +111,31 @@ class WorldAliasMatchingServiceTest {
     }
 
     @Test
+    void 관측용매칭은정규화해조회한다() {
+        WorldAliasMatchingService service = createService();
+
+        given(loadWorldAliasPort.findActiveByNormalizedAliasName("luna"))
+                .willReturn(Optional.of(new MatchedWorld(WORLD_ID, "루나")));
+
+        assertThat(service.matches("  LUNA  ")).isTrue();
+
+        verify(loadWorldAliasPort).findActiveByNormalizedAliasName("luna");
+    }
+
+    @Test
+    void 관측용미매칭은WARN로그를남기지않는다(CapturedOutput output) {
+        WorldAliasMatchingService service = createService();
+
+        given(loadWorldAliasPort.findActiveByNormalizedAliasName("없는월드"))
+                .willReturn(Optional.empty());
+
+        assertThat(service.matches("없는월드")).isFalse();
+
+        assertThat(output)
+                .doesNotContain("등록되지 않은 월드 이름입니다.");
+    }
+
+    @Test
     void Alias조회Port에만의존하고외부API를호출하지않는다() {
         assertThat(
                 WorldAliasMatchingService.class.getDeclaredConstructors()

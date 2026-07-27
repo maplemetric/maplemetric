@@ -33,6 +33,7 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
+import com.maplemetric.world.api.WorldAliasMatchingQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
@@ -150,6 +151,14 @@ class ModulithStructureTest {
         ApplicationModule worldModule =
                 modules.getModuleByName("world")
                         .orElseThrow();
+
+        assertThat(
+                worldModule.getNamedInterfaces()
+                        .getByName("api")
+                        .orElseThrow()
+                        .asJavaClasses()
+                        .map(type -> type.getName())
+        ).containsExactly(WorldAliasMatchingQuery.class.getName());
 
         assertThat(
                 worldModule.getType(WORLD_ENTITY)

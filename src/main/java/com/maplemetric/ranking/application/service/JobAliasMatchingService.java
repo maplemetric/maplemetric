@@ -39,6 +39,17 @@ public class JobAliasMatchingService {
         return matched;
     }
 
+    @Transactional(readOnly = true)
+    public boolean matches(String aliasName) {
+        if (aliasName == null || aliasName.isBlank()) {
+            return false;
+        }
+
+        return loadJobAliasPort
+                .findActiveByNormalizedAliasName(normalize(aliasName))
+                .isPresent();
+    }
+
     private String normalize(String aliasName) {
         return aliasName.trim().toLowerCase(Locale.ROOT);
     }

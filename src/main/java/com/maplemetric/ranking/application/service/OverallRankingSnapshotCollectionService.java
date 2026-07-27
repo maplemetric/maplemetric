@@ -35,17 +35,20 @@ public class OverallRankingSnapshotCollectionService
 
     private final LoadRankingListPort loadRankingListPort;
     private final SaveOverallRankingSnapshotPort saveOverallRankingSnapshotPort;
+    private final OverallRankingSnapshotStoreService overallRankingSnapshotStoreService;
     private final Clock clock;
     private final AtomicBoolean collectionInProgress = new AtomicBoolean(false);
 
     @Autowired
     public OverallRankingSnapshotCollectionService(
             LoadRankingListPort loadRankingListPort,
-            SaveOverallRankingSnapshotPort saveOverallRankingSnapshotPort
+            SaveOverallRankingSnapshotPort saveOverallRankingSnapshotPort,
+            OverallRankingSnapshotStoreService overallRankingSnapshotStoreService
     ) {
         this(
                 loadRankingListPort,
                 saveOverallRankingSnapshotPort,
+                overallRankingSnapshotStoreService,
                 Clock.system(RankingDateResolver.KOREA_ZONE_ID)
         );
     }
@@ -53,10 +56,13 @@ public class OverallRankingSnapshotCollectionService
     OverallRankingSnapshotCollectionService(
             LoadRankingListPort loadRankingListPort,
             SaveOverallRankingSnapshotPort saveOverallRankingSnapshotPort,
+            OverallRankingSnapshotStoreService overallRankingSnapshotStoreService,
             Clock clock
     ) {
         this.loadRankingListPort = loadRankingListPort;
         this.saveOverallRankingSnapshotPort = saveOverallRankingSnapshotPort;
+        this.overallRankingSnapshotStoreService =
+                overallRankingSnapshotStoreService;
         this.clock = clock;
     }
 
@@ -131,7 +137,7 @@ public class OverallRankingSnapshotCollectionService
                         ))
                         .toList();
 
-        saveOverallRankingSnapshotPort.saveOverallRankingSnapshot(
+        overallRankingSnapshotStoreService.store(
                 new OverallRankingCollection(
                         snapshotDate,
                         command.worldName(),
