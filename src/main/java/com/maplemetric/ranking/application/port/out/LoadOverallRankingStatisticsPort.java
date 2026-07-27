@@ -15,7 +15,16 @@ public interface LoadOverallRankingStatisticsPort {
             LocalDate baseSnapshotDate
     );
 
+    List<LatestCollection> loadAllConditionCollectionsWithin(
+            LocalDate baseSnapshotDate,
+            int days
+    );
+
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
+
+    List<ClassNameAggregateByCollection> aggregateByClassName(
+            List<UUID> collectionIds
+    );
 
     List<WorldNameAggregate> aggregateByWorldName(UUID collectionId);
 
@@ -32,6 +41,14 @@ public interface LoadOverallRankingStatisticsPort {
     }
 
     record ClassNameAggregate(
+            String className,
+            long count,
+            BigDecimal averageLevel
+    ) {
+    }
+
+    record ClassNameAggregateByCollection(
+            UUID collectionId,
             String className,
             long count,
             BigDecimal averageLevel

@@ -66,6 +66,27 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
         return Optional.ofNullable(result);
     }
 
+    @Override
+    public List<OverallRankingCollectionEntity> findAllConditionCollectionsWithin(
+            LocalDate baseSnapshotDate,
+            int days
+    ) {
+        QOverallRankingCollectionEntity collection =
+                QOverallRankingCollectionEntity.overallRankingCollectionEntity;
+
+        return queryFactory
+                .selectFrom(collection)
+                .where(
+                        allCondition(collection),
+                        collection.snapshotDate.loe(baseSnapshotDate),
+                        collection.snapshotDate.gt(
+                                baseSnapshotDate.minusDays(days)
+                        )
+                )
+                .orderBy(collection.snapshotDate.asc())
+                .fetch();
+    }
+
     private BooleanExpression allCondition(
             QOverallRankingCollectionEntity collection
     ) {
@@ -106,6 +127,36 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 .where(snapshot.collection.id.eq(collectionId))
                 .groupBy(snapshot.className)
                 .orderBy(count.desc(), snapshot.className.asc())
+                .fetch();
+    }
+
+    @Override
+    public List<ClassNameAggregateByCollection> aggregateByClassName(
+            List<UUID> collectionIds
+    ) {
+        QOverallRankingSnapshotEntity snapshot =
+                QOverallRankingSnapshotEntity.overallRankingSnapshotEntity;
+
+        NumberExpression<BigDecimal> averageLevel =
+                Expressions.numberTemplate(
+                        BigDecimal.class,
+                        "avg({0})",
+                        snapshot.characterLevel
+                );
+
+        NumberExpression<Long> count = snapshot.count();
+
+        return queryFactory
+                .select(Projections.constructor(
+                        ClassNameAggregateByCollection.class,
+                        snapshot.collection.id,
+                        snapshot.className,
+                        count,
+                        averageLevel
+                ))
+                .from(snapshot)
+                .where(snapshot.collection.id.in(collectionIds))
+                .groupBy(snapshot.collection.id, snapshot.className)
                 .fetch();
     }
 
