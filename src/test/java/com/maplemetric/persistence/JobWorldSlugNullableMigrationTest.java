@@ -22,6 +22,8 @@ class JobWorldSlugNullableMigrationTest {
 
     private static final String PREVIOUS_SCHEMA_VERSION = "10";
 
+    private static final String SLUG_COLUMN_SCHEMA_VERSION = "11";
+
     private static final int EXPECTED_JOB_COUNT = 48;
 
     private static final int EXPECTED_WORLD_COUNT = 14;
@@ -39,7 +41,7 @@ class JobWorldSlugNullableMigrationTest {
             assertThat(columnExists(connection, "p_world", "world_slug")).isFalse();
         }
 
-        migrateToLatest();
+        migrateToVersion(SLUG_COLUMN_SCHEMA_VERSION);
 
         try (Connection connection = connect()) {
             assertThat(columnDefinition(connection, "p_job", "job_slug"))
@@ -61,7 +63,7 @@ class JobWorldSlugNullableMigrationTest {
 
     @Test
     void V11은_기존_직업과_월드_행을_Backfill하지_않는다() throws SQLException {
-        migrateToLatest();
+        migrateToVersion(SLUG_COLUMN_SCHEMA_VERSION);
 
         try (Connection connection = connect();
                 Statement statement = connection.createStatement()) {
@@ -74,10 +76,6 @@ class JobWorldSlugNullableMigrationTest {
             assertThat(count(statement, "SELECT COUNT(*) FROM p_world WHERE world_slug IS NOT NULL"))
                     .isZero();
         }
-    }
-
-    private void migrateToLatest() {
-        flywayConfig().load().migrate();
     }
 
     private void migrateToVersion(String version) {
