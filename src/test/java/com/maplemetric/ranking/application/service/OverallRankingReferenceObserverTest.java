@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.maplemetric.ranking.application.event.OverallRankingSnapshotStoredEvent;
 import com.maplemetric.ranking.application.event.OverallRankingSnapshotStoredEvent.ObservedName;
@@ -60,19 +61,35 @@ class OverallRankingReferenceObserverTest {
         verify(jobAliasMatchingService, times(1)).matches("hero");
         verify(jobAliasMatchingService, times(1)).matches("팬텀");
         verify(worldAliasMatchingQuery, times(1)).matches("luna");
+        verifyNoMoreInteractions(
+                jobAliasMatchingService,
+                worldAliasMatchingQuery
+        );
 
+        List<String> unmatchedWarnLines = unmatchedWarnLines(output);
+        assertThat(unmatchedWarnLines).hasSize(2);
+
+        assertThat(unmatchedWarnLines)
+                .filteredOn(line -> line.contains("정규화 이름=hero"))
+                .singleElement()
+                .asString()
+                .contains(
+                        "기준일=2026-07-27",
+                        "유형=JOB",
+                        "대표 원본 이름=  HERO  ",
+                        "행 수=5"
+                );
+        assertThat(unmatchedWarnLines)
+                .filteredOn(line -> line.contains("정규화 이름=luna"))
+                .singleElement()
+                .asString()
+                .contains(
+                        "기준일=2026-07-27",
+                        "유형=WORLD",
+                        "대표 원본 이름=  LUNA  ",
+                        "행 수=6"
+                );
         assertThat(output.getOut())
-                .contains("기준일=2026-07-27")
-                .contains("유형=JOB")
-                .contains("대표 원본 이름=  HERO  ")
-                .contains("정규화 이름=hero")
-                .contains("행 수=5")
-                .contains("유형=WORLD")
-                .contains("대표 원본 이름=  LUNA  ")
-                .contains("정규화 이름=luna")
-                .contains("행 수=6")
-                .containsOnlyOnce("정규화 이름=hero")
-                .containsOnlyOnce("정규화 이름=luna")
                 .doesNotContain("정규화 이름=팬텀");
     }
 
@@ -95,8 +112,60 @@ class OverallRankingReferenceObserverTest {
 
         observer.observe(event);
 
+        verify(jobAliasMatchingService, times(1)).matches("팬텀");
+        verify(worldAliasMatchingQuery, times(1)).matches("루나");
+        verifyNoMoreInteractions(
+                jobAliasMatchingService,
+                worldAliasMatchingQuery
+        );
+
         assertThat(output.getOut())
                 .doesNotContain("종합 랭킹 기준정보 매핑에 실패했습니다.");
+    }
+
+    @Test
+    void null빈문자열공백이름을하나로묶어행수를합산하고WARN을한번만남긴다(
+            CapturedOutput output
+    ) {
+        OverallRankingReferenceObserver observer = createObserver();
+        OverallRankingSnapshotStoredEvent event =
+                new OverallRankingSnapshotStoredEvent(
+                        SNAPSHOT_DATE,
+                        List.of(
+                                new ObservedName(null, 2L),
+                                new ObservedName("", 3L),
+                                new ObservedName("   ", 4L)
+                        ),
+                        List.of()
+                );
+
+        observer.observe(event);
+
+        verify(jobAliasMatchingService, times(1)).matches("");
+        verifyNoMoreInteractions(
+                jobAliasMatchingService,
+                worldAliasMatchingQuery
+        );
+
+        assertThat(unmatchedWarnLines(output))
+                .singleElement()
+                .asString()
+                .contains(
+                        "기준일=2026-07-27",
+                        "유형=JOB",
+                        "대표 원본 이름=null",
+                        "정규화 이름=, 행 수=9"
+                );
+    }
+
+    private List<String> unmatchedWarnLines(CapturedOutput output) {
+        return output.getOut()
+                .lines()
+                .filter(line -> line.contains(" WARN "))
+                .filter(line -> line.contains(
+                        "종합 랭킹 기준정보 매핑에 실패했습니다."
+                ))
+                .toList();
     }
 
     private OverallRankingReferenceObserver createObserver() {
