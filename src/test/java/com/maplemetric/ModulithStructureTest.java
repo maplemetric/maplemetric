@@ -59,6 +59,18 @@ class ModulithStructureTest {
             "com.maplemetric.world.infrastructure.persistence."
                     + "WorldRepository";
 
+    private static final String WORLD_ALIAS_ENTITY =
+            "com.maplemetric.world.infrastructure.persistence."
+                    + "WorldAliasEntity";
+
+    private static final String WORLD_ALIAS_REPOSITORY =
+            "com.maplemetric.world.infrastructure.persistence."
+                    + "WorldAliasRepository";
+
+    private static final String WORLD_ALIAS_TYPE =
+            "com.maplemetric.world.infrastructure.persistence."
+                    + "WorldAliasType";
+
     private static final String JOB_ENTITY =
             "com.maplemetric.ranking.infrastructure.persistence."
                     + "JobEntity";
@@ -66,6 +78,18 @@ class ModulithStructureTest {
     private static final String JOB_REPOSITORY =
             "com.maplemetric.ranking.infrastructure.persistence."
                     + "JobRepository";
+
+    private static final String JOB_ALIAS_ENTITY =
+            "com.maplemetric.ranking.infrastructure.persistence."
+                    + "JobAliasEntity";
+
+    private static final String JOB_ALIAS_REPOSITORY =
+            "com.maplemetric.ranking.infrastructure.persistence."
+                    + "JobAliasRepository";
+
+    private static final String JOB_ALIAS_TYPE =
+            "com.maplemetric.ranking.infrastructure.persistence."
+                    + "JobAliasType";
 
     private static final String CHARACTER_SNAPSHOT_ENTITY =
             "com.maplemetric.character.infrastructure.persistence."
@@ -135,6 +159,24 @@ class ModulithStructureTest {
 
         assertThat(
                 worldModule.getType(WORLD_REPOSITORY)
+                        .map(type -> worldModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                worldModule.getType(WORLD_ALIAS_ENTITY)
+                        .map(type -> worldModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                worldModule.getType(WORLD_ALIAS_REPOSITORY)
+                        .map(type -> worldModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                worldModule.getType(WORLD_ALIAS_TYPE)
                         .map(type -> worldModule.isExposed(type))
                         .orElseThrow()
         ).isFalse();
@@ -307,6 +349,24 @@ class ModulithStructureTest {
 
         assertThat(
                 rankingModule.getType(JOB_REPOSITORY)
+                        .map(type -> rankingModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                rankingModule.getType(JOB_ALIAS_ENTITY)
+                        .map(type -> rankingModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                rankingModule.getType(JOB_ALIAS_REPOSITORY)
+                        .map(type -> rankingModule.isExposed(type))
+                        .orElseThrow()
+        ).isFalse();
+
+        assertThat(
+                rankingModule.getType(JOB_ALIAS_TYPE)
                         .map(type -> rankingModule.isExposed(type))
                         .orElseThrow()
         ).isFalse();
