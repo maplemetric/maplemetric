@@ -3,6 +3,8 @@ package com.maplemetric.ranking.application.service;
 import com.maplemetric.ranking.application.event.OverallRankingSnapshotStoredEvent;
 import com.maplemetric.ranking.application.event.OverallRankingSnapshotStoredEvent.ObservedName;
 import com.maplemetric.world.api.WorldAliasMatchingQuery;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -17,15 +19,29 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OverallRankingReferenceObserver {
 
+    private static final String UNMATCHED_METRIC_NAME =
+            "ranking.reference.mapping.unmatched";
+
     private final JobAliasMatchingService jobAliasMatchingService;
     private final WorldAliasMatchingQuery worldAliasMatchingQuery;
+    private final Counter jobUnmatchedCounter;
+    private final Counter worldUnmatchedCounter;
 
     public OverallRankingReferenceObserver(
             JobAliasMatchingService jobAliasMatchingService,
-            WorldAliasMatchingQuery worldAliasMatchingQuery
+            WorldAliasMatchingQuery worldAliasMatchingQuery,
+            MeterRegistry meterRegistry
     ) {
         this.jobAliasMatchingService = jobAliasMatchingService;
         this.worldAliasMatchingQuery = worldAliasMatchingQuery;
+        this.jobUnmatchedCounter = createUnmatchedCounter(
+                meterRegistry,
+                ReferenceType.JOB
+        );
+        this.worldUnmatchedCounter = createUnmatchedCounter(
+                meterRegistry,
+                ReferenceType.WORLD
+        );
     }
 
     @Transactional(
@@ -70,7 +86,29 @@ public class OverallRankingReferenceObserver {
                             observedName.normalizedName(),
                             observedName.rowCount()
                     );
+                    unmatchedCounter(referenceType)
+                            .increment(observedName.rowCount());
                 });
+    }
+
+    private Counter createUnmatchedCounter(
+            MeterRegistry meterRegistry,
+            ReferenceType referenceType
+    ) {
+        return Counter.builder(UNMATCHED_METRIC_NAME)
+                .description(
+                        "Overall Ranking Alias에 매칭되지 않은 Snapshot 행 수"
+                )
+                .baseUnit("rows")
+                .tag("type", referenceType.metricTag())
+                .register(meterRegistry);
+    }
+
+    private Counter unmatchedCounter(ReferenceType referenceType) {
+        return switch (referenceType) {
+            case JOB -> jobUnmatchedCounter;
+            case WORLD -> worldUnmatchedCounter;
+        };
     }
 
     private Map<String, AggregatedObservedName> aggregateByNormalizedName(
@@ -110,8 +148,18 @@ public class OverallRankingReferenceObserver {
     }
 
     private enum ReferenceType {
-        JOB,
-        WORLD
+        JOB("job"),
+        WORLD("world");
+
+        private final String metricTag;
+
+        ReferenceType(String metricTag) {
+            this.metricTag = metricTag;
+        }
+
+        private String metricTag() {
+            return metricTag;
+        }
     }
 
     private record AggregatedObservedName(
