@@ -414,6 +414,44 @@ class JobWorldAliasPersistenceTest {
         ).isEmpty();
     }
 
+    @Test
+    void SoftDelete된Canonical직업의Alias는정규화이름조회에서제외한다() {
+        JobEntity job = createJob("테스트직업12");
+
+        jobAliasRepository.saveAndFlush(
+                JobAliasEntity.create(job, "hero-deleted-job", JobAliasType.NEXON)
+        );
+
+        job.softDelete(Instant.parse("2026-07-27T00:00:00Z"));
+        jobRepository.saveAndFlush(job);
+
+        entityManager.clear();
+
+        assertThat(
+                jobAliasRepository
+                        .findActiveByNormalizedAliasName("hero-deleted-job")
+        ).isEmpty();
+    }
+
+    @Test
+    void SoftDelete된Canonical월드의Alias는정규화이름조회에서제외한다() {
+        WorldEntity world = createWorld("테스트월드12");
+
+        worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, "luna-deleted-world", WorldAliasType.NEXON)
+        );
+
+        world.softDelete(Instant.parse("2026-07-27T00:00:00Z"));
+        worldRepository.saveAndFlush(world);
+
+        entityManager.clear();
+
+        assertThat(
+                worldAliasRepository
+                        .findActiveByNormalizedAliasName("luna-deleted-world")
+        ).isEmpty();
+    }
+
     private JobEntity createJob(String jobName) {
         return jobRepository.saveAndFlush(
                 JobEntity.create(

@@ -12,9 +12,10 @@ public interface JobAliasRepository
     @Query("""
             SELECT a
             FROM JobAliasEntity a
-            JOIN FETCH a.job
+            JOIN FETCH a.job j
             WHERE LOWER(TRIM(a.aliasName)) = :normalizedAliasName
               AND a.deletedAt IS NULL
+              AND j.deletedAt IS NULL
             """)
     Optional<JobAliasEntity> findActiveByNormalizedAliasName(
             @Param("normalizedAliasName") String normalizedAliasName
