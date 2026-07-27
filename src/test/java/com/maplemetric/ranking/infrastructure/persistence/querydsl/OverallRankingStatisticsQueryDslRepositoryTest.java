@@ -605,6 +605,47 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 .containsExactlyInAnyOrder("히어로", "팬텀");
     }
 
+    @Test
+    void 여러collectionId의직업집계도count내림차순className오름차순으로정렬한다() {
+        OverallRankingCollectionEntity first =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 23),
+                        new Row[] {
+                                row(1, "데몬슬레이어", null, 200),
+                                row(2, "히어로", null, 205),
+                                row(3, "히어로", null, 210)
+                        }
+                );
+
+        OverallRankingCollectionEntity second =
+                saveAllConditionCollection(
+                        LocalDate.of(2026, 7, 24),
+                        new Row[] {
+                                row(1, "나이트로드", null, 200),
+                                row(2, "나이트로드", null, 205),
+                                row(3, "팬텀", null, 210),
+                                row(4, "팬텀", null, 215),
+                                row(5, "팬텀", null, 220)
+                        }
+                );
+
+        var aggregates = repository.aggregateByClassName(
+                List.of(first.getId(), second.getId())
+        );
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(first.getId()))
+                .extracting(aggregate -> aggregate.className())
+                .containsExactly("히어로", "데몬슬레이어");
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(second.getId()))
+                .extracting(aggregate -> aggregate.className())
+                .containsExactly("팬텀", "나이트로드");
+    }
+
     private OverallRankingCollectionEntity saveAllConditionCollection(
             LocalDate snapshotDate,
             Row[] rows

@@ -157,6 +157,11 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 .from(snapshot)
                 .where(snapshot.collection.id.in(collectionIds))
                 .groupBy(snapshot.collection.id, snapshot.className)
+                .orderBy(
+                        snapshot.collection.id.asc(),
+                        count.desc(),
+                        snapshot.className.asc()
+                )
                 .fetch();
     }
 
