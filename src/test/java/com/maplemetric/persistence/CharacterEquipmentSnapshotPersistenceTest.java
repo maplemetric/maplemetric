@@ -214,7 +214,7 @@ class CharacterEquipmentSnapshotPersistenceTest {
                 RETURNING world_id
                 """,
                 UUID.class,
-                "루나",
+                "테스트루나",
                 "luna"
         );
     }
@@ -230,7 +230,7 @@ class CharacterEquipmentSnapshotPersistenceTest {
                 RETURNING job_id
                 """,
                 UUID.class,
-                "팬텀",
+                "테스트팬텀",
                 "phantom",
                 "영웅"
         );
