@@ -338,6 +338,82 @@ class JobWorldAliasPersistenceTest {
         )).isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    void 정규화된이름으로활성Job_Alias를조회한다() {
+        JobEntity job = createJob("테스트직업10");
+
+        jobAliasRepository.saveAndFlush(
+                JobAliasEntity.create(job, " Hero-Lookup ", JobAliasType.NEXON)
+        );
+
+        entityManager.clear();
+
+        assertThat(
+                jobAliasRepository
+                        .findActiveByNormalizedAliasName("hero-lookup")
+        ).isPresent()
+                .get()
+                .extracting(alias -> alias.getJob().getJobName())
+                .isEqualTo("테스트직업10");
+    }
+
+    @Test
+    void SoftDelete된Job_Alias는정규화이름조회에서제외한다() {
+        JobEntity job = createJob("테스트직업11");
+
+        JobAliasEntity alias = jobAliasRepository.saveAndFlush(
+                JobAliasEntity.create(job, "hero-deleted", JobAliasType.NEXON)
+        );
+
+        alias.softDelete(Instant.parse("2026-07-27T00:00:00Z"));
+        jobAliasRepository.saveAndFlush(alias);
+
+        entityManager.clear();
+
+        assertThat(
+                jobAliasRepository
+                        .findActiveByNormalizedAliasName("hero-deleted")
+        ).isEmpty();
+    }
+
+    @Test
+    void 정규화된이름으로활성World_Alias를조회한다() {
+        WorldEntity world = createWorld("테스트월드10");
+
+        worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, " Luna-Lookup ", WorldAliasType.NEXON)
+        );
+
+        entityManager.clear();
+
+        assertThat(
+                worldAliasRepository
+                        .findActiveByNormalizedAliasName("luna-lookup")
+        ).isPresent()
+                .get()
+                .extracting(alias -> alias.getWorld().getWorldName())
+                .isEqualTo("테스트월드10");
+    }
+
+    @Test
+    void SoftDelete된World_Alias는정규화이름조회에서제외한다() {
+        WorldEntity world = createWorld("테스트월드11");
+
+        WorldAliasEntity alias = worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, "luna-deleted", WorldAliasType.NEXON)
+        );
+
+        alias.softDelete(Instant.parse("2026-07-27T00:00:00Z"));
+        worldAliasRepository.saveAndFlush(alias);
+
+        entityManager.clear();
+
+        assertThat(
+                worldAliasRepository
+                        .findActiveByNormalizedAliasName("luna-deleted")
+        ).isEmpty();
+    }
+
     private JobEntity createJob(String jobName) {
         return jobRepository.saveAndFlush(
                 JobEntity.create(
