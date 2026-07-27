@@ -13,6 +13,7 @@ import com.maplemetric.world.infrastructure.persistence.WorldAliasRepository;
 import com.maplemetric.world.infrastructure.persistence.WorldAliasType;
 import com.maplemetric.world.infrastructure.persistence.WorldEntity;
 import com.maplemetric.world.infrastructure.persistence.WorldRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,19 +60,32 @@ class JobWorldAliasPersistenceTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Test
     void Job_Alias를저장하고Canonical직업으로조회한다() {
         JobEntity job = createJob("테스트직업1");
 
-        JobAliasEntity alias = jobAliasRepository.saveAndFlush(
+        JobAliasEntity saved = jobAliasRepository.saveAndFlush(
                 JobAliasEntity.create(job, "TestJob1", JobAliasType.NEXON)
         );
 
-        assertThat(alias.getId()).isNotNull();
-        assertThat(alias.getJob().getId()).isEqualTo(job.getId());
-        assertThat(alias.getAliasName()).isEqualTo("TestJob1");
-        assertThat(alias.getAliasType()).isEqualTo(JobAliasType.NEXON);
-        assertThat(alias.getCreatedAt()).isNotNull();
+        assertThat(saved.getId()).isNotNull();
+
+        entityManager.clear();
+
+        JobAliasEntity found = jobAliasRepository
+                .findById(saved.getId())
+                .orElseThrow();
+
+        assertThat(found.getAliasName()).isEqualTo("TestJob1");
+        assertThat(found.getAliasType()).isEqualTo(JobAliasType.NEXON);
+        assertThat(found.getCreatedAt()).isNotNull();
+        assertThat(found.getUpdatedAt()).isNotNull();
+        assertThat(found.getDeletedAt()).isNull();
+        assertThat(found.getJob().getId()).isEqualTo(job.getId());
+        assertThat(found.getJob().getJobName()).isEqualTo("테스트직업1");
     }
 
     @Test
@@ -205,14 +219,25 @@ class JobWorldAliasPersistenceTest {
     void World_Alias를저장하고Canonical월드로조회한다() {
         WorldEntity world = createWorld("테스트월드1");
 
-        WorldAliasEntity alias = worldAliasRepository.saveAndFlush(
+        WorldAliasEntity saved = worldAliasRepository.saveAndFlush(
                 WorldAliasEntity.create(world, "TestWorld1", WorldAliasType.NEXON)
         );
 
-        assertThat(alias.getId()).isNotNull();
-        assertThat(alias.getWorld().getId()).isEqualTo(world.getId());
-        assertThat(alias.getAliasName()).isEqualTo("TestWorld1");
-        assertThat(alias.getAliasType()).isEqualTo(WorldAliasType.NEXON);
+        assertThat(saved.getId()).isNotNull();
+
+        entityManager.clear();
+
+        WorldAliasEntity found = worldAliasRepository
+                .findById(saved.getId())
+                .orElseThrow();
+
+        assertThat(found.getAliasName()).isEqualTo("TestWorld1");
+        assertThat(found.getAliasType()).isEqualTo(WorldAliasType.NEXON);
+        assertThat(found.getCreatedAt()).isNotNull();
+        assertThat(found.getUpdatedAt()).isNotNull();
+        assertThat(found.getDeletedAt()).isNull();
+        assertThat(found.getWorld().getId()).isEqualTo(world.getId());
+        assertThat(found.getWorld().getWorldName()).isEqualTo("테스트월드1");
     }
 
     @Test
@@ -239,6 +264,52 @@ class JobWorldAliasPersistenceTest {
         assertThatThrownBy(() -> worldAliasRepository.saveAndFlush(
                 WorldAliasEntity.create(world, "luna-primary-2", WorldAliasType.PRIMARY)
         )).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void 활성World_Alias이름앞뒤공백만다르면중복으로거부한다() {
+        WorldEntity world = createWorld("테스트월드5");
+
+        worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, "luna-trim", WorldAliasType.NEXON)
+        );
+
+        assertThatThrownBy(() -> worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, " luna-trim ", WorldAliasType.MANUAL)
+        )).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void 잘못된World_Alias유형값은CHECK제약으로거부한다() {
+        WorldEntity world = createWorld("테스트월드6");
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                """
+                INSERT INTO p_world_alias (world_id, alias_name, alias_type)
+                VALUES (?, ?, ?)
+                """,
+                world.getId(),
+                "luna-invalid",
+                "UNKNOWN"
+        )).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void SoftDelete된World_Alias이름은동일이름재등록을막지않는다() {
+        WorldEntity world = createWorld("테스트월드7");
+
+        WorldAliasEntity alias = worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, "luna-reuse", WorldAliasType.NEXON)
+        );
+
+        alias.softDelete(Instant.parse("2026-07-27T00:00:00Z"));
+        worldAliasRepository.saveAndFlush(alias);
+
+        WorldAliasEntity reused = worldAliasRepository.saveAndFlush(
+                WorldAliasEntity.create(world, "luna-reuse", WorldAliasType.MANUAL)
+        );
+
+        assertThat(reused.getId()).isNotNull();
     }
 
     @Test
