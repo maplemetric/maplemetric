@@ -16,8 +16,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, OutputCaptureExtension.class})
 class WorldAliasMatchingServiceTest {
 
     private static final UUID WORLD_ID = UUID.randomUUID();
@@ -53,34 +55,59 @@ class WorldAliasMatchingServiceTest {
     }
 
     @Test
-    void 등록되지않은이름이면빈결과를반환한다() {
+    void 등록되지않은이름이면빈결과와함께WARN로그를남긴다(
+            CapturedOutput output
+    ) {
         WorldAliasMatchingService service = createService();
 
         given(loadWorldAliasPort.findActiveByNormalizedAliasName("없는월드"))
                 .willReturn(Optional.empty());
 
         assertThat(service.matchWorld("없는월드")).isEmpty();
+
+        assertThat(output)
+                .contains("등록되지 않은 월드 이름입니다.")
+                .contains("없는월드");
+    }
+
+    @Test
+    void 정상매칭시미매칭WARN로그를남기지않는다(CapturedOutput output) {
+        WorldAliasMatchingService service = createService();
+
+        given(loadWorldAliasPort.findActiveByNormalizedAliasName("루나"))
+                .willReturn(Optional.of(new MatchedWorld(WORLD_ID, "루나")));
+
+        assertThat(service.matchWorld("루나")).isPresent();
+
+        assertThat(output).doesNotContain("등록되지 않은 월드 이름입니다.");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "   "})
-    void 비어있는이름은조회하지않고빈결과를반환한다(String aliasName) {
+    void 비어있는이름은조회하지않고WARN로그를남긴다(
+            String aliasName,
+            CapturedOutput output
+    ) {
         WorldAliasMatchingService service = createService();
 
         assertThat(service.matchWorld(aliasName)).isEmpty();
 
         verify(loadWorldAliasPort, never())
                 .findActiveByNormalizedAliasName(any());
+        assertThat(output)
+                .contains("월드 Alias 매칭 대상 이름이 비어 있습니다.");
     }
 
     @Test
-    void null이름은조회하지않고빈결과를반환한다() {
+    void null이름은조회하지않고WARN로그를남긴다(CapturedOutput output) {
         WorldAliasMatchingService service = createService();
 
         assertThat(service.matchWorld(null)).isEmpty();
 
         verify(loadWorldAliasPort, never())
                 .findActiveByNormalizedAliasName(any());
+        assertThat(output)
+                .contains("월드 Alias 매칭 대상 이름이 비어 있습니다.");
     }
 
     @Test
