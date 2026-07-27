@@ -36,6 +36,18 @@ class OverallRankingStatisticsPersistenceAdapter
                 .map(collection -> toLatestCollection(collection));
     }
 
+    @Override
+    public List<LatestCollection> loadAllConditionCollectionsWithin(
+            LocalDate baseSnapshotDate,
+            int days
+    ) {
+        return queryDslRepository
+                .findAllConditionCollectionsWithin(baseSnapshotDate, days)
+                .stream()
+                .map(collection -> toLatestCollection(collection))
+                .toList();
+    }
+
     private LatestCollection toLatestCollection(
             OverallRankingCollectionEntity collection
     ) {
@@ -59,6 +71,22 @@ class OverallRankingStatisticsPersistenceAdapter
                 .aggregateByClassName(collectionId)
                 .stream()
                 .map(aggregate -> new ClassNameAggregate(
+                        aggregate.className(),
+                        aggregate.count(),
+                        aggregate.averageLevel()
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<ClassNameAggregateByCollection> aggregateByClassName(
+            List<UUID> collectionIds
+    ) {
+        return queryDslRepository
+                .aggregateByClassName(collectionIds)
+                .stream()
+                .map(aggregate -> new ClassNameAggregateByCollection(
+                        aggregate.collectionId(),
                         aggregate.className(),
                         aggregate.count(),
                         aggregate.averageLevel()

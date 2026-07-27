@@ -15,11 +15,28 @@ public interface OverallRankingStatisticsQueryDslRepository {
             LocalDate baseSnapshotDate
     );
 
+    List<OverallRankingCollectionEntity> findAllConditionCollectionsWithin(
+            LocalDate baseSnapshotDate,
+            int days
+    );
+
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
+
+    List<ClassNameAggregateByCollection> aggregateByClassName(
+            List<UUID> collectionIds
+    );
 
     List<WorldNameAggregate> aggregateByWorldName(UUID collectionId);
 
     record ClassNameAggregate(
+            String className,
+            long count,
+            BigDecimal averageLevel
+    ) {
+    }
+
+    record ClassNameAggregateByCollection(
+            UUID collectionId,
             String className,
             long count,
             BigDecimal averageLevel
