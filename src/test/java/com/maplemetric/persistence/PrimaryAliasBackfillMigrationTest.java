@@ -78,6 +78,96 @@ class PrimaryAliasBackfillMigrationTest {
     }
 
     @Test
+    void 활성Canonical과PRIMARY_Alias가1대1로대응한다() throws SQLException {
+        migrateToLatest();
+
+        try (Connection connection = connect();
+                Statement statement = connection.createStatement()) {
+            assertThat(count(
+                    statement,
+                    """
+                    SELECT COUNT(*)
+                    FROM p_job j
+                    LEFT JOIN p_job_alias a ON a.job_id = j.job_id
+                    WHERE j.deleted_at IS NULL AND a.job_alias_id IS NULL
+                    """
+            )).isZero();
+
+            assertThat(count(
+                    statement,
+                    """
+                    SELECT COUNT(*)
+                    FROM p_job_alias a
+                    JOIN p_job j ON j.job_id = a.job_id
+                    WHERE j.deleted_at IS NOT NULL
+                    """
+            )).isZero();
+
+            assertThat(count(
+                    statement,
+                    """
+                    SELECT COUNT(*)
+                    FROM p_world w
+                    LEFT JOIN p_world_alias a ON a.world_id = w.world_id
+                    WHERE w.deleted_at IS NULL AND a.world_alias_id IS NULL
+                    """
+            )).isZero();
+
+            assertThat(count(
+                    statement,
+                    """
+                    SELECT COUNT(*)
+                    FROM p_world_alias a
+                    JOIN p_world w ON w.world_id = a.world_id
+                    WHERE w.deleted_at IS NOT NULL
+                    """
+            )).isZero();
+        }
+    }
+
+    @Test
+    void SoftDelete된Canonical은PRIMARY_Alias생성대상에서제외한다() throws SQLException {
+        migrateToVersion(ALIAS_SCHEMA_VERSION);
+
+        try (Connection connection = connect();
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    """
+                    UPDATE p_job
+                    SET deleted_at = CURRENT_TIMESTAMP
+                    WHERE job_name = '히어로'
+                    """
+            );
+            statement.executeUpdate(
+                    """
+                    UPDATE p_world
+                    SET deleted_at = CURRENT_TIMESTAMP
+                    WHERE world_name = '루나'
+                    """
+            );
+        }
+
+        migrateToLatest();
+
+        try (Connection connection = connect();
+                Statement statement = connection.createStatement()) {
+            assertThat(count(statement, "SELECT COUNT(*) FROM p_job_alias"))
+                    .isEqualTo(EXPECTED_JOB_COUNT - 1);
+            assertThat(count(statement, "SELECT COUNT(*) FROM p_world_alias"))
+                    .isEqualTo(EXPECTED_WORLD_COUNT - 1);
+
+            assertThat(count(
+                    statement,
+                    "SELECT COUNT(*) FROM p_job_alias WHERE alias_name = '히어로'"
+            )).isZero();
+            assertThat(count(
+                    statement,
+                    "SELECT COUNT(*) FROM p_world_alias WHERE alias_name = '루나'"
+            )).isZero();
+        }
+    }
+
+    @Test
     void PRIMARY_Alias이름이Canonical이름과정확히일치한다() throws SQLException {
         migrateToLatest();
 
