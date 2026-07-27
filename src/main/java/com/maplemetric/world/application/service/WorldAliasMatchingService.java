@@ -1,5 +1,6 @@
 package com.maplemetric.world.application.service;
 
+import com.maplemetric.world.api.WorldAliasMatchingQuery;
 import com.maplemetric.world.application.port.out.LoadWorldAliasPort;
 import com.maplemetric.world.application.port.out.LoadWorldAliasPort.MatchedWorld;
 import java.util.Locale;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-public class WorldAliasMatchingService {
+public class WorldAliasMatchingService implements WorldAliasMatchingQuery {
 
     private final LoadWorldAliasPort loadWorldAliasPort;
 
@@ -37,6 +38,18 @@ public class WorldAliasMatchingService {
         }
 
         return matched;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean matches(String aliasName) {
+        if (aliasName == null || aliasName.isBlank()) {
+            return false;
+        }
+
+        return loadWorldAliasPort
+                .findActiveByNormalizedAliasName(normalize(aliasName))
+                .isPresent();
     }
 
     private String normalize(String aliasName) {

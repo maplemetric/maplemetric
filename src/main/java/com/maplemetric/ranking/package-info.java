@@ -1,7 +1,8 @@
 @ApplicationModule(
         allowedDependencies = {
                 "common",
-                "common::nexon"
+                "common::nexon",
+                "world::api"
         }
 )
 package com.maplemetric.ranking;
