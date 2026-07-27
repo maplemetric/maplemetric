@@ -63,6 +63,10 @@ class JobWorldAliasPersistenceTest {
     @Autowired
     private EntityManager entityManager;
 
+    private int jobSlugSequence;
+
+    private int worldSlugSequence;
+
     @Test
     void Job_Alias를저장하고Canonical직업으로조회한다() {
         JobEntity job = createJob("테스트직업1");
@@ -456,6 +460,7 @@ class JobWorldAliasPersistenceTest {
         return jobRepository.saveAndFlush(
                 JobEntity.create(
                         jobName,
+                        "test-job-" + ++jobSlugSequence,
                         null,
                         "테스트계열",
                         "전사",
@@ -469,6 +474,7 @@ class JobWorldAliasPersistenceTest {
         return worldRepository.saveAndFlush(
                 WorldEntity.create(
                         worldName,
+                        "test-world-" + ++worldSlugSequence,
                         null,
                         0,
                         WorldEntity.Status.ACTIVE

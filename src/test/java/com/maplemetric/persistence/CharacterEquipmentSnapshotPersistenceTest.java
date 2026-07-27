@@ -209,12 +209,14 @@ class CharacterEquipmentSnapshotPersistenceTest {
                 """
                 INSERT INTO p_world (
                     world_name,
+                    world_slug,
                     external_world_code
-                ) VALUES (?, ?)
+                ) VALUES (?, ?, ?)
                 RETURNING world_id
                 """,
                 UUID.class,
                 "테스트루나",
+                "test-luna",
                 "luna"
         );
     }
@@ -224,13 +226,15 @@ class CharacterEquipmentSnapshotPersistenceTest {
                 """
                 INSERT INTO p_job (
                     job_name,
+                    job_slug,
                     external_job_code,
                     job_group
-                ) VALUES (?, ?, ?)
+                ) VALUES (?, ?, ?, ?)
                 RETURNING job_id
                 """,
                 UUID.class,
                 "테스트팬텀",
+                "test-phantom",
                 "phantom",
                 "영웅"
         );

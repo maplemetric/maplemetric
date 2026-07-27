@@ -83,6 +83,7 @@ class CharacterSnapshotPersistenceTest {
         WorldEntity world = worldRepository.saveAndFlush(
                 WorldEntity.create(
                         "테스트루나",
+                        "test-luna",
                         "luna",
                         1,
                         WorldEntity.Status.ACTIVE
@@ -92,6 +93,7 @@ class CharacterSnapshotPersistenceTest {
         JobEntity job = jobRepository.saveAndFlush(
                 JobEntity.create(
                         "테스트팬텀",
+                        "test-phantom",
                         "phantom",
                         "영웅",
                         "도적",
