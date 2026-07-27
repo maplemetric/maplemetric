@@ -55,7 +55,7 @@ class ReferenceDataPersistenceTest {
     @Test
     void 월드기준정보를저장하고이름으로조회한다() {
         WorldEntity world = WorldEntity.create(
-                "루나",
+                "테스트루나",
                 "luna",
                 1,
                 WorldEntity.Status.ACTIVE
@@ -71,7 +71,7 @@ class ReferenceDataPersistenceTest {
         entityManager.clear();
 
         WorldEntity foundWorld = worldRepository
-                .findByWorldNameAndDeletedAtIsNull("루나")
+                .findByWorldNameAndDeletedAtIsNull("테스트루나")
                 .orElseThrow();
 
         assertThat(foundWorld.getId())
@@ -86,7 +86,7 @@ class ReferenceDataPersistenceTest {
     void 삭제된월드는이름조회에서제외한다() {
         WorldEntity world = worldRepository.saveAndFlush(
                 WorldEntity.create(
-                        "스카니아",
+                        "테스트스카니아",
                         "scania",
                         2,
                         WorldEntity.Status.ACTIVE
@@ -103,7 +103,7 @@ class ReferenceDataPersistenceTest {
 
         assertThat(
                 worldRepository
-                        .findByWorldNameAndDeletedAtIsNull("스카니아")
+                        .findByWorldNameAndDeletedAtIsNull("테스트스카니아")
         ).isEmpty();
         assertThat(
                 worldRepository.findById(world.getId())
@@ -115,7 +115,7 @@ class ReferenceDataPersistenceTest {
     @Test
     void 직업기준정보를저장하고이름으로조회한다() {
         JobEntity job = JobEntity.create(
-                "팬텀",
+                "테스트팬텀",
                 "phantom",
                 "영웅",
                 "도적",
@@ -133,7 +133,7 @@ class ReferenceDataPersistenceTest {
         entityManager.clear();
 
         JobEntity foundJob = jobRepository
-                .findByJobNameAndDeletedAtIsNull("팬텀")
+                .findByJobNameAndDeletedAtIsNull("테스트팬텀")
                 .orElseThrow();
 
         assertThat(foundJob.getId()).isEqualTo(savedJob.getId());
@@ -147,7 +147,7 @@ class ReferenceDataPersistenceTest {
     void 삭제된직업은이름조회에서제외한다() {
         JobEntity job = jobRepository.saveAndFlush(
                 JobEntity.create(
-                        "히어로",
+                        "테스트히어로",
                         "hero",
                         "모험가",
                         "전사",
@@ -166,7 +166,7 @@ class ReferenceDataPersistenceTest {
 
         assertThat(
                 jobRepository
-                        .findByJobNameAndDeletedAtIsNull("히어로")
+                        .findByJobNameAndDeletedAtIsNull("테스트히어로")
         ).isEmpty();
         assertThat(jobRepository.findById(job.getId()))
                 .get()
@@ -178,7 +178,7 @@ class ReferenceDataPersistenceTest {
     void 월드명중복을허용하지않는다() {
         worldRepository.saveAndFlush(
                 WorldEntity.create(
-                        "루나",
+                        "테스트루나",
                         "luna",
                         1,
                         WorldEntity.Status.ACTIVE
@@ -186,7 +186,7 @@ class ReferenceDataPersistenceTest {
         );
 
         WorldEntity duplicateWorld = WorldEntity.create(
-                "루나",
+                "테스트루나",
                 "luna-duplicate",
                 2,
                 WorldEntity.Status.ACTIVE
@@ -201,7 +201,7 @@ class ReferenceDataPersistenceTest {
     void 외부월드코드중복을허용하지않는다() {
         worldRepository.saveAndFlush(
                 WorldEntity.create(
-                        "루나",
+                        "테스트루나",
                         "luna",
                         1,
                         WorldEntity.Status.ACTIVE
@@ -209,7 +209,7 @@ class ReferenceDataPersistenceTest {
         );
 
         WorldEntity duplicateWorld = WorldEntity.create(
-                "루나2",
+                "테스트루나2",
                 "luna",
                 2,
                 WorldEntity.Status.ACTIVE
@@ -224,7 +224,7 @@ class ReferenceDataPersistenceTest {
     void 직업명중복을허용하지않는다() {
         jobRepository.saveAndFlush(
                 JobEntity.create(
-                        "팬텀",
+                        "테스트팬텀",
                         "phantom",
                         "영웅",
                         "도적",
@@ -234,7 +234,7 @@ class ReferenceDataPersistenceTest {
         );
 
         JobEntity duplicateJob = JobEntity.create(
-                "팬텀",
+                "테스트팬텀",
                 "phantom-duplicate",
                 "영웅",
                 "도적",
@@ -251,7 +251,7 @@ class ReferenceDataPersistenceTest {
     void 외부직업코드중복을허용하지않는다() {
         jobRepository.saveAndFlush(
                 JobEntity.create(
-                        "팬텀",
+                        "테스트팬텀",
                         "phantom",
                         "영웅",
                         "도적",
@@ -261,7 +261,7 @@ class ReferenceDataPersistenceTest {
         );
 
         JobEntity duplicateJob = JobEntity.create(
-                "팬텀2",
+                "테스트팬텀2",
                 "phantom",
                 "영웅",
                 "도적",
