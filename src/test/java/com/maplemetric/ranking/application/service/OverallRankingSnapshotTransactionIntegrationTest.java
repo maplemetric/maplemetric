@@ -12,6 +12,7 @@ import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPo
 import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPort.OverallRankingCollection;
 import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPort.RankingRow;
 import com.maplemetric.world.api.WorldAliasMatchingQuery;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -49,7 +50,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Import({
         OverallRankingSnapshotStoreService.class,
         OverallRankingReferenceObserver.class,
-        OverallRankingSnapshotStoredEventListener.class
+        OverallRankingSnapshotStoredEventListener.class,
+        SimpleMeterRegistry.class
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @ExtendWith(OutputCaptureExtension.class)

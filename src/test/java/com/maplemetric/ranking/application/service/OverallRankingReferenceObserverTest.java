@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.maplemetric.ranking.application.event.OverallRankingSnapshotStoredEvent;
 import com.maplemetric.ranking.application.event.OverallRankingSnapshotStoredEvent.ObservedName;
 import com.maplemetric.world.api.WorldAliasMatchingQuery;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -21,8 +23,13 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 @ExtendWith({MockitoExtension.class, OutputCaptureExtension.class})
 class OverallRankingReferenceObserverTest {
 
+    private static final String UNMATCHED_METRIC_NAME =
+            "ranking.reference.mapping.unmatched";
     private static final LocalDate SNAPSHOT_DATE =
             LocalDate.of(2026, 7, 27);
+
+    private final SimpleMeterRegistry meterRegistry =
+            new SimpleMeterRegistry();
 
     @Mock
     private JobAliasMatchingService jobAliasMatchingService;
@@ -91,6 +98,9 @@ class OverallRankingReferenceObserverTest {
                 );
         assertThat(output.getOut())
                 .doesNotContain("정규화 이름=팬텀");
+        assertThat(unmatchedCount("job")).isEqualTo(5.0);
+        assertThat(unmatchedCount("world")).isEqualTo(6.0);
+        assertLowCardinalityMetric();
     }
 
     @Test
@@ -121,6 +131,8 @@ class OverallRankingReferenceObserverTest {
 
         assertThat(output.getOut())
                 .doesNotContain("종합 랭킹 기준정보 매핑에 실패했습니다.");
+        assertThat(unmatchedCount("job")).isZero();
+        assertThat(unmatchedCount("world")).isZero();
     }
 
     @Test
@@ -156,6 +168,8 @@ class OverallRankingReferenceObserverTest {
                         "대표 원본 이름=null",
                         "정규화 이름=, 행 수=9"
                 );
+        assertThat(unmatchedCount("job")).isEqualTo(9.0);
+        assertThat(unmatchedCount("world")).isZero();
     }
 
     private List<String> unmatchedWarnLines(CapturedOutput output) {
@@ -168,10 +182,40 @@ class OverallRankingReferenceObserverTest {
                 .toList();
     }
 
+    private double unmatchedCount(String type) {
+        return unmatchedCounter(type).count();
+    }
+
+    private Counter unmatchedCounter(String type) {
+        return meterRegistry.get(UNMATCHED_METRIC_NAME)
+                .tag("type", type)
+                .counter();
+    }
+
+    private void assertLowCardinalityMetric() {
+        assertThat(meterRegistry.getMeters())
+                .hasSize(2)
+                .allSatisfy(meter -> {
+                    assertThat(meter.getId().getName())
+                            .isEqualTo(UNMATCHED_METRIC_NAME);
+                    assertThat(meter.getId().getBaseUnit())
+                            .isEqualTo("rows");
+                    assertThat(meter.getId().getTags())
+                            .singleElement()
+                            .satisfies(tag -> {
+                                assertThat(tag.getKey())
+                                        .isEqualTo("type");
+                                assertThat(tag.getValue())
+                                        .isIn("job", "world");
+                            });
+                });
+    }
+
     private OverallRankingReferenceObserver createObserver() {
         return new OverallRankingReferenceObserver(
                 jobAliasMatchingService,
-                worldAliasMatchingQuery
+                worldAliasMatchingQuery,
+                meterRegistry
         );
     }
 }
