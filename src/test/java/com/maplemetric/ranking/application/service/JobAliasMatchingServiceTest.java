@@ -111,6 +111,31 @@ class JobAliasMatchingServiceTest {
     }
 
     @Test
+    void 관측용매칭은정규화해조회한다() {
+        JobAliasMatchingService service = createService();
+
+        given(loadJobAliasPort.findActiveByNormalizedAliasName("hero"))
+                .willReturn(Optional.of(new MatchedJob(JOB_ID, "히어로")));
+
+        assertThat(service.matches("  HERO  ")).isTrue();
+
+        verify(loadJobAliasPort).findActiveByNormalizedAliasName("hero");
+    }
+
+    @Test
+    void 관측용미매칭은WARN로그를남기지않는다(CapturedOutput output) {
+        JobAliasMatchingService service = createService();
+
+        given(loadJobAliasPort.findActiveByNormalizedAliasName("없는직업"))
+                .willReturn(Optional.empty());
+
+        assertThat(service.matches("없는직업")).isFalse();
+
+        assertThat(output)
+                .doesNotContain("등록되지 않은 직업 이름입니다.");
+    }
+
+    @Test
     void Alias조회Port에만의존하고외부API를호출하지않는다() {
         assertThat(
                 JobAliasMatchingService.class.getDeclaredConstructors()
