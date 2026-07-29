@@ -20,7 +20,8 @@ class StatisticsArchitectureTest {
                 )
                 .importPackages(
                         "com.maplemetric.statistics",
-                        "com.maplemetric.ranking"
+                        "com.maplemetric.ranking",
+                        "com.maplemetric.world"
                 );
     }
 
@@ -52,6 +53,22 @@ class StatisticsArchitectureTest {
                 .resideInAnyPackage(
                         "..ranking.application..",
                         "..ranking.infrastructure.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void statistics는world의api를제외한내부패키지를참조하지않는다() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "..statistics.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "..world.application..",
+                        "..world.infrastructure.."
                 )
                 .check(classes);
     }

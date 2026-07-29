@@ -51,11 +51,20 @@ class StatisticsControllerTest {
                         new GetJobStatisticsResult(
                                 List.of(
                                         new JobStatisticsResult(
+                                                "hero",
                                                 "히어로",
                                                 320L,
                                                 new BigDecimal("12.40"),
                                                 new BigDecimal("187.3"),
                                                 new BigDecimal("0.80")
+                                        ),
+                                        new JobStatisticsResult(
+                                                "phantom",
+                                                "팬텀",
+                                                0L,
+                                                new BigDecimal("0.00"),
+                                                null,
+                                                new BigDecimal("-0.50")
                                         )
                                 ),
                                 2581,
@@ -90,12 +99,32 @@ class StatisticsControllerTest {
                                 .value(3)
                 )
                 .andExpect(
+                        jsonPath("$.data.jobs[0].jobSlug")
+                                .value("hero")
+                )
+                .andExpect(
                         jsonPath("$.data.jobs[0].jobName")
                                 .value("히어로")
                 )
                 .andExpect(
                         jsonPath("$.data.jobs[0].count")
                                 .value(320)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[1].jobSlug")
+                                .value("phantom")
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[1].count")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[1].percentage")
+                                .value(0.00)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[1].averageLevel")
+                                .isEmpty()
                 )
                 .andExpect(
                         jsonPath("$.data.jobs[0].percentage")
@@ -209,6 +238,7 @@ class StatisticsControllerTest {
                         new GetJobStatisticsResult(
                                 List.of(
                                         new JobStatisticsResult(
+                                                "hero",
                                                 "히어로",
                                                 320L,
                                                 new BigDecimal("12.40"),
@@ -292,10 +322,18 @@ class StatisticsControllerTest {
                         new GetWorldStatisticsResult(
                                 List.of(
                                         new WorldStatisticsResult(
+                                                "luna",
                                                 "루나",
                                                 320L,
                                                 new BigDecimal("12.40"),
                                                 new BigDecimal("187.3")
+                                        ),
+                                        new WorldStatisticsResult(
+                                                "bera",
+                                                "베라",
+                                                0L,
+                                                new BigDecimal("0.00"),
+                                                null
                                         )
                                 ),
                                 2581,
@@ -316,12 +354,32 @@ class StatisticsControllerTest {
                                 .value("WORLD_STATISTICS_SEARCH_SUCCESS")
                 )
                 .andExpect(
+                        jsonPath("$.data.worlds[0].worldSlug")
+                                .value("luna")
+                )
+                .andExpect(
                         jsonPath("$.data.worlds[0].worldName")
                                 .value("루나")
                 )
                 .andExpect(
                         jsonPath("$.data.worlds[0].count")
                                 .value(320)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[1].worldSlug")
+                                .value("bera")
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[1].count")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[1].percentage")
+                                .value(0.00)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[1].averageLevel")
+                                .isEmpty()
                 )
                 .andExpect(
                         jsonPath("$.data.worlds[0].percentage")

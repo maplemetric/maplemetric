@@ -1,7 +1,8 @@
 @ApplicationModule(
         allowedDependencies = {
                 "common",
-                "ranking::api"
+                "ranking::api",
+                "world::api"
         }
 )
 package com.maplemetric.statistics;

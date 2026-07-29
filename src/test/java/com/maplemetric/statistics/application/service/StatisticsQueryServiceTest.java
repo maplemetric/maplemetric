@@ -3,9 +3,13 @@ package com.maplemetric.statistics.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.maplemetric.ranking.api.CanonicalJob;
+import com.maplemetric.ranking.api.JobCatalogQuery;
 import com.maplemetric.ranking.api.OverallRankingComparisonQuery;
 import com.maplemetric.ranking.api.OverallRankingComparisonQueryException;
 import com.maplemetric.ranking.api.OverallRankingComparisonQueryFailure;
@@ -21,12 +25,18 @@ import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
+import com.maplemetric.world.api.CanonicalWorld;
+import com.maplemetric.world.api.WorldCatalogQuery;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -45,14 +55,64 @@ class StatisticsQueryServiceTest {
     private static final Instant PREVIOUS_COLLECTED_AT =
             Instant.parse("2026-07-21T01:00:00Z");
 
+    private static final CanonicalJob HERO = new CanonicalJob(
+            "hero",
+            "히어로",
+            "모험가",
+            "전사",
+            true,
+            1
+    );
+
+    private static final CanonicalJob PHANTOM = new CanonicalJob(
+            "phantom",
+            "팬텀",
+            "기사단",
+            "도적",
+            true,
+            2
+    );
+
+    private static final CanonicalJob ADELE = new CanonicalJob(
+            "adele",
+            "아델",
+            "아니마",
+            "전사",
+            true,
+            3
+    );
+
+    private static final CanonicalWorld LUNA = new CanonicalWorld(
+            "luna",
+            "루나",
+            CanonicalWorld.Status.ACTIVE,
+            1
+    );
+
+    private static final CanonicalWorld BERA = new CanonicalWorld(
+            "bera",
+            "베라",
+            CanonicalWorld.Status.ACTIVE,
+            2
+    );
+
     @Mock
     private OverallRankingComparisonQuery overallRankingComparisonQuery;
 
     @Mock
     private OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery;
 
+    @Mock
+    private JobCatalogQuery jobCatalogQuery;
+
+    @Mock
+    private WorldCatalogQuery worldCatalogQuery;
+
+    @Captor
+    private ArgumentCaptor<Collection<String>> aliasNamesCaptor;
+
     @Test
-    void 직업별통계를백분율과평균레벨로변환한다() {
+    void 직업별통계를Slug와백분율평균레벨로변환한다() {
         StatisticsQueryService service = createService();
 
         givenJobComparison(
@@ -76,6 +136,10 @@ class StatisticsQueryServiceTest {
                 null,
                 null
         );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM),
+                Map.of("히어로", HERO, "팬텀", PHANTOM)
+        );
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
@@ -83,22 +147,231 @@ class StatisticsQueryServiceTest {
         assertThat(result.asOf()).isEqualTo(SNAPSHOT_DATE);
         assertThat(result.jobs())
                 .extracting(
+                        job -> job.jobSlug(),
                         job -> job.jobName(),
                         job -> job.percentage(),
                         job -> job.averageLevel()
                 )
-                .containsExactlyInAnyOrder(
+                .containsExactly(
                         tuple(
+                                "hero",
                                 "히어로",
                                 new BigDecimal("33.33"),
                                 new BigDecimal("200.5")
                         ),
                         tuple(
+                                "phantom",
                                 "팬텀",
                                 new BigDecimal("66.67"),
                                 new BigDecimal("204.7")
                         )
                 );
+    }
+
+    @Test
+    void Canonical직업전체를표시순서대로반환한다() {
+        StatisticsQueryService service = createService();
+
+        givenJobComparison(
+                jobSnapshot(
+                        SNAPSHOT_DATE,
+                        COLLECTED_AT,
+                        4,
+                        List.of(
+                                new JobCount("팬텀", 4L, new BigDecimal("200"))
+                        )
+                ),
+                null,
+                null
+        );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM, ADELE),
+                Map.of("팬텀", PHANTOM)
+        );
+
+        GetJobStatisticsResult result = service.getJobStatistics();
+
+        assertThat(result.jobs())
+                .extracting(job -> job.jobSlug())
+                .containsExactly("hero", "phantom", "adele");
+    }
+
+    @Test
+    void 표본에없는Canonical직업은Count0과Percentage0과AverageLevel없음으로반환한다() {
+        StatisticsQueryService service = createService();
+
+        givenJobComparison(
+                jobSnapshot(
+                        SNAPSHOT_DATE,
+                        COLLECTED_AT,
+                        4,
+                        List.of(
+                                new JobCount("히어로", 4L, new BigDecimal("200"))
+                        )
+                ),
+                null,
+                null
+        );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM),
+                Map.of("히어로", HERO)
+        );
+
+        GetJobStatisticsResult result = service.getJobStatistics();
+
+        assertThat(result.jobs())
+                .extracting(
+                        job -> job.jobSlug(),
+                        job -> job.count(),
+                        job -> job.percentage(),
+                        job -> job.averageLevel()
+                )
+                .containsExactly(
+                        tuple(
+                                "hero",
+                                4L,
+                                new BigDecimal("100.00"),
+                                new BigDecimal("200.0")
+                        ),
+                        tuple(
+                                "phantom",
+                                0L,
+                                new BigDecimal("0.00"),
+                                null
+                        )
+                );
+    }
+
+    @Test
+    void 같은Canonical직업에매칭된Alias의Count를합산한다() {
+        StatisticsQueryService service = createService();
+
+        givenJobComparison(
+                jobSnapshot(
+                        SNAPSHOT_DATE,
+                        COLLECTED_AT,
+                        10,
+                        List.of(
+                                new JobCount("히어로", 3L, new BigDecimal("200")),
+                                new JobCount("Hero", 2L, new BigDecimal("200"))
+                        )
+                ),
+                null,
+                null
+        );
+        givenJobCatalog(
+                List.of(HERO),
+                Map.of("히어로", HERO, "Hero", HERO)
+        );
+
+        GetJobStatisticsResult result = service.getJobStatistics();
+
+        assertThat(result.jobs()).hasSize(1);
+        assertThat(result.jobs().get(0).count()).isEqualTo(5L);
+        assertThat(result.jobs().get(0).percentage())
+                .isEqualTo(new BigDecimal("50.00"));
+    }
+
+    @Test
+    void 여러Alias의AverageLevel은Count가중평균으로계산한다() {
+        StatisticsQueryService service = createService();
+
+        givenJobComparison(
+                jobSnapshot(
+                        SNAPSHOT_DATE,
+                        COLLECTED_AT,
+                        1001,
+                        List.of(
+                                new JobCount("히어로", 1000L, new BigDecimal("200")),
+                                new JobCount("Hero", 1L, new BigDecimal("10"))
+                        )
+                ),
+                null,
+                null
+        );
+        givenJobCatalog(
+                List.of(HERO),
+                Map.of("히어로", HERO, "Hero", HERO)
+        );
+
+        GetJobStatisticsResult result = service.getJobStatistics();
+
+        assertThat(result.jobs().get(0).count()).isEqualTo(1001L);
+        assertThat(result.jobs().get(0).averageLevel())
+                .isEqualTo(new BigDecimal("199.8"))
+                .isNotEqualTo(new BigDecimal("105.0"));
+    }
+
+    @Test
+    void Alias미매칭Row는어떤Canonical직업에도포함하지않는다() {
+        StatisticsQueryService service = createService();
+
+        givenJobComparison(
+                jobSnapshot(
+                        SNAPSHOT_DATE,
+                        COLLECTED_AT,
+                        10,
+                        List.of(
+                                new JobCount("히어로", 5L, new BigDecimal("200")),
+                                new JobCount("등록되지않은직업", 5L, new BigDecimal("300"))
+                        )
+                ),
+                null,
+                null
+        );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM),
+                Map.of("히어로", HERO)
+        );
+
+        GetJobStatisticsResult result = service.getJobStatistics();
+
+        assertThat(result.jobs())
+                .extracting(
+                        job -> job.jobSlug(),
+                        job -> job.count(),
+                        job -> job.averageLevel()
+                )
+                .containsExactly(
+                        tuple("hero", 5L, new BigDecimal("200.0")),
+                        tuple("phantom", 0L, null)
+                );
+    }
+
+    @Test
+    void 최신과이전Snapshot의원본이름을한번에해석한다() {
+        StatisticsQueryService service = createService();
+
+        givenJobComparison(
+                jobSnapshot(
+                        SNAPSHOT_DATE,
+                        COLLECTED_AT,
+                        10,
+                        List.of(
+                                new JobCount("히어로", 10L, new BigDecimal("200"))
+                        )
+                ),
+                jobSnapshot(
+                        PREVIOUS_SNAPSHOT_DATE,
+                        PREVIOUS_COLLECTED_AT,
+                        10,
+                        List.of(
+                                new JobCount("팬텀", 10L, new BigDecimal("199"))
+                        )
+                ),
+                3
+        );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM),
+                Map.of("히어로", HERO, "팬텀", PHANTOM)
+        );
+
+        service.getJobStatistics();
+
+        verify(jobCatalogQuery).resolveAliases(aliasNamesCaptor.capture());
+
+        assertThat(aliasNamesCaptor.getValue())
+                .containsExactlyInAnyOrder("히어로", "팬텀");
     }
 
     @Test
@@ -126,6 +399,10 @@ class StatisticsQueryServiceTest {
                 ),
                 3
         );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM),
+                Map.of("히어로", HERO, "팬텀", PHANTOM)
+        );
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
@@ -133,18 +410,18 @@ class StatisticsQueryServiceTest {
         assertThat(result.daysBetween()).isEqualTo(3);
         assertThat(result.jobs())
                 .extracting(
-                        job -> job.jobName(),
+                        job -> job.jobSlug(),
                         job -> job.percentage(),
                         job -> job.changeRate()
                 )
                 .containsExactly(
                         tuple(
-                                "히어로",
+                                "hero",
                                 new BigDecimal("12.40"),
                                 new BigDecimal("0.80")
                         ),
                         tuple(
-                                "팬텀",
+                                "phantom",
                                 new BigDecimal("8.00"),
                                 new BigDecimal("-1.00")
                         )
@@ -174,6 +451,7 @@ class StatisticsQueryServiceTest {
                 ),
                 3
         );
+        givenJobCatalog(List.of(HERO), Map.of("히어로", HERO));
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
@@ -203,6 +481,7 @@ class StatisticsQueryServiceTest {
                 null,
                 null
         );
+        givenJobCatalog(List.of(HERO), Map.of("히어로", HERO));
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
@@ -234,6 +513,7 @@ class StatisticsQueryServiceTest {
                 ),
                 3
         );
+        givenJobCatalog(List.of(HERO), Map.of("히어로", HERO));
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
@@ -267,22 +547,26 @@ class StatisticsQueryServiceTest {
                 ),
                 3
         );
+        givenJobCatalog(
+                List.of(HERO, ADELE),
+                Map.of("히어로", HERO, "아델", ADELE)
+        );
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
         assertThat(result.jobs())
                 .extracting(
-                        job -> job.jobName(),
+                        job -> job.jobSlug(),
                         job -> job.changeRate()
                 )
                 .containsExactly(
-                        tuple("히어로", new BigDecimal("-25.00")),
-                        tuple("아델", new BigDecimal("25.00"))
+                        tuple("hero", new BigDecimal("-25.00")),
+                        tuple("adele", new BigDecimal("25.00"))
                 );
     }
 
     @Test
-    void 이전에만있던직업은응답목록에포함하지않는다() {
+    void 이전에만있던직업도Canonical목록에있으면Count0으로반환한다() {
         StatisticsQueryService service = createService();
 
         givenJobComparison(
@@ -305,16 +589,27 @@ class StatisticsQueryServiceTest {
                 ),
                 3
         );
+        givenJobCatalog(
+                List.of(HERO, PHANTOM),
+                Map.of("히어로", HERO, "팬텀", PHANTOM)
+        );
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
         assertThat(result.jobs())
-                .extracting(job -> job.jobName())
-                .containsExactly("히어로");
+                .extracting(
+                        job -> job.jobSlug(),
+                        job -> job.count(),
+                        job -> job.changeRate()
+                )
+                .containsExactly(
+                        tuple("hero", 2L, new BigDecimal("50.00")),
+                        tuple("phantom", 0L, new BigDecimal("-50.00"))
+                );
     }
 
     @Test
-    void sampleSize가0이면percentage계산없이빈목록을반환한다() {
+    void sampleSize가0이면Percentage를0으로두고Canonical전체를반환한다() {
         StatisticsQueryService service = createService();
 
         givenJobComparison(
@@ -327,11 +622,22 @@ class StatisticsQueryServiceTest {
                 null,
                 null
         );
+        givenJobCatalog(List.of(HERO, PHANTOM), Map.of());
 
         GetJobStatisticsResult result = service.getJobStatistics();
 
         assertThat(result.sampleSize()).isEqualTo(0);
-        assertThat(result.jobs()).isEmpty();
+        assertThat(result.jobs())
+                .extracting(
+                        job -> job.jobSlug(),
+                        job -> job.count(),
+                        job -> job.percentage(),
+                        job -> job.averageLevel()
+                )
+                .containsExactly(
+                        tuple("hero", 0L, new BigDecimal("0.00"), null),
+                        tuple("phantom", 0L, new BigDecimal("0.00"), null)
+                );
     }
 
     @Test
@@ -353,6 +659,7 @@ class StatisticsQueryServiceTest {
                 .isEqualTo(JobStatisticsFailure.SNAPSHOT_NOT_FOUND);
         assertThat(exception.getCause())
                 .isInstanceOf(OverallRankingComparisonQueryException.class);
+        verifyNoInteractions(jobCatalogQuery);
     }
 
     @Test
@@ -375,7 +682,7 @@ class StatisticsQueryServiceTest {
     }
 
     @Test
-    void 직업통계조회는월드통계Query를호출하지않는다() {
+    void 직업통계조회는월드Query를호출하지않는다() {
         StatisticsQueryService service = createService();
 
         givenJobComparison(
@@ -390,40 +697,29 @@ class StatisticsQueryServiceTest {
                 null,
                 null
         );
+        givenJobCatalog(List.of(HERO), Map.of("히어로", HERO));
 
         service.getJobStatistics();
 
         verifyNoInteractions(overallRankingWorldStatisticsQuery);
+        verifyNoInteractions(worldCatalogQuery);
     }
 
     @Test
-    void 월드별통계를백분율과평균레벨로변환하고순서를유지한다() {
+    void 월드별통계를Slug와백분율평균레벨로변환한다() {
         StatisticsQueryService service = createService();
 
-        given(overallRankingWorldStatisticsQuery.getLatestWorldStatistics())
-                .willReturn(
-                        new OverallRankingWorldStatisticsSnapshot(
-                                SNAPSHOT_DATE,
-                                "NEXON_OPEN_API",
-                                COLLECTED_AT,
-                                3,
-                                1,
-                                100,
-                                false,
-                                List.of(
-                                        new WorldCount(
-                                                "베라",
-                                                1L,
-                                                new BigDecimal("210")
-                                        ),
-                                        new WorldCount(
-                                                "루나",
-                                                2L,
-                                                new BigDecimal("200.55")
-                                        )
-                                )
-                        )
-                );
+        givenWorldSnapshot(
+                3,
+                List.of(
+                        new WorldCount("베라", 1L, new BigDecimal("210")),
+                        new WorldCount("루나", 2L, new BigDecimal("200.55"))
+                )
+        );
+        givenWorldCatalog(
+                List.of(LUNA, BERA),
+                Map.of("루나", LUNA, "베라", BERA)
+        );
 
         GetWorldStatisticsResult result = service.getWorldStatistics();
 
@@ -431,46 +727,127 @@ class StatisticsQueryServiceTest {
         assertThat(result.asOf()).isEqualTo(SNAPSHOT_DATE);
         assertThat(result.worlds())
                 .extracting(
+                        world -> world.worldSlug(),
                         world -> world.worldName(),
                         world -> world.percentage(),
                         world -> world.averageLevel()
                 )
                 .containsExactly(
                         tuple(
-                                "베라",
-                                new BigDecimal("33.33"),
-                                new BigDecimal("210.0")
-                        ),
-                        tuple(
+                                "luna",
                                 "루나",
                                 new BigDecimal("66.67"),
                                 new BigDecimal("200.6")
+                        ),
+                        tuple(
+                                "bera",
+                                "베라",
+                                new BigDecimal("33.33"),
+                                new BigDecimal("210.0")
                         )
                 );
     }
 
     @Test
-    void 월드별sampleSize가0이면percentage계산없이빈목록을반환한다() {
+    void 표본에없는Canonical월드는Count0과Percentage0과AverageLevel없음으로반환한다() {
         StatisticsQueryService service = createService();
 
-        given(overallRankingWorldStatisticsQuery.getLatestWorldStatistics())
-                .willReturn(
-                        new OverallRankingWorldStatisticsSnapshot(
-                                SNAPSHOT_DATE,
-                                "NEXON_OPEN_API",
-                                COLLECTED_AT,
-                                0,
-                                1,
-                                100,
-                                false,
-                                List.of()
-                        )
+        givenWorldSnapshot(
+                2,
+                List.of(new WorldCount("루나", 2L, new BigDecimal("200")))
+        );
+        givenWorldCatalog(List.of(LUNA, BERA), Map.of("루나", LUNA));
+
+        GetWorldStatisticsResult result = service.getWorldStatistics();
+
+        assertThat(result.worlds())
+                .extracting(
+                        world -> world.worldSlug(),
+                        world -> world.count(),
+                        world -> world.percentage(),
+                        world -> world.averageLevel()
+                )
+                .containsExactly(
+                        tuple(
+                                "luna",
+                                2L,
+                                new BigDecimal("100.00"),
+                                new BigDecimal("200.0")
+                        ),
+                        tuple("bera", 0L, new BigDecimal("0.00"), null)
                 );
+    }
+
+    @Test
+    void 같은Canonical월드에매칭된Alias는Count합산과가중평균으로계산한다() {
+        StatisticsQueryService service = createService();
+
+        givenWorldSnapshot(
+                1001,
+                List.of(
+                        new WorldCount("루나", 1000L, new BigDecimal("200")),
+                        new WorldCount("Luna", 1L, new BigDecimal("10"))
+                )
+        );
+        givenWorldCatalog(
+                List.of(LUNA),
+                Map.of("루나", LUNA, "Luna", LUNA)
+        );
+
+        GetWorldStatisticsResult result = service.getWorldStatistics();
+
+        assertThat(result.worlds()).hasSize(1);
+        assertThat(result.worlds().get(0).count()).isEqualTo(1001L);
+        assertThat(result.worlds().get(0).averageLevel())
+                .isEqualTo(new BigDecimal("199.8"));
+    }
+
+    @Test
+    void Alias미매칭월드Row는어떤Canonical월드에도포함하지않는다() {
+        StatisticsQueryService service = createService();
+
+        givenWorldSnapshot(
+                10,
+                List.of(
+                        new WorldCount("루나", 5L, new BigDecimal("200")),
+                        new WorldCount("등록되지않은월드", 5L, new BigDecimal("300"))
+                )
+        );
+        givenWorldCatalog(List.of(LUNA, BERA), Map.of("루나", LUNA));
+
+        GetWorldStatisticsResult result = service.getWorldStatistics();
+
+        assertThat(result.worlds())
+                .extracting(
+                        world -> world.worldSlug(),
+                        world -> world.count()
+                )
+                .containsExactly(
+                        tuple("luna", 5L),
+                        tuple("bera", 0L)
+                );
+    }
+
+    @Test
+    void 월드별sampleSize가0이면Percentage를0으로두고Canonical전체를반환한다() {
+        StatisticsQueryService service = createService();
+
+        givenWorldSnapshot(0, List.of());
+        givenWorldCatalog(List.of(LUNA, BERA), Map.of());
 
         GetWorldStatisticsResult result = service.getWorldStatistics();
 
         assertThat(result.sampleSize()).isEqualTo(0);
-        assertThat(result.worlds()).isEmpty();
+        assertThat(result.worlds())
+                .extracting(
+                        world -> world.worldSlug(),
+                        world -> world.count(),
+                        world -> world.percentage()
+                )
+                .containsExactly(
+                        tuple("luna", 0L, new BigDecimal("0.00")),
+                        tuple("bera", 0L, new BigDecimal("0.00"))
+                );
     }
 
     @Test
@@ -490,12 +867,15 @@ class StatisticsQueryServiceTest {
 
         assertThat(exception.getFailure())
                 .isEqualTo(OverallRankingWorldStatisticsQueryFailure.NOT_FOUND);
+        verifyNoInteractions(worldCatalogQuery);
     }
 
     private StatisticsQueryService createService() {
         return new StatisticsQueryService(
                 overallRankingComparisonQuery,
-                overallRankingWorldStatisticsQuery
+                overallRankingWorldStatisticsQuery,
+                jobCatalogQuery,
+                worldCatalogQuery
         );
     }
 
@@ -510,6 +890,41 @@ class StatisticsQueryServiceTest {
                         previous,
                         daysBetween
                 ));
+    }
+
+    private void givenJobCatalog(
+            List<CanonicalJob> canonicalJobs,
+            Map<String, CanonicalJob> canonicalJobsByClassName
+    ) {
+        given(jobCatalogQuery.findAll()).willReturn(canonicalJobs);
+        given(jobCatalogQuery.resolveAliases(any()))
+                .willReturn(canonicalJobsByClassName);
+    }
+
+    private void givenWorldSnapshot(
+            int sampleSize,
+            List<WorldCount> worldCounts
+    ) {
+        given(overallRankingWorldStatisticsQuery.getLatestWorldStatistics())
+                .willReturn(new OverallRankingWorldStatisticsSnapshot(
+                        SNAPSHOT_DATE,
+                        "NEXON_OPEN_API",
+                        COLLECTED_AT,
+                        sampleSize,
+                        1,
+                        100,
+                        false,
+                        worldCounts
+                ));
+    }
+
+    private void givenWorldCatalog(
+            List<CanonicalWorld> canonicalWorlds,
+            Map<String, CanonicalWorld> canonicalWorldsByWorldName
+    ) {
+        given(worldCatalogQuery.findAll()).willReturn(canonicalWorlds);
+        given(worldCatalogQuery.resolveAliases(any()))
+                .willReturn(canonicalWorldsByWorldName);
     }
 
     private OverallRankingStatisticsSnapshot jobSnapshot(
