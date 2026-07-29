@@ -61,7 +61,7 @@ class JobComparisonPolicyTest {
                         0L,
                         100,
                         10L,
-                        0L,
+                        null,
                         null,
                         null,
                         null,

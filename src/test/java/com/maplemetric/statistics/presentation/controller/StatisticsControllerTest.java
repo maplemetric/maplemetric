@@ -338,6 +338,40 @@ class StatisticsControllerTest {
                                 .isEmpty()
                 )
                 .andExpect(
+                        jsonPath("$.data.jobs[0].comparison")
+                                .exists()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.previousCount")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.previousPercentage")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.countChange")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.countChangeRate")
+                                .isEmpty()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.jobs[0].comparison.percentageChangeRate"
+                        ).isEmpty()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.jobs[0].comparison.percentagePointChange"
+                        ).isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.trend")
+                                .value("INSUFFICIENT_DATA")
+                )
+                .andExpect(
                         jsonPath("$.data.previousAsOf")
                                 .isEmpty()
                 )

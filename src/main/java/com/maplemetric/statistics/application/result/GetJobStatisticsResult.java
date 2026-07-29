@@ -50,8 +50,6 @@ public record GetJobStatisticsResult(
         OverallRankingStatisticsSnapshot latest = comparison.latest();
         OverallRankingStatisticsSnapshot previous = comparison.previous();
 
-        boolean previousUsable = previous != null && previous.sampleSize() > 0;
-
         Map<String, CanonicalAggregate> latestAggregates = aggregateByJobSlug(
                 latest,
                 canonicalJobsByClassName
@@ -67,8 +65,7 @@ public record GetJobStatisticsResult(
                         latestAggregates.get(canonicalJob.jobSlug()),
                         previousAggregates.get(canonicalJob.jobSlug()),
                         latest.sampleSize(),
-                        previous == null ? null : previous.sampleSize(),
-                        previousUsable
+                        previous == null ? null : previous.sampleSize()
                 ))
                 .toList();
 
@@ -118,8 +115,7 @@ public record GetJobStatisticsResult(
             CanonicalAggregate latestAggregate,
             CanonicalAggregate previousAggregate,
             int sampleSize,
-            Integer previousSampleSize,
-            boolean previousUsable
+            Integer previousSampleSize
     ) {
         long count = latestAggregate == null ? 0L : latestAggregate.count();
 
@@ -133,8 +129,7 @@ public record GetJobStatisticsResult(
                 count,
                 rawPercentage,
                 previousAggregate,
-                previousSampleSize,
-                previousUsable
+                previousSampleSize
         );
 
         return new JobStatisticsResult(
@@ -152,20 +147,15 @@ public record GetJobStatisticsResult(
             long count,
             BigDecimal rawPercentage,
             CanonicalAggregate previousAggregate,
-            Integer previousSampleSize,
-            boolean previousUsable
+            Integer previousSampleSize
     ) {
-        if (previousSampleSize == null) {
+        if (previousSampleSize == null || previousSampleSize <= 0) {
             return JobComparisonResult.insufficient(null, null);
         }
 
         long previousCount = previousAggregate == null
                 ? 0L
                 : previousAggregate.count();
-
-        if (!previousUsable) {
-            return JobComparisonResult.insufficient(previousCount, null);
-        }
 
         BigDecimal rawPreviousPercentage = rawPercentage(
                 previousCount,
