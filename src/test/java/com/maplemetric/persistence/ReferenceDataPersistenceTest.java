@@ -56,6 +56,7 @@ class ReferenceDataPersistenceTest {
     void 월드기준정보를저장하고이름으로조회한다() {
         WorldEntity world = WorldEntity.create(
                 "테스트루나",
+                "test-luna",
                 "luna",
                 1,
                 WorldEntity.Status.ACTIVE
@@ -78,8 +79,23 @@ class ReferenceDataPersistenceTest {
                 .isEqualTo(savedWorld.getId());
         assertThat(foundWorld.getExternalWorldCode())
                 .isEqualTo("luna");
+        assertThat(foundWorld.getWorldSlug())
+                .isEqualTo("test-luna");
         assertThat(foundWorld.getStatus())
                 .isEqualTo(WorldEntity.Status.ACTIVE);
+    }
+
+    @Test
+    void 월드_Slug는_비어_있을_수_없다() {
+        assertThatThrownBy(() -> WorldEntity.create(
+                "테스트루나",
+                null,
+                "luna",
+                1,
+                WorldEntity.Status.ACTIVE
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("월드 Slug는 비어 있을 수 없습니다.");
     }
 
     @Test
@@ -87,6 +103,7 @@ class ReferenceDataPersistenceTest {
         WorldEntity world = worldRepository.saveAndFlush(
                 WorldEntity.create(
                         "테스트스카니아",
+                        "test-scania",
                         "scania",
                         2,
                         WorldEntity.Status.ACTIVE
@@ -116,6 +133,7 @@ class ReferenceDataPersistenceTest {
     void 직업기준정보를저장하고이름으로조회한다() {
         JobEntity job = JobEntity.create(
                 "테스트팬텀",
+                "test-phantom",
                 "phantom",
                 "영웅",
                 "도적",
@@ -139,8 +157,25 @@ class ReferenceDataPersistenceTest {
         assertThat(foundJob.getId()).isEqualTo(savedJob.getId());
         assertThat(foundJob.getExternalJobCode())
                 .isEqualTo("phantom");
+        assertThat(foundJob.getJobSlug())
+                .isEqualTo("test-phantom");
         assertThat(foundJob.getJobGroup()).isEqualTo("영웅");
         assertThat(foundJob.getJobBranch()).isEqualTo("도적");
+    }
+
+    @Test
+    void 직업_Slug는_비어_있을_수_없다() {
+        assertThatThrownBy(() -> JobEntity.create(
+                "테스트팬텀",
+                " ",
+                "phantom",
+                "영웅",
+                "도적",
+                true,
+                1
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("직업 Slug는 비어 있을 수 없습니다.");
     }
 
     @Test
@@ -148,6 +183,7 @@ class ReferenceDataPersistenceTest {
         JobEntity job = jobRepository.saveAndFlush(
                 JobEntity.create(
                         "테스트히어로",
+                        "test-hero",
                         "hero",
                         "모험가",
                         "전사",
@@ -179,6 +215,7 @@ class ReferenceDataPersistenceTest {
         worldRepository.saveAndFlush(
                 WorldEntity.create(
                         "테스트루나",
+                        "test-luna",
                         "luna",
                         1,
                         WorldEntity.Status.ACTIVE
@@ -187,6 +224,7 @@ class ReferenceDataPersistenceTest {
 
         WorldEntity duplicateWorld = WorldEntity.create(
                 "테스트루나",
+                "test-luna-duplicate",
                 "luna-duplicate",
                 2,
                 WorldEntity.Status.ACTIVE
@@ -202,6 +240,7 @@ class ReferenceDataPersistenceTest {
         worldRepository.saveAndFlush(
                 WorldEntity.create(
                         "테스트루나",
+                        "test-luna",
                         "luna",
                         1,
                         WorldEntity.Status.ACTIVE
@@ -210,6 +249,7 @@ class ReferenceDataPersistenceTest {
 
         WorldEntity duplicateWorld = WorldEntity.create(
                 "테스트루나2",
+                "test-luna-2",
                 "luna",
                 2,
                 WorldEntity.Status.ACTIVE
@@ -225,6 +265,7 @@ class ReferenceDataPersistenceTest {
         jobRepository.saveAndFlush(
                 JobEntity.create(
                         "테스트팬텀",
+                        "test-phantom",
                         "phantom",
                         "영웅",
                         "도적",
@@ -235,6 +276,7 @@ class ReferenceDataPersistenceTest {
 
         JobEntity duplicateJob = JobEntity.create(
                 "테스트팬텀",
+                "test-phantom-duplicate",
                 "phantom-duplicate",
                 "영웅",
                 "도적",
@@ -252,6 +294,7 @@ class ReferenceDataPersistenceTest {
         jobRepository.saveAndFlush(
                 JobEntity.create(
                         "테스트팬텀",
+                        "test-phantom",
                         "phantom",
                         "영웅",
                         "도적",
@@ -262,6 +305,7 @@ class ReferenceDataPersistenceTest {
 
         JobEntity duplicateJob = JobEntity.create(
                 "테스트팬텀2",
+                "test-phantom-2",
                 "phantom",
                 "영웅",
                 "도적",
@@ -281,11 +325,13 @@ class ReferenceDataPersistenceTest {
                         """
                         INSERT INTO p_world (
                             world_name,
+                            world_slug,
                             display_order,
                             status
-                        ) VALUES (?, ?, ?)
+                        ) VALUES (?, ?, ?, ?)
                         """,
                         "테스트월드",
+                        "test-world-invalid-status",
                         0,
                         "UNKNOWN"
                 )
@@ -299,11 +345,13 @@ class ReferenceDataPersistenceTest {
                         """
                         INSERT INTO p_world (
                             world_name,
+                            world_slug,
                             display_order,
                             status
-                        ) VALUES (?, ?, ?)
+                        ) VALUES (?, ?, ?, ?)
                         """,
                         "테스트월드",
+                        "test-world-negative-order",
                         -1,
                         "ACTIVE"
                 )
@@ -317,11 +365,13 @@ class ReferenceDataPersistenceTest {
                         """
                         INSERT INTO p_job (
                             job_name,
+                            job_slug,
                             job_group,
                             display_order
-                        ) VALUES (?, ?, ?)
+                        ) VALUES (?, ?, ?, ?)
                         """,
                         "테스트직업",
+                        "test-job-negative-order",
                         "테스트직업군",
                         -1
                 )

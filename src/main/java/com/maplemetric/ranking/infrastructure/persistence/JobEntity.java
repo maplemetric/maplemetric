@@ -25,6 +25,9 @@ public class JobEntity {
     @Column(name = "job_name", nullable = false, length = 50)
     private String jobName;
 
+    @Column(name = "job_slug", nullable = false, length = 80)
+    private String jobSlug;
+
     @Column(name = "external_job_code", length = 50)
     private String externalJobCode;
 
@@ -54,6 +57,7 @@ public class JobEntity {
 
     private JobEntity(
             String jobName,
+            String jobSlug,
             String externalJobCode,
             String jobGroup,
             String jobBranch,
@@ -63,6 +67,10 @@ public class JobEntity {
         this.jobName = requireText(
                 jobName,
                 "직업명은 비어 있을 수 없습니다."
+        );
+        this.jobSlug = requireText(
+                jobSlug,
+                "직업 Slug는 비어 있을 수 없습니다."
         );
         this.externalJobCode = requireNullableText(
                 externalJobCode,
@@ -89,6 +97,7 @@ public class JobEntity {
 
     public static JobEntity create(
             String jobName,
+            String jobSlug,
             String externalJobCode,
             String jobGroup,
             String jobBranch,
@@ -97,6 +106,7 @@ public class JobEntity {
     ) {
         return new JobEntity(
                 jobName,
+                jobSlug,
                 externalJobCode,
                 jobGroup,
                 jobBranch,

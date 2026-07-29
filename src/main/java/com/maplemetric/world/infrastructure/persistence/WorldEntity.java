@@ -27,6 +27,9 @@ public class WorldEntity {
     @Column(name = "world_name", nullable = false, length = 30)
     private String worldName;
 
+    @Column(name = "world_slug", nullable = false, length = 80)
+    private String worldSlug;
+
     @Column(name = "external_world_code", length = 50)
     private String externalWorldCode;
 
@@ -51,6 +54,7 @@ public class WorldEntity {
 
     private WorldEntity(
             String worldName,
+            String worldSlug,
             String externalWorldCode,
             int displayOrder,
             Status status
@@ -58,6 +62,10 @@ public class WorldEntity {
         this.worldName = requireText(
                 worldName,
                 "월드명은 비어 있을 수 없습니다."
+        );
+        this.worldSlug = requireText(
+                worldSlug,
+                "월드 Slug는 비어 있을 수 없습니다."
         );
         this.externalWorldCode = requireNullableText(
                 externalWorldCode,
@@ -82,12 +90,14 @@ public class WorldEntity {
 
     public static WorldEntity create(
             String worldName,
+            String worldSlug,
             String externalWorldCode,
             int displayOrder,
             Status status
     ) {
         return new WorldEntity(
                 worldName,
+                worldSlug,
                 externalWorldCode,
                 displayOrder,
                 status
