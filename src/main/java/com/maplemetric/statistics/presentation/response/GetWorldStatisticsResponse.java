@@ -24,6 +24,7 @@ public record GetWorldStatisticsResponse(
         List<WorldStatistics> worlds = result.worlds()
                 .stream()
                 .map(world -> new WorldStatistics(
+                        world.worldSlug(),
                         world.worldName(),
                         world.count(),
                         world.percentage(),
@@ -44,6 +45,7 @@ public record GetWorldStatisticsResponse(
     }
 
     public record WorldStatistics(
+            String worldSlug,
             String worldName,
             long count,
             BigDecimal percentage,

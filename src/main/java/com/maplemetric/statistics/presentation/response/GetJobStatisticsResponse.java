@@ -26,6 +26,7 @@ public record GetJobStatisticsResponse(
         List<JobStatistics> jobs = result.jobs()
                 .stream()
                 .map(job -> new JobStatistics(
+                        job.jobSlug(),
                         job.jobName(),
                         job.count(),
                         job.percentage(),
@@ -49,6 +50,7 @@ public record GetJobStatisticsResponse(
     }
 
     public record JobStatistics(
+            String jobSlug,
             String jobName,
             long count,
             BigDecimal percentage,

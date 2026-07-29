@@ -1,14 +1,22 @@
 package com.maplemetric.statistics.application.service;
 
+import com.maplemetric.ranking.api.CanonicalJob;
+import com.maplemetric.ranking.api.JobCatalogQuery;
 import com.maplemetric.ranking.api.OverallRankingComparisonQuery;
 import com.maplemetric.ranking.api.OverallRankingComparisonQueryException;
 import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
+import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
+import com.maplemetric.world.api.CanonicalWorld;
+import com.maplemetric.world.api.WorldCatalogQuery;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,20 +24,58 @@ public class StatisticsQueryService {
 
     private final OverallRankingComparisonQuery overallRankingComparisonQuery;
     private final OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery;
+    private final JobCatalogQuery jobCatalogQuery;
+    private final WorldCatalogQuery worldCatalogQuery;
 
     public StatisticsQueryService(
             OverallRankingComparisonQuery overallRankingComparisonQuery,
-            OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery
+            OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery,
+            JobCatalogQuery jobCatalogQuery,
+            WorldCatalogQuery worldCatalogQuery
     ) {
         this.overallRankingComparisonQuery = overallRankingComparisonQuery;
         this.overallRankingWorldStatisticsQuery = overallRankingWorldStatisticsQuery;
+        this.jobCatalogQuery = jobCatalogQuery;
+        this.worldCatalogQuery = worldCatalogQuery;
     }
 
     public GetJobStatisticsResult getJobStatistics() {
         OverallRankingStatisticsComparisonSnapshot comparison =
                 loadJobStatisticsComparison();
 
-        return GetJobStatisticsResult.from(comparison);
+        Map<String, CanonicalJob> canonicalJobsByClassName =
+                jobCatalogQuery.resolveAliases(
+                        collectClassNames(comparison)
+                );
+
+        return GetJobStatisticsResult.from(
+                comparison,
+                jobCatalogQuery.findAll(),
+                canonicalJobsByClassName
+        );
+    }
+
+    private Set<String> collectClassNames(
+            OverallRankingStatisticsComparisonSnapshot comparison
+    ) {
+        Set<String> classNames = new LinkedHashSet<>();
+
+        addClassNames(classNames, comparison.latest());
+        addClassNames(classNames, comparison.previous());
+
+        return classNames;
+    }
+
+    private void addClassNames(
+            Set<String> classNames,
+            OverallRankingStatisticsSnapshot snapshot
+    ) {
+        if (snapshot == null) {
+            return;
+        }
+
+        snapshot.jobCounts()
+                .forEach(jobCount -> classNames.add(jobCount.className()));
     }
 
     private OverallRankingStatisticsComparisonSnapshot loadJobStatisticsComparison() {
@@ -56,6 +102,18 @@ public class StatisticsQueryService {
         OverallRankingWorldStatisticsSnapshot snapshot =
                 overallRankingWorldStatisticsQuery.getLatestWorldStatistics();
 
-        return GetWorldStatisticsResult.from(snapshot);
+        Set<String> worldNames = new LinkedHashSet<>();
+
+        snapshot.worldCounts()
+                .forEach(worldCount -> worldNames.add(worldCount.worldName()));
+
+        Map<String, CanonicalWorld> canonicalWorldsByWorldName =
+                worldCatalogQuery.resolveAliases(worldNames);
+
+        return GetWorldStatisticsResult.from(
+                snapshot,
+                worldCatalogQuery.findAll(),
+                canonicalWorldsByWorldName
+        );
     }
 }
