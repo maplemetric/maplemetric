@@ -12,7 +12,9 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobComparisonResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
+import com.maplemetric.statistics.application.result.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.statistics.application.service.StatisticsQueryService;
@@ -56,7 +58,16 @@ class StatisticsControllerTest {
                                                 320L,
                                                 new BigDecimal("12.40"),
                                                 new BigDecimal("187.3"),
-                                                new BigDecimal("0.80")
+                                                new BigDecimal("0.80"),
+                                                new JobComparisonResult(
+                                                        300L,
+                                                        new BigDecimal("11.60"),
+                                                        20L,
+                                                        new BigDecimal("6.67"),
+                                                        new BigDecimal("6.90"),
+                                                        new BigDecimal("0.80"),
+                                                        StatisticsTrend.UP
+                                                )
                                         ),
                                         new JobStatisticsResult(
                                                 "phantom",
@@ -64,7 +75,16 @@ class StatisticsControllerTest {
                                                 0L,
                                                 new BigDecimal("0.00"),
                                                 null,
-                                                new BigDecimal("-0.50")
+                                                null,
+                                                new JobComparisonResult(
+                                                        0L,
+                                                        new BigDecimal("0.00"),
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        StatisticsTrend.INSUFFICIENT_DATA
+                                                )
                                         )
                                 ),
                                 2581,
@@ -125,6 +145,45 @@ class StatisticsControllerTest {
                 .andExpect(
                         jsonPath("$.data.jobs[1].averageLevel")
                                 .isEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.previousCount")
+                                .value(300)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.previousPercentage")
+                                .value(11.60)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.countChange")
+                                .value(20)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.countChangeRate")
+                                .value(6.67)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.jobs[0].comparison.percentageChangeRate"
+                        ).value(6.90)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.jobs[0].comparison.percentagePointChange"
+                        ).value(0.80)
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[0].comparison.trend")
+                                .value("UP")
+                )
+                .andExpect(
+                        jsonPath("$.data.jobs[1].comparison.trend")
+                                .value("INSUFFICIENT_DATA")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.jobs[1].comparison.percentagePointChange"
+                        ).isEmpty()
                 )
                 .andExpect(
                         jsonPath("$.data.jobs[0].percentage")
@@ -243,7 +302,16 @@ class StatisticsControllerTest {
                                                 320L,
                                                 new BigDecimal("12.40"),
                                                 new BigDecimal("187.3"),
-                                                null
+                                                null,
+                                                new JobComparisonResult(
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        StatisticsTrend.INSUFFICIENT_DATA
+                                                )
                                         )
                                 ),
                                 2581,
