@@ -6,6 +6,7 @@ import com.maplemetric.analysis.application.result.InsightResult;
 import com.maplemetric.analysis.application.service.InsightGenerator;
 import com.maplemetric.analysis.domain.model.InsightFacts;
 import com.maplemetric.analysis.domain.model.InsightSentiment;
+import com.maplemetric.ranking.api.CanonicalJob;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
@@ -13,6 +14,7 @@ import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
+import com.maplemetric.ranking.api.JobCatalogQuery;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
 import com.maplemetric.ranking.api.OverallRankingCollectionException;
 import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
@@ -33,7 +35,9 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
+import com.maplemetric.world.api.CanonicalWorld;
 import com.maplemetric.world.api.WorldAliasMatchingQuery;
+import com.maplemetric.world.api.WorldCatalogQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
@@ -158,7 +162,12 @@ class ModulithStructureTest {
                         .orElseThrow()
                         .asJavaClasses()
                         .map(type -> type.getName())
-        ).containsExactly(WorldAliasMatchingQuery.class.getName());
+        ).containsExactlyInAnyOrder(
+                WorldAliasMatchingQuery.class.getName(),
+                WorldCatalogQuery.class.getName(),
+                CanonicalWorld.class.getName(),
+                CanonicalWorld.Status.class.getName()
+        );
 
         assertThat(
                 worldModule.getType(WORLD_ENTITY)
@@ -339,7 +348,9 @@ class ModulithStructureTest {
                 OverallRankingCollectionFailure.class.getName(),
                 OverallRankingStatisticsTrendQuery.class.getName(),
                 OverallRankingStatisticsTrendQueryException.class.getName(),
-                OverallRankingStatisticsTrendQueryFailure.class.getName()
+                OverallRankingStatisticsTrendQueryFailure.class.getName(),
+                JobCatalogQuery.class.getName(),
+                CanonicalJob.class.getName()
         );
 
         assertThat(
