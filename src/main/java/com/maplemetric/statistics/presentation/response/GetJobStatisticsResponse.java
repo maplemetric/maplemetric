@@ -1,7 +1,8 @@
 package com.maplemetric.statistics.presentation.response;
 
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
-import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobComparisonResult;
+import com.maplemetric.statistics.application.result.StatisticsTrend;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,7 +32,8 @@ public record GetJobStatisticsResponse(
                         job.count(),
                         job.percentage(),
                         job.averageLevel(),
-                        job.changeRate()
+                        job.changeRate(),
+                        toComparison(job.comparison())
                 ))
                 .toList();
 
@@ -49,13 +51,39 @@ public record GetJobStatisticsResponse(
         );
     }
 
+    private static JobComparison toComparison(
+            JobComparisonResult comparison
+    ) {
+        return new JobComparison(
+                comparison.previousCount(),
+                comparison.previousPercentage(),
+                comparison.countChange(),
+                comparison.countChangeRate(),
+                comparison.percentageChangeRate(),
+                comparison.percentagePointChange(),
+                comparison.trend()
+        );
+    }
+
     public record JobStatistics(
             String jobSlug,
             String jobName,
             long count,
             BigDecimal percentage,
             BigDecimal averageLevel,
-            BigDecimal changeRate
+            BigDecimal changeRate,
+            JobComparison comparison
+    ) {
+    }
+
+    public record JobComparison(
+            Long previousCount,
+            BigDecimal previousPercentage,
+            Long countChange,
+            BigDecimal countChangeRate,
+            BigDecimal percentageChangeRate,
+            BigDecimal percentagePointChange,
+            StatisticsTrend trend
     ) {
     }
 }
