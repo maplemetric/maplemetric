@@ -169,7 +169,7 @@ public record GetJobStatisticsResult(
     /**
      * 같은 Canonical 직업에 매칭된 Alias들의 Count 합과 레벨 총합이다.
      *
-     * <p>레벨 총합은 Alias별 평균 레벨에 Count를 곱해 누적하므로,
+     * 레벨 총합은 Alias별 평균 레벨에 Count를 곱해 누적하므로,
      * 평균 레벨은 Alias 평균의 단순 평균이 아니라 Count 가중 평균이 된다.
      */
     private record CanonicalAggregate(
