@@ -33,6 +33,10 @@ import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.HyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
+import com.maplemetric.character.application.port.out.LoadCharacterSetEffectPort;
+import com.maplemetric.character.application.port.out.LoadCharacterSetEffectPort.CharacterSetEffect;
+import com.maplemetric.character.application.port.out.LoadCharacterSetEffectPort.SetEffect;
+import com.maplemetric.character.application.port.out.LoadCharacterSetEffectPort.SetOption;
 import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort;
 import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.CharacterSkills;
 import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.FifthSkill;
@@ -97,6 +101,9 @@ class CharacterQueryServiceTest {
     private LoadCharacterPopularityPort loadCharacterPopularityPort;
 
     @Mock
+    private LoadCharacterSetEffectPort loadCharacterSetEffectPort;
+
+    @Mock
     private LoadCharacterSkillsPort loadCharacterSkillsPort;
 
     @Mock
@@ -136,6 +143,7 @@ class CharacterQueryServiceTest {
                         loadCharacterHexaPort,
                         loadCharacterHyperStatPort,
                         loadCharacterPopularityPort,
+                        loadCharacterSetEffectPort,
                         loadCharacterSkillsPort,
                         loadCharacterStatPort,
                         loadCharacterSymbolPort,
@@ -287,6 +295,17 @@ class CharacterQueryServiceTest {
 
         assertThat(result.equipment().presetNo())
                 .isEqualTo(2);
+
+        assertThat(result.setEffect().setEffects())
+                .extracting(
+                        effect -> effect.setName(),
+                        effect -> effect.totalSetCount(),
+                        effect -> effect.appliedOptions().size(),
+                        effect -> effect.fullOptions().size()
+                )
+                .containsExactly(
+                        tuple("여명의 보스 세트", 2, 1, 2)
+                );
 
         assertThat(result.popularity().popularity())
                 .isEqualTo(1234L);
@@ -955,6 +974,44 @@ class CharacterQueryServiceTest {
 
         given(loadCharacterHexaPort.loadCharacterHexa(OCID))
                 .willReturn(createHexaResponse());
+
+        given(loadCharacterSetEffectPort
+                .loadCharacterSetEffect(OCID))
+                .willReturn(createSetEffectResponse());
+    }
+
+    private CharacterSetEffect createSetEffectResponse() {
+        return new CharacterSetEffect(
+                List.of(
+                        new SetEffect(
+                                "여명의 보스 세트",
+                                2,
+                                List.of(
+                                        new SetOption(
+                                                2,
+                                                "보스 몬스터 공격 시 데미지 : +10%"
+                                        )
+                                ),
+                                List.of(
+                                        new SetOption(
+                                                2,
+                                                "보스 몬스터 공격 시 데미지 : +10%"
+                                        ),
+                                        new SetOption(
+                                                3,
+                                                "올스탯 : +20"
+                                        )
+                                )
+                        ),
+                        // 착용하지 않은 세트도 함께 내려온다. 결과에서 빠져야 한다.
+                        new SetEffect(
+                                "루타비스 세트(도적)",
+                                0,
+                                List.of(),
+                                List.of()
+                        )
+                )
+        );
     }
 
     private void verifyExtendedSummaryCalls() {
@@ -973,6 +1030,10 @@ class CharacterQueryServiceTest {
         verify(loadCharacterHexaPort)
                 .loadCharacterHexa(OCID);
 
+        verify(loadCharacterSetEffectPort)
+                .loadCharacterSetEffect(OCID);
+
+        verifyNoMoreInteractions(loadCharacterSetEffectPort);
         verifyNoMoreInteractions(loadCharacterPopularityPort);
         verifyNoMoreInteractions(loadCharacterHyperStatPort);
         verifyNoMoreInteractions(loadCharacterAbilityPort);

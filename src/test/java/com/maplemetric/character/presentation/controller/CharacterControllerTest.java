@@ -17,6 +17,7 @@ import com.maplemetric.character.application.result.GetCharacterHexaResult;
 import com.maplemetric.character.application.result.GetCharacterHyperStatResult;
 import com.maplemetric.character.application.result.GetCharacterPopularityResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
+import com.maplemetric.character.application.result.GetCharacterSetEffectResult;
 import com.maplemetric.character.application.result.GetCharacterSkillsResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
@@ -197,6 +198,21 @@ class CharacterControllerTest {
                                 .value(1.40)
                 )
                 .andExpect(
+                        jsonPath("$.data.setEffect.setEffects[0].setName")
+                                .value("여명의 보스 세트")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.setEffect.setEffects[0].totalSetCount"
+                        ).value(2)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.setEffect.setEffects[0]"
+                                        + ".fullOptions[1].setOption"
+                        ).value("올스탯 : +20")
+                )
+                .andExpect(
                         jsonPath(
                                 "$.data.hexa.stats[0].subStats[0].statIncrease"
                         ).value(40)
@@ -331,6 +347,7 @@ class CharacterControllerTest {
                 createSkillsResult(),
                 createHexaResult(),
                 createEquipmentResult(),
+                createSetEffectResult(),
                 createPopularityResult(),
                 createHyperStatResult(),
                 createAbilityResult(),
@@ -515,6 +532,33 @@ class CharacterControllerTest {
                 "3",
                 2678,
                 4000
+        );
+    }
+
+    private GetCharacterSetEffectResult createSetEffectResult() {
+        return new GetCharacterSetEffectResult(
+                List.of(
+                        new GetCharacterSetEffectResult.SetEffectResult(
+                                "여명의 보스 세트",
+                                2,
+                                List.of(
+                                        new GetCharacterSetEffectResult.SetOptionResult(
+                                                2,
+                                                "보스 몬스터 공격 시 데미지 : +10%"
+                                        )
+                                ),
+                                List.of(
+                                        new GetCharacterSetEffectResult.SetOptionResult(
+                                                2,
+                                                "보스 몬스터 공격 시 데미지 : +10%"
+                                        ),
+                                        new GetCharacterSetEffectResult.SetOptionResult(
+                                                3,
+                                                "올스탯 : +20"
+                                        )
+                                )
+                        )
+                )
         );
     }
 
