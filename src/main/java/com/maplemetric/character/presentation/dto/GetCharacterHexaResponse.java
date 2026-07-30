@@ -1,6 +1,7 @@
 package com.maplemetric.character.presentation.dto;
 
 import com.maplemetric.character.application.result.GetCharacterHexaResult;
+import java.math.BigDecimal;
 import java.util.List;
 
 public record GetCharacterHexaResponse(
@@ -65,6 +66,7 @@ public record GetCharacterHexaResponse(
             Integer slotNo,
             String mainStatName,
             Integer mainStatLevel,
+            BigDecimal mainStatIncrease,
             List<SubStatResponse> subStats
     ) {
 
@@ -76,6 +78,7 @@ public record GetCharacterHexaResponse(
                     result.slotNo(),
                     result.mainStatName(),
                     result.mainStatLevel(),
+                    result.mainStatIncrease(),
                     result.subStats()
                             .stream()
                             .map(subStat -> SubStatResponse.from(subStat))
@@ -86,7 +89,8 @@ public record GetCharacterHexaResponse(
 
     public record SubStatResponse(
             String statName,
-            Integer statLevel
+            Integer statLevel,
+            BigDecimal statIncrease
     ) {
 
         public static SubStatResponse from(
@@ -94,7 +98,8 @@ public record GetCharacterHexaResponse(
         ) {
             return new SubStatResponse(
                     result.statName(),
-                    result.statLevel()
+                    result.statLevel(),
+                    result.statIncrease()
             );
         }
     }
