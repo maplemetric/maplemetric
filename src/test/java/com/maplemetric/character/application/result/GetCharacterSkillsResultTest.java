@@ -160,6 +160,79 @@ class GetCharacterSkillsResultTest {
         assertThat(result.linkSkills().presets()).hasSize(3);
     }
 
+    @Test
+    void 이름이없는V코어는응답에서제외한다() {
+        // Nexon은 V매트릭스 슬롯을 고정 개수로 내려주고 사용하지 않는 칸을
+        // 이름·종류가 null인 빈 값으로 채운다.
+        List<VCore> vCores = List.of(
+                new VCore(
+                        "조커",
+                        "직업 코어",
+                        30
+                ),
+                new VCore(
+                        null,
+                        null,
+                        0
+                ),
+                new VCore(
+                        " ",
+                        null,
+                        0
+                )
+        );
+
+        GetCharacterSkillsResult result =
+                GetCharacterSkillsResult.from(
+                        createSkills(
+                                vCores,
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                List.of()
+                        )
+                );
+
+        assertThat(result.vMatrix().cores())
+                .extracting(core -> core.coreName())
+                .containsExactly("조커");
+    }
+
+    @Test
+    void 이름이있으면스킬이없어도V코어를유지한다() {
+        // 강화 코어처럼 5차 스킬 목록과 매칭되지 않는 코어도 실제 장착 코어다.
+        List<VCore> vCores = List.of(
+                new VCore(
+                        "쓸만한 미스틱 도어",
+                        "공용 코어",
+                        0
+                )
+        );
+
+        GetCharacterSkillsResult result =
+                GetCharacterSkillsResult.from(
+                        createSkills(
+                                vCores,
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                List.of()
+                        )
+                );
+
+        assertThat(result.vMatrix().cores())
+                .extracting(
+                        core -> core.coreName(),
+                        core -> core.coreLevel(),
+                        core -> core.skills().size()
+                )
+                .containsExactly(
+                        tuple("쓸만한 미스틱 도어", 0, 0)
+                );
+    }
+
     private CharacterSkills createSkills(
             List<VCore> vCores,
             List<FifthSkill> fifthSkills,

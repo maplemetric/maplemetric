@@ -11,6 +11,7 @@ import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterDojangResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
@@ -84,6 +85,9 @@ class CharacterClientImplTest {
 
     private static final String CHARACTER_LINK_SKILL_PATH =
             "/maplestory/v1/character/link-skill";
+
+    private static final String CHARACTER_EQUIPMENT_PATH =
+            "/maplestory/v1/character/item-equipment";
 
     private static final String CHARACTER_V_MATRIX_PATH =
             "/maplestory/v1/character/vmatrix";
@@ -436,6 +440,59 @@ class CharacterClientImplTest {
                                 "link-icon"
                         )
                 );
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 장비프리셋1과2와3을모두바인딩한다() {
+        // SnakeCaseStrategy는 끝자리 숫자 앞에 밑줄을 넣지 않아
+        // item_equipment_preset_1을 스스로 찾지 못한다. 이름을 명시하지 않으면
+        // 세 프리셋이 모두 null로 바인딩된다.
+        expectGetRequest(
+                CHARACTER_EQUIPMENT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "character_class": "팬텀",
+                          "preset_no": 2,
+                          "item_equipment": [
+                            { "item_equipment_slot": "모자", "item_name": "현재 장착 모자" }
+                          ],
+                          "item_equipment_preset_1": [
+                            { "item_equipment_slot": "모자", "item_name": "프리셋1 모자" }
+                          ],
+                          "item_equipment_preset_2": [
+                            { "item_equipment_slot": "모자", "item_name": "프리셋2 모자" }
+                          ],
+                          "item_equipment_preset_3": [
+                            { "item_equipment_slot": "모자", "item_name": "프리셋3 모자" }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterEquipmentResponse result =
+                characterClient.getCharacterEquipment(OCID);
+
+        assertThat(result.presetNo())
+                .isEqualTo(2);
+        assertThat(result.itemEquipment())
+                .extracting(item -> item.itemName())
+                .containsExactly("현재 장착 모자");
+        assertThat(result.itemEquipmentPreset1())
+                .extracting(item -> item.itemName())
+                .containsExactly("프리셋1 모자");
+        assertThat(result.itemEquipmentPreset2())
+                .extracting(item -> item.itemName())
+                .containsExactly("프리셋2 모자");
+        assertThat(result.itemEquipmentPreset3())
+                .extracting(item -> item.itemName())
+                .containsExactly("프리셋3 모자");
 
         mockServer.verify();
     }

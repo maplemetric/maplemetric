@@ -87,8 +87,14 @@ public record GetCharacterSkillsResult(
             return List.of();
         }
 
+        // Nexon은 V매트릭스 슬롯을 항상 고정 개수로 내려주고 사용하지 않는 칸을
+        // 이름·종류가 null인 빈 값으로 채운다. 그대로 두면 이름도 아이콘도 없는
+        // 코어가 응답에 실려 소비 측이 빈 항목을 그리게 되므로 여기서 제외한다.
+        // 이름이 있으면 스킬이 비어 있어도 실제 장착 코어이므로 남긴다.
         return cores.stream()
                 .filter(core -> core != null)
+                .filter(core -> core.vCoreName() != null
+                        && !core.vCoreName().isBlank())
                 .map(core -> {
                     FifthSkill skill =
                             fifthSkills.get(core.vCoreName());
