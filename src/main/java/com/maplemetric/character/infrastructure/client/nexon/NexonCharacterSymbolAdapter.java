@@ -41,8 +41,21 @@ class NexonCharacterSymbolAdapter
         return response.symbol().stream()
                 .map(symbol -> new LoadCharacterSymbolPort.Symbol(
                         symbol.symbolName(),
+                        symbol.symbolIcon(),
+                        symbol.symbolDescription(),
+                        symbol.symbolOtherEffectDescription(),
+                        symbol.symbolForce(),
                         symbol.symbolLevel(),
-                        symbol.symbolIcon()
+                        symbol.symbolStr(),
+                        symbol.symbolDex(),
+                        symbol.symbolIntelligence(),
+                        symbol.symbolLuk(),
+                        symbol.symbolHp(),
+                        symbol.symbolDropRate(),
+                        symbol.symbolMesoRate(),
+                        symbol.symbolExpRate(),
+                        symbol.symbolGrowthCount(),
+                        symbol.symbolRequireGrowthCount()
                 ))
                 .toList();
     }

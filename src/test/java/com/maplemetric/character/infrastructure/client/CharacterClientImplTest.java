@@ -350,6 +350,59 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 심볼수치와성장치를바인딩한다() {
+        expectGetRequest(
+                CHARACTER_SYMBOL_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "symbol": [
+                            {
+                              "symbol_name": "아케인심볼 : 소멸의 여로",
+                              "symbol_description": "아케인포스 530 증가",
+                              "symbol_other_effect_description": "STR 2200 증가",
+                              "symbol_force": "530",
+                              "symbol_level": 20,
+                              "symbol_str": "2200",
+                              "symbol_dex": "0",
+                              "symbol_int": "100",
+                              "symbol_luk": "0",
+                              "symbol_hp": "0",
+                              "symbol_drop_rate": "1",
+                              "symbol_meso_rate": "2",
+                              "symbol_exp_rate": "3",
+                              "symbol_growth_count": 2678,
+                              "symbol_require_growth_count": 4000
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterSymbolResponse result =
+                characterClient.getCharacterSymbol(OCID);
+
+        assertThat(result.symbol())
+                .extracting(
+                        symbol -> symbol.symbolForce(),
+                        symbol -> symbol.symbolStr(),
+                        symbol -> symbol.symbolIntelligence(),
+                        symbol -> symbol.symbolDropRate(),
+                        symbol -> symbol.symbolGrowthCount(),
+                        symbol -> symbol.symbolRequireGrowthCount()
+                )
+                .containsExactly(
+                        tuple("530", "2200", "100", "1", 2678, 4000)
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
     void 캐릭터5차와6차스킬정보를스킬등급으로조회한다() {
         expectGetRequest(
                 CHARACTER_SKILL_PATH,
