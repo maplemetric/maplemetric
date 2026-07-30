@@ -498,6 +498,52 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 장비옵션의INT수치를바인딩한다() {
+        // Nexon 필드명은 int인데 Java 예약어라 DTO에서는 intelligence로 둔다.
+        // 이름을 명시하지 않으면 INT만 조용히 null이 된다.
+        expectGetRequest(
+                CHARACTER_EQUIPMENT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "item_equipment": [
+                            {
+                              "item_equipment_slot": "모자",
+                              "item_name": "테스트 모자",
+                              "item_total_option": {
+                                "str": "10",
+                                "dex": "20",
+                                "int": "196",
+                                "luk": "30"
+                              }
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterEquipmentResponse result =
+                characterClient.getCharacterEquipment(OCID);
+
+        assertThat(result.itemEquipment())
+                .extracting(
+                        item -> item.itemTotalOption().str(),
+                        item -> item.itemTotalOption().dex(),
+                        item -> item.itemTotalOption().intelligence(),
+                        item -> item.itemTotalOption().luk()
+                )
+                .containsExactly(
+                        tuple("10", "20", "196", "30")
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
     void V매트릭스정보를조회한다() {
         expectGetRequest(
                 CHARACTER_V_MATRIX_PATH,

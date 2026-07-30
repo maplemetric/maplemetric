@@ -84,6 +84,11 @@ public record CharacterEquipmentResponse(
     public record ItemOption(
             String str,
             String dex,
+
+            // Nexon 필드명은 int인데 Java 예약어라 intelligence로 바꿔 두었다.
+            // 이름을 명시하지 않으면 SnakeCaseStrategy가 intelligence를 찾아
+            // 바인딩되지 않고 INT 수치가 항상 null이 된다.
+            @JsonProperty("int")
             String intelligence,
             String luk,
             String maxHp,
