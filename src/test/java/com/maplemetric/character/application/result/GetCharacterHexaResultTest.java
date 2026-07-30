@@ -11,6 +11,7 @@ import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.Link
 import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.SixthSkill;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -83,6 +84,36 @@ class GetCharacterHexaResultTest {
                         tuple(1, 1, 1),
                         tuple(2, 2, 1),
                         tuple(3, 3, 2)
+                );
+    }
+
+    @Test
+    void HEXA스탯레벨을증가수치로환산한다() {
+        CharacterHexa hexa = new CharacterHexa(
+                null,
+                null,
+                List.of(createStat("0", "공격력 증가", "방어율 무시 증가")),
+                null,
+                null
+        );
+
+        GetCharacterHexaResult result =
+                GetCharacterHexaResult.from(hexa);
+
+        GetCharacterHexaResult.HexaStatResult stat =
+                result.stats().get(0);
+
+        assertThat(stat.mainStatIncrease())
+                .isEqualByComparingTo("1.4");
+
+        assertThat(stat.subStats())
+                .extracting(
+                        subStat -> subStat.statName(),
+                        subStat -> subStat.statIncrease()
+                )
+                .containsExactly(
+                        tuple("공격력 증가", new BigDecimal("40")),
+                        tuple("방어율 무시 증가", null)
                 );
     }
 
