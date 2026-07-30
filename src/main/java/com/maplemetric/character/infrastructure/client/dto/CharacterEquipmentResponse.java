@@ -13,8 +13,18 @@ public record CharacterEquipmentResponse(
         String characterClass,
         Integer presetNo,
         List<ItemEquipment> itemEquipment,
+
+        // SnakeCaseStrategy는 끝자리 숫자 앞에 밑줄을 넣지 않아
+        // itemEquipmentPreset1을 item_equipment_preset1로 변환한다.
+        // Nexon 필드는 item_equipment_preset_1이라 이름이 어긋나 바인딩되지 않으므로
+        // 아래 potentialOption1처럼 이름을 명시한다.
+        @JsonProperty("item_equipment_preset_1")
         List<ItemEquipment> itemEquipmentPreset1,
+
+        @JsonProperty("item_equipment_preset_2")
         List<ItemEquipment> itemEquipmentPreset2,
+
+        @JsonProperty("item_equipment_preset_3")
         List<ItemEquipment> itemEquipmentPreset3
 ) {
 
