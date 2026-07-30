@@ -4,6 +4,7 @@ import com.maplemetric.ranking.api.CanonicalJob;
 import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,7 +28,18 @@ public record GetJobStatisticsResult(
     private static final int PERCENTAGE_SCALE = 2;
     private static final int AVERAGE_LEVEL_SCALE = 1;
 
-    private static final BigDecimal ABSENT_PERCENTAGE =
+    /**
+     * 중간 나눗셈 정밀도다.
+     *
+     * 무한소수가 나오는 나눗셈은 정밀도 없이 실행할 수 없으므로 공통 MathContext를 쓴다.
+     * 응답 Scale은 여기서 적용하지 않고 마지막 변환 단계에서만 적용한다.
+     */
+    private static final MathContext CALCULATION_CONTEXT =
+            MathContext.DECIMAL128;
+
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+
+    private static final BigDecimal ZERO_PERCENTAGE =
             BigDecimal.ZERO.setScale(PERCENTAGE_SCALE);
 
     public static GetJobStatisticsResult from(
@@ -38,27 +50,22 @@ public record GetJobStatisticsResult(
         OverallRankingStatisticsSnapshot latest = comparison.latest();
         OverallRankingStatisticsSnapshot previous = comparison.previous();
 
-        boolean comparable = previous != null && previous.sampleSize() > 0;
-
         Map<String, CanonicalAggregate> latestAggregates = aggregateByJobSlug(
                 latest,
                 canonicalJobsByClassName
         );
 
-        Map<String, BigDecimal> previousPercentages = comparable
-                ? toPercentages(
-                        aggregateByJobSlug(previous, canonicalJobsByClassName),
-                        previous.sampleSize()
-                )
-                : Map.of();
+        Map<String, CanonicalAggregate> previousAggregates = previous == null
+                ? Map.of()
+                : aggregateByJobSlug(previous, canonicalJobsByClassName);
 
         List<JobStatisticsResult> jobs = canonicalJobs.stream()
                 .map(canonicalJob -> toJobStatisticsResult(
                         canonicalJob,
                         latestAggregates.get(canonicalJob.jobSlug()),
+                        previousAggregates.get(canonicalJob.jobSlug()),
                         latest.sampleSize(),
-                        comparable,
-                        previousPercentages
+                        previous == null ? null : previous.sampleSize()
                 ))
                 .toList();
 
@@ -103,67 +110,155 @@ public record GetJobStatisticsResult(
         return aggregates;
     }
 
-    private static Map<String, BigDecimal> toPercentages(
-            Map<String, CanonicalAggregate> aggregates,
-            int sampleSize
-    ) {
-        Map<String, BigDecimal> percentages = new HashMap<>();
-
-        aggregates.forEach((jobSlug, aggregate) -> percentages.put(
-                jobSlug,
-                toPercentage(aggregate.count(), sampleSize)
-        ));
-
-        return percentages;
-    }
-
     private static JobStatisticsResult toJobStatisticsResult(
             CanonicalJob canonicalJob,
-            CanonicalAggregate aggregate,
+            CanonicalAggregate latestAggregate,
+            CanonicalAggregate previousAggregate,
             int sampleSize,
-            boolean comparable,
-            Map<String, BigDecimal> previousPercentages
+            Integer previousSampleSize
     ) {
-        long count = aggregate == null ? 0L : aggregate.count();
+        long count = latestAggregate == null ? 0L : latestAggregate.count();
 
-        BigDecimal percentage = toPercentage(count, sampleSize);
+        BigDecimal rawPercentage = rawPercentage(count, sampleSize);
 
-        BigDecimal averageLevel = aggregate == null
-                ? null
-                : aggregate.averageLevel();
+        BigDecimal percentage = rawPercentage == null
+                ? ZERO_PERCENTAGE
+                : toPercentageScale(rawPercentage);
 
-        BigDecimal changeRate = comparable
-                ? percentage.subtract(previousPercentages.getOrDefault(
-                        canonicalJob.jobSlug(),
-                        ABSENT_PERCENTAGE
-                ))
-                : null;
+        JobComparisonResult comparison = toComparison(
+                count,
+                rawPercentage,
+                previousAggregate,
+                previousSampleSize
+        );
 
         return new JobStatisticsResult(
                 canonicalJob.jobSlug(),
                 canonicalJob.jobName(),
                 count,
                 percentage,
-                averageLevel,
-                changeRate
+                latestAggregate == null ? null : latestAggregate.averageLevel(),
+                comparison.percentagePointChange(),
+                comparison
         );
     }
 
-    private static BigDecimal toPercentage(
+    private static JobComparisonResult toComparison(
+            long count,
+            BigDecimal rawPercentage,
+            CanonicalAggregate previousAggregate,
+            Integer previousSampleSize
+    ) {
+        if (previousSampleSize == null || previousSampleSize <= 0) {
+            return JobComparisonResult.insufficient(null, null);
+        }
+
+        long previousCount = previousAggregate == null
+                ? 0L
+                : previousAggregate.count();
+
+        BigDecimal rawPreviousPercentage = rawPercentage(
+                previousCount,
+                previousSampleSize
+        );
+
+        BigDecimal previousPercentage =
+                toPercentageScale(rawPreviousPercentage);
+
+        if (rawPercentage == null) {
+            return JobComparisonResult.insufficient(
+                    previousCount,
+                    previousPercentage
+            );
+        }
+
+        BigDecimal percentagePointChange = toPercentageScale(
+                rawPercentage.subtract(rawPreviousPercentage)
+        );
+
+        return new JobComparisonResult(
+                previousCount,
+                previousPercentage,
+                count - previousCount,
+                toChangeRate(
+                        BigDecimal.valueOf(count),
+                        BigDecimal.valueOf(previousCount)
+                ),
+                toChangeRate(rawPercentage, rawPreviousPercentage),
+                percentagePointChange,
+                toTrend(count, previousCount, percentagePointChange)
+        );
+    }
+
+    /**
+     * 상대 변화율이다.
+     *
+     * 분모가 0인지는 반올림 전 값으로 판정한다. 응답에서 0.00으로 보인다는 이유로
+     * 분모를 0으로 처리하지 않는다.
+     */
+    private static BigDecimal toChangeRate(
+            BigDecimal current,
+            BigDecimal previous
+    ) {
+        if (previous.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+
+        return toPercentageScale(
+                current.subtract(previous)
+                        .multiply(HUNDRED)
+                        .divide(previous, CALCULATION_CONTEXT)
+        );
+    }
+
+    /**
+     * Trend 판정이다.
+     *
+     * NEW와 REMOVED는 Count로 먼저 판정한다. UP·DOWN·STABLE은 응답용으로 반올림한
+     * percentagePointChange의 부호로 판정해, 0.00으로 표시되는 미세 변화가
+     * 상승·하락으로 보이지 않게 한다.
+     */
+    private static StatisticsTrend toTrend(
+            long count,
+            long previousCount,
+            BigDecimal percentagePointChange
+    ) {
+        if (previousCount == 0L && count > 0L) {
+            return StatisticsTrend.NEW;
+        }
+
+        if (previousCount > 0L && count == 0L) {
+            return StatisticsTrend.REMOVED;
+        }
+
+        int signum = percentagePointChange.signum();
+
+        if (signum > 0) {
+            return StatisticsTrend.UP;
+        }
+
+        if (signum < 0) {
+            return StatisticsTrend.DOWN;
+        }
+
+        return StatisticsTrend.STABLE;
+    }
+
+    private static BigDecimal rawPercentage(
             long count,
             int sampleSize
     ) {
         if (sampleSize <= 0) {
-            return ABSENT_PERCENTAGE;
+            return null;
         }
 
         return BigDecimal.valueOf(count)
-                .multiply(BigDecimal.valueOf(100))
-                .divide(
-                        BigDecimal.valueOf(sampleSize),
-                        PERCENTAGE_SCALE,
-                        RoundingMode.HALF_UP
-                );
+                .multiply(HUNDRED)
+                .divide(BigDecimal.valueOf(sampleSize), CALCULATION_CONTEXT);
+    }
+
+    private static BigDecimal toPercentageScale(BigDecimal value) {
+        return value.setScale(PERCENTAGE_SCALE, RoundingMode.HALF_UP);
     }
 
     /**
@@ -213,7 +308,34 @@ public record GetJobStatisticsResult(
             long count,
             BigDecimal percentage,
             BigDecimal averageLevel,
-            BigDecimal changeRate
+            BigDecimal changeRate,
+            JobComparisonResult comparison
     ) {
+    }
+
+    public record JobComparisonResult(
+            Long previousCount,
+            BigDecimal previousPercentage,
+            Long countChange,
+            BigDecimal countChangeRate,
+            BigDecimal percentageChangeRate,
+            BigDecimal percentagePointChange,
+            StatisticsTrend trend
+    ) {
+
+        private static JobComparisonResult insufficient(
+                Long previousCount,
+                BigDecimal previousPercentage
+        ) {
+            return new JobComparisonResult(
+                    previousCount,
+                    previousPercentage,
+                    null,
+                    null,
+                    null,
+                    null,
+                    StatisticsTrend.INSUFFICIENT_DATA
+            );
+        }
     }
 }

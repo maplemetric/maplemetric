@@ -429,7 +429,7 @@ class StatisticsQueryServiceTest {
     }
 
     @Test
-    void changeRate는반올림된percentage끼리의차이와일치한다() {
+    void changeRate는반올림전원본비율의차이를한번반올림한값이다() {
         StatisticsQueryService service = createService();
 
         givenJobComparison(
@@ -462,7 +462,10 @@ class StatisticsQueryServiceTest {
 
         assertThat(percentage).isEqualTo(new BigDecimal("33.33"));
         assertThat(changeRate)
-                .isEqualTo(percentage.subtract(new BigDecimal("14.29")));
+                .isEqualTo(new BigDecimal("19.05"))
+                .isNotEqualTo(percentage.subtract(new BigDecimal("14.29")));
+        assertThat(result.jobs().get(0).comparison().percentagePointChange())
+                .isEqualTo(changeRate);
     }
 
     @Test
