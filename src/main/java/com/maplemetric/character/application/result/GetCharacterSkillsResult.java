@@ -105,7 +105,10 @@ public record GetCharacterSkillsResult(
                                     : List.of(
                                     new SkillResult(
                                             skill.skillName(),
-                                            skill.skillIcon()
+                                            skill.skillIcon(),
+                                            skill.skillDescription(),
+                                            skill.skillEffect(),
+                                            skill.skillEffectNext()
                                     )
                             );
 
@@ -141,7 +144,10 @@ public record GetCharacterSkillsResult(
                 .map(skill -> new LinkSkillResult(
                         skill.skillName(),
                         skill.skillLevel(),
-                        skill.skillIcon()
+                        skill.skillIcon(),
+                        skill.skillDescription(),
+                        skill.skillEffect(),
+                        skill.skillEffectNext()
                 ))
                 .toList();
     }
@@ -195,7 +201,10 @@ public record GetCharacterSkillsResult(
 
     public record SkillResult(
             String skillName,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 
@@ -215,7 +224,10 @@ public record GetCharacterSkillsResult(
     public record LinkSkillResult(
             String skillName,
             Integer skillLevel,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 }

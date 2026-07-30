@@ -56,7 +56,10 @@ class NexonCharacterSkillsAdapter
                         fifthSkillResponse.characterSkill(),
                         skill -> new FifthSkill(
                                 skill.skillName(),
-                                skill.skillIcon()
+                                skill.skillIcon(),
+                                skill.skillDescription(),
+                                skill.skillEffect(),
+                                skill.skillEffectNext()
                         )
                 ),
                 convertList(
@@ -84,7 +87,10 @@ class NexonCharacterSkillsAdapter
         return new LinkSkill(
                 skill.skillName(),
                 skill.skillLevel(),
-                skill.skillIcon()
+                skill.skillIcon(),
+                skill.skillDescription(),
+                skill.skillEffect(),
+                skill.skillEffectNext()
         );
     }
 

@@ -25,14 +25,20 @@ public interface LoadCharacterSkillsPort {
 
     record FifthSkill(
             String skillName,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 
     record LinkSkill(
             String skillName,
             Integer skillLevel,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 }

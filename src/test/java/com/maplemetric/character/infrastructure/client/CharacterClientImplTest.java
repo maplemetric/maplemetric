@@ -453,6 +453,53 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 스킬설명과효과를바인딩한다() {
+        expectGetRequest(
+                CHARACTER_SKILL_PATH,
+                Map.of(
+                        "ocid", OCID,
+                        "character_skill_grade", "6"
+                ),
+                withSuccess(
+                        """
+                        {
+                          "character_skill": [
+                            {
+                              "skill_name": "템페스트 오브 카드 VI",
+                              "skill_level": 18,
+                              "skill_icon": "tempest-icon",
+                              "skill_description": "카드를 흩뿌린다.",
+                              "skill_effect": "데미지 500%",
+                              "skill_effect_next": "데미지 520%"
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterSkillResponse result =
+                characterClient.getCharacterSkill(OCID, "6");
+
+        assertThat(result.characterSkill())
+                .extracting(
+                        skill -> skill.skillDescription(),
+                        skill -> skill.skillEffect(),
+                        skill -> skill.skillEffectNext()
+                )
+                .containsExactly(
+                        tuple(
+                                "카드를 흩뿌린다.",
+                                "데미지 500%",
+                                "데미지 520%"
+                        )
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
     void 링크스킬프리셋숫자필드를역직렬화한다() {
         expectGetRequest(
                 CHARACTER_LINK_SKILL_PATH,
@@ -466,7 +513,10 @@ class CharacterClientImplTest {
                             {
                               "skill_name": "데들리 인스팅트",
                               "skill_level": 2,
-                              "skill_icon": "link-icon"
+                              "skill_icon": "link-icon",
+                              "skill_description": "치명적인 일격을 노린다.",
+                              "skill_effect": "크리티컬 확률 10% 증가",
+                              "skill_effect_next": "크리티컬 확률 15% 증가"
                             }
                           ],
                           "character_link_skill_preset_2": [],
@@ -484,13 +534,17 @@ class CharacterClientImplTest {
                 .extracting(
                         skill -> skill.skillName(),
                         skill -> skill.skillLevel(),
-                        skill -> skill.skillIcon()
+                        skill -> skill.skillIcon(),
+                        skill -> skill.skillDescription(),
+                        skill -> skill.skillEffectNext()
                 )
                 .containsExactly(
                         tuple(
                                 "데들리 인스팅트",
                                 2,
-                                "link-icon"
+                                "link-icon",
+                                "치명적인 일격을 노린다.",
+                                "크리티컬 확률 15% 증가"
                         )
                 );
 
