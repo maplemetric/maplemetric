@@ -1207,6 +1207,7 @@ class CharacterQueryServiceTest {
                 null,
                 null,
                 null,
+                null,
                 createAdditionalOption(),
                 null,
                 null,

@@ -550,6 +550,52 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 장비기본옵션과요구레벨을바인딩한다() {
+        expectGetRequest(
+                CHARACTER_EQUIPMENT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "item_equipment": [
+                            {
+                              "item_equipment_slot": "무기",
+                              "item_name": "테스트 무기",
+                              "item_base_option": {
+                                "str": "10",
+                                "int": "150",
+                                "attack_power": "326",
+                                "boss_damage": "30",
+                                "base_equipment_level": 200
+                              }
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterEquipmentResponse result =
+                characterClient.getCharacterEquipment(OCID);
+
+        assertThat(result.itemEquipment())
+                .extracting(
+                        item -> item.itemBaseOption().str(),
+                        item -> item.itemBaseOption().intelligence(),
+                        item -> item.itemBaseOption().attackPower(),
+                        item -> item.itemBaseOption().bossDamage(),
+                        item -> item.itemBaseOption().baseEquipmentLevel()
+                )
+                .containsExactly(
+                        tuple("10", "150", "326", "30", 200)
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
     void 장비익셉셔널강화옵션을바인딩한다() {
         expectGetRequest(
                 CHARACTER_EQUIPMENT_PATH,

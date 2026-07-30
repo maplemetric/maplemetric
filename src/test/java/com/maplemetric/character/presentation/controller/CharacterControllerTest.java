@@ -609,6 +609,7 @@ class CharacterControllerTest {
                 null,
                 null,
                 null,
+                null,
                 evaluation,
                 null,
                 null,

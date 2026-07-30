@@ -28,6 +28,7 @@ public interface LoadCharacterEquipmentPort {
             String itemShapeIcon,
             String itemGender,
             ItemOption itemTotalOption,
+            ItemBaseOption itemBaseOption,
             Integer equipmentLevelIncrease,
             String growthExp,
             Integer growthLevel,
@@ -54,6 +55,27 @@ public interface LoadCharacterEquipmentPort {
             String additionalPotentialOption3,
             Integer specialRingLevel,
             String dateExpire
+    ) {
+    }
+
+    record ItemBaseOption(
+            String str,
+            String dex,
+            String intelligence,
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            String armor,
+            String speed,
+            String jump,
+            String bossDamage,
+            String ignoreMonsterArmor,
+            String allStat,
+            String maxHpRate,
+            String maxMpRate,
+            Integer baseEquipmentLevel
     ) {
     }
 

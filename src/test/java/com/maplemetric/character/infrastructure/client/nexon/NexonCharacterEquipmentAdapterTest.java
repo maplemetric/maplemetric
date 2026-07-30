@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemBaseOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemExceptionalOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
@@ -92,6 +93,7 @@ class NexonCharacterEquipmentAdapterTest {
                 "https://example.com/shape.png",
                 "남",
                 option,
+                createResponseBaseOption(),
                 3,
                 "100",
                 2,
@@ -158,6 +160,7 @@ class NexonCharacterEquipmentAdapterTest {
                 "https://example.com/shape.png",
                 "남",
                 option,
+                createExpectedBaseOption(),
                 3,
                 "100",
                 2,
@@ -184,6 +187,50 @@ class NexonCharacterEquipmentAdapterTest {
                 "올스탯 : +3%",
                 4,
                 "2026-12-31T00:00+09:00"
+        );
+    }
+
+    private CharacterEquipmentResponse.ItemBaseOption createResponseBaseOption() {
+        return new CharacterEquipmentResponse.ItemBaseOption(
+                "60",
+                "61",
+                "62",
+                "63",
+                "640",
+                "650",
+                "66",
+                "67",
+                "68",
+                "69",
+                "70",
+                "71",
+                "72",
+                "73",
+                "74",
+                "75",
+                200
+        );
+    }
+
+    private ItemBaseOption createExpectedBaseOption() {
+        return new ItemBaseOption(
+                "60",
+                "61",
+                "62",
+                "63",
+                "640",
+                "650",
+                "66",
+                "67",
+                "68",
+                "69",
+                "70",
+                "71",
+                "72",
+                "73",
+                "74",
+                "75",
+                200
         );
     }
 

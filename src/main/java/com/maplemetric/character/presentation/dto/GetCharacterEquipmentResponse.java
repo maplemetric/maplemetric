@@ -52,6 +52,7 @@ public record GetCharacterEquipmentResponse(
             String itemShapeIcon,
             String itemGender,
             ItemOptionResponse itemTotalOption,
+            ItemBaseOptionResponse itemBaseOption,
             Integer equipmentLevelIncrease,
             String growthExp,
             Integer growthLevel,
@@ -94,6 +95,7 @@ public record GetCharacterEquipmentResponse(
                     item.itemShapeIcon(),
                     item.itemGender(),
                     ItemOptionResponse.from(item.itemTotalOption()),
+                    ItemBaseOptionResponse.from(item.itemBaseOption()),
                     item.equipmentLevelIncrease(),
                     item.growthExp(),
                     item.growthLevel(),
@@ -123,6 +125,55 @@ public record GetCharacterEquipmentResponse(
                     item.additionalPotentialOption3(),
                     item.specialRingLevel(),
                     item.dateExpire()
+            );
+        }
+    }
+
+    public record ItemBaseOptionResponse(
+            String str,
+            String dex,
+            String intelligence,
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            String armor,
+            String speed,
+            String jump,
+            String bossDamage,
+            String ignoreMonsterArmor,
+            String allStat,
+            String maxHpRate,
+            String maxMpRate,
+            Integer baseEquipmentLevel
+    ) {
+
+        public static ItemBaseOptionResponse from(
+                GetCharacterEquipmentResult.ItemBaseOptionResult option
+        ) {
+            if (option == null) {
+                return null;
+            }
+
+            return new ItemBaseOptionResponse(
+                    option.str(),
+                    option.dex(),
+                    option.intelligence(),
+                    option.luk(),
+                    option.maxHp(),
+                    option.maxMp(),
+                    option.attackPower(),
+                    option.magicPower(),
+                    option.armor(),
+                    option.speed(),
+                    option.jump(),
+                    option.bossDamage(),
+                    option.ignoreMonsterArmor(),
+                    option.allStat(),
+                    option.maxHpRate(),
+                    option.maxMpRate(),
+                    option.baseEquipmentLevel()
             );
         }
     }

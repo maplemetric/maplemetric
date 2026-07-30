@@ -3,6 +3,7 @@ package com.maplemetric.character.application.result;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemBaseOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemExceptionalOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 
@@ -81,6 +82,7 @@ public record GetCharacterEquipmentResult(
             String itemShapeIcon,
             String itemGender,
             ItemOptionResult itemTotalOption,
+            ItemBaseOptionResult itemBaseOption,
             Integer equipmentLevelIncrease,
             String growthExp,
             Integer growthLevel,
@@ -124,6 +126,7 @@ public record GetCharacterEquipmentResult(
                     item.itemShapeIcon(),
                     item.itemGender(),
                     ItemOptionResult.from(item.itemTotalOption()),
+                    ItemBaseOptionResult.from(item.itemBaseOption()),
                     item.equipmentLevelIncrease(),
                     item.growthExp(),
                     item.growthLevel(),
@@ -154,6 +157,53 @@ public record GetCharacterEquipmentResult(
                     item.additionalPotentialOption3(),
                     item.specialRingLevel(),
                     item.dateExpire()
+            );
+        }
+    }
+
+    public record ItemBaseOptionResult(
+            String str,
+            String dex,
+            String intelligence,
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            String armor,
+            String speed,
+            String jump,
+            String bossDamage,
+            String ignoreMonsterArmor,
+            String allStat,
+            String maxHpRate,
+            String maxMpRate,
+            Integer baseEquipmentLevel
+    ) {
+
+        public static ItemBaseOptionResult from(ItemBaseOption option) {
+            if (option == null) {
+                return null;
+            }
+
+            return new ItemBaseOptionResult(
+                    option.str(),
+                    option.dex(),
+                    option.intelligence(),
+                    option.luk(),
+                    option.maxHp(),
+                    option.maxMp(),
+                    option.attackPower(),
+                    option.magicPower(),
+                    option.armor(),
+                    option.speed(),
+                    option.jump(),
+                    option.bossDamage(),
+                    option.ignoreMonsterArmor(),
+                    option.allStat(),
+                    option.maxHpRate(),
+                    option.maxMpRate(),
+                    option.baseEquipmentLevel()
             );
         }
     }
