@@ -32,7 +32,20 @@ public record GetCharacterSymbolResponse(
     public record SymbolResponse(
             String symbolName,
             Integer symbolLevel,
-            String symbolIcon
+            String symbolIcon,
+            String symbolDescription,
+            String symbolOtherEffectDescription,
+            String symbolForce,
+            String symbolStr,
+            String symbolDex,
+            String symbolIntelligence,
+            String symbolLuk,
+            String symbolHp,
+            String symbolDropRate,
+            String symbolMesoRate,
+            String symbolExpRate,
+            Integer symbolGrowthCount,
+            Integer symbolRequireGrowthCount
     ) {
 
         public static SymbolResponse from(
@@ -41,7 +54,20 @@ public record GetCharacterSymbolResponse(
             return new SymbolResponse(
                     symbol.symbolName(),
                     symbol.symbolLevel(),
-                    symbol.symbolIcon()
+                    symbol.symbolIcon(),
+                    symbol.symbolDescription(),
+                    symbol.symbolOtherEffectDescription(),
+                    symbol.symbolForce(),
+                    symbol.symbolStr(),
+                    symbol.symbolDex(),
+                    symbol.symbolIntelligence(),
+                    symbol.symbolLuk(),
+                    symbol.symbolHp(),
+                    symbol.symbolDropRate(),
+                    symbol.symbolMesoRate(),
+                    symbol.symbolExpRate(),
+                    symbol.symbolGrowthCount(),
+                    symbol.symbolRequireGrowthCount()
             );
         }
     }
