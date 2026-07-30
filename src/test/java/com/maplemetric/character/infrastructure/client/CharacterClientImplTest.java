@@ -498,6 +498,58 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 장비옵션의INT수치를바인딩한다() {
+        // Nexon 필드명은 int인데 Java 예약어라 DTO에서는 intelligence로 둔다.
+        // 이름을 명시하지 않으면 INT만 조용히 null이 된다.
+        expectGetRequest(
+                CHARACTER_EQUIPMENT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "item_equipment": [
+                            {
+                              "item_equipment_slot": "모자",
+                              "item_name": "테스트 모자",
+                              "item_total_option": {
+                                "str": "10",
+                                "dex": "20",
+                                "int": "196",
+                                "luk": "30"
+                              },
+                              "item_add_option": {
+                                "int": "44"
+                              }
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterEquipmentResponse result =
+                characterClient.getCharacterEquipment(OCID);
+
+        // ItemOption은 total·add·etc·starforce가 공유하는 record라 한 곳만 검증해도
+        // 바인딩은 같지만, 소비되는 경로마다 실제로 값이 오는지 함께 고정한다.
+        assertThat(result.itemEquipment())
+                .extracting(
+                        item -> item.itemTotalOption().str(),
+                        item -> item.itemTotalOption().dex(),
+                        item -> item.itemTotalOption().intelligence(),
+                        item -> item.itemTotalOption().luk(),
+                        item -> item.itemAddOption().intelligence()
+                )
+                .containsExactly(
+                        tuple("10", "20", "196", "30", "44")
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
     void V매트릭스정보를조회한다() {
         expectGetRequest(
                 CHARACTER_V_MATRIX_PATH,
