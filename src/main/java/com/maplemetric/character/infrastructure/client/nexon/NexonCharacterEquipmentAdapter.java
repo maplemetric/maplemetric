@@ -3,6 +3,7 @@ package com.maplemetric.character.infrastructure.client.nexon;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemBaseOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemExceptionalOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
@@ -66,6 +67,7 @@ class NexonCharacterEquipmentAdapter
                 item.itemShapeIcon(),
                 item.itemGender(),
                 convertOption(item.itemTotalOption()),
+                convertBaseOption(item.itemBaseOption()),
                 item.equipmentLevelIncrease(),
                 item.growthExp(),
                 item.growthLevel(),
@@ -92,6 +94,34 @@ class NexonCharacterEquipmentAdapter
                 item.additionalPotentialOption3(),
                 item.specialRingLevel(),
                 item.dateExpire()
+        );
+    }
+
+    private ItemBaseOption convertBaseOption(
+            CharacterEquipmentResponse.ItemBaseOption option
+    ) {
+        if (option == null) {
+            return null;
+        }
+
+        return new ItemBaseOption(
+                option.str(),
+                option.dex(),
+                option.intelligence(),
+                option.luk(),
+                option.maxHp(),
+                option.maxMp(),
+                option.attackPower(),
+                option.magicPower(),
+                option.armor(),
+                option.speed(),
+                option.jump(),
+                option.bossDamage(),
+                option.ignoreMonsterArmor(),
+                option.allStat(),
+                option.maxHpRate(),
+                option.maxMpRate(),
+                option.baseEquipmentLevel()
         );
     }
 

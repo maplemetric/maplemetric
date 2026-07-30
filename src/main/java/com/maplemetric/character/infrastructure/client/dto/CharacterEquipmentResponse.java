@@ -39,6 +39,7 @@ public record CharacterEquipmentResponse(
             String itemShapeIcon,
             String itemGender,
             ItemOption itemTotalOption,
+            ItemBaseOption itemBaseOption,
             Integer equipmentLevelIncrease,
             String growthExp,
             Integer growthLevel,
@@ -78,6 +79,33 @@ public record CharacterEquipmentResponse(
 
             Integer specialRingLevel,
             String dateExpire
+    ) {
+    }
+
+    // 기본 옵션도 ItemOption과 구성이 다르다. damage와 equipment_level_decrease가
+    // 없고 base_equipment_level(요구 레벨)이 따로 있어 별도 타입으로 둔다.
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record ItemBaseOption(
+            String str,
+            String dex,
+
+            @JsonProperty("int")
+            String intelligence,
+
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            String armor,
+            String speed,
+            String jump,
+            String bossDamage,
+            String ignoreMonsterArmor,
+            String allStat,
+            String maxHpRate,
+            String maxMpRate,
+            Integer baseEquipmentLevel
     ) {
     }
 
