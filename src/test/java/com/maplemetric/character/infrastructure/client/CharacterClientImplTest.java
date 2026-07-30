@@ -517,6 +517,9 @@ class CharacterClientImplTest {
                                 "dex": "20",
                                 "int": "196",
                                 "luk": "30"
+                              },
+                              "item_add_option": {
+                                "int": "44"
                               }
                             }
                           ]
@@ -529,15 +532,18 @@ class CharacterClientImplTest {
         CharacterEquipmentResponse result =
                 characterClient.getCharacterEquipment(OCID);
 
+        // ItemOption은 total·add·etc·starforce가 공유하는 record라 한 곳만 검증해도
+        // 바인딩은 같지만, 소비되는 경로마다 실제로 값이 오는지 함께 고정한다.
         assertThat(result.itemEquipment())
                 .extracting(
                         item -> item.itemTotalOption().str(),
                         item -> item.itemTotalOption().dex(),
                         item -> item.itemTotalOption().intelligence(),
-                        item -> item.itemTotalOption().luk()
+                        item -> item.itemTotalOption().luk(),
+                        item -> item.itemAddOption().intelligence()
                 )
                 .containsExactly(
-                        tuple("10", "20", "196", "30")
+                        tuple("10", "20", "196", "30", "44")
                 );
 
         mockServer.verify();
