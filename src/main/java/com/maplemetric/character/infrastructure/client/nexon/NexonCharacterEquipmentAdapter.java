@@ -3,6 +3,7 @@ package com.maplemetric.character.infrastructure.client.nexon;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemExceptionalOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
@@ -76,6 +77,7 @@ class NexonCharacterEquipmentAdapter
                 item.soulName(),
                 item.soulOption(),
                 convertOption(item.itemAddOption()),
+                convertExceptionalOption(item.itemExceptionalOption()),
                 convertOption(item.itemEtcOption()),
                 convertOption(item.itemStarforceOption()),
                 item.starforce(),
@@ -90,6 +92,26 @@ class NexonCharacterEquipmentAdapter
                 item.additionalPotentialOption3(),
                 item.specialRingLevel(),
                 item.dateExpire()
+        );
+    }
+
+    private ItemExceptionalOption convertExceptionalOption(
+            CharacterEquipmentResponse.ItemExceptionalOption option
+    ) {
+        if (option == null) {
+            return null;
+        }
+
+        return new ItemExceptionalOption(
+                option.str(),
+                option.dex(),
+                option.intelligence(),
+                option.luk(),
+                option.maxHp(),
+                option.maxMp(),
+                option.attackPower(),
+                option.magicPower(),
+                option.exceptionalUpgrade()
         );
     }
 

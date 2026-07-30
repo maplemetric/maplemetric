@@ -50,6 +50,7 @@ public record CharacterEquipmentResponse(
             String soulName,
             String soulOption,
             ItemOption itemAddOption,
+            ItemExceptionalOption itemExceptionalOption,
             ItemOption itemEtcOption,
             ItemOption itemStarforceOption,
             String starforce,
@@ -77,6 +78,25 @@ public record CharacterEquipmentResponse(
 
             Integer specialRingLevel,
             String dateExpire
+    ) {
+    }
+
+    // 익셉셔널 강화는 ItemOption과 구성이 다르다. 부가 스탯이 없고
+    // exceptional_upgrade(강화 횟수)가 따로 있어 별도 타입으로 둔다.
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record ItemExceptionalOption(
+            String str,
+            String dex,
+
+            @JsonProperty("int")
+            String intelligence,
+
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            Integer exceptionalUpgrade
     ) {
     }
 

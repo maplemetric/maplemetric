@@ -63,6 +63,7 @@ public record GetCharacterEquipmentResponse(
             String soulName,
             String soulOption,
             ItemOptionResponse itemAddOption,
+            ItemExceptionalOptionResponse itemExceptionalOption,
             AdditionalOptionEvaluationResponse additionalOptionEvaluation,
             ItemOptionResponse itemEtcOption,
             ItemOptionResponse itemStarforceOption,
@@ -104,6 +105,7 @@ public record GetCharacterEquipmentResponse(
                     item.soulName(),
                     item.soulOption(),
                     ItemOptionResponse.from(item.itemAddOption()),
+                    ItemExceptionalOptionResponse.from(item.itemExceptionalOption()),
                     AdditionalOptionEvaluationResponse.from(
                             item.additionalOptionEvaluation()
                     ),
@@ -121,6 +123,39 @@ public record GetCharacterEquipmentResponse(
                     item.additionalPotentialOption3(),
                     item.specialRingLevel(),
                     item.dateExpire()
+            );
+        }
+    }
+
+    public record ItemExceptionalOptionResponse(
+            String str,
+            String dex,
+            String intelligence,
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            Integer exceptionalUpgrade
+    ) {
+
+        public static ItemExceptionalOptionResponse from(
+                GetCharacterEquipmentResult.ItemExceptionalOptionResult option
+        ) {
+            if (option == null) {
+                return null;
+            }
+
+            return new ItemExceptionalOptionResponse(
+                    option.str(),
+                    option.dex(),
+                    option.intelligence(),
+                    option.luk(),
+                    option.maxHp(),
+                    option.maxMp(),
+                    option.attackPower(),
+                    option.magicPower(),
+                    option.exceptionalUpgrade()
             );
         }
     }

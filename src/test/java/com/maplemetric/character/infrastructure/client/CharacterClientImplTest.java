@@ -550,6 +550,56 @@ class CharacterClientImplTest {
     }
 
     @Test
+    void 장비익셉셔널강화옵션을바인딩한다() {
+        expectGetRequest(
+                CHARACTER_EQUIPMENT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "item_equipment": [
+                            {
+                              "item_equipment_slot": "장갑",
+                              "item_name": "테스트 장갑",
+                              "item_exceptional_option": {
+                                "str": "50",
+                                "dex": "50",
+                                "int": "50",
+                                "luk": "50",
+                                "max_hp": "500",
+                                "max_mp": "500",
+                                "attack_power": "10",
+                                "magic_power": "10",
+                                "exceptional_upgrade": 2
+                              }
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterEquipmentResponse result =
+                characterClient.getCharacterEquipment(OCID);
+
+        assertThat(result.itemEquipment())
+                .extracting(
+                        item -> item.itemExceptionalOption().str(),
+                        item -> item.itemExceptionalOption().intelligence(),
+                        item -> item.itemExceptionalOption().maxHp(),
+                        item -> item.itemExceptionalOption().attackPower(),
+                        item -> item.itemExceptionalOption().exceptionalUpgrade()
+                )
+                .containsExactly(
+                        tuple("50", "50", "500", "10", 2)
+                );
+
+        mockServer.verify();
+    }
+
+    @Test
     void V매트릭스정보를조회한다() {
         expectGetRequest(
                 CHARACTER_V_MATRIX_PATH,
