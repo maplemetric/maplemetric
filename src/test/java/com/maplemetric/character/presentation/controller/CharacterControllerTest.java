@@ -523,7 +523,10 @@ class CharacterControllerTest {
                 new GetCharacterSkillsResult.LinkSkillResult(
                         "데들리 인스팅트",
                         2,
-                        "link-icon"
+                        "link-icon",
+                        "치명적인 일격을 노린다.",
+                        "크리티컬 확률 10% 증가",
+                        "크리티컬 확률 15% 증가"
                 );
 
         return new GetCharacterSkillsResult(
@@ -536,7 +539,10 @@ class CharacterControllerTest {
                                         List.of(
                                                 new GetCharacterSkillsResult.SkillResult(
                                                         "조커",
-                                                        "joker-icon"
+                                                        "joker-icon",
+                                                        "조커를 소환한다.",
+                                                        "데미지 300%",
+                                                        "데미지 320%"
                                                 )
                                         )
                                 )
@@ -573,7 +579,10 @@ class CharacterControllerTest {
                                 List.of(
                                         new GetCharacterHexaResult.LinkedSkillResult(
                                                 "템페스트 오브 카드 VI",
-                                                "tempest-icon"
+                                                "tempest-icon",
+                                                "카드를 흩뿌린다.",
+                                                "데미지 500%",
+                                                "데미지 520%"
                                         )
                                 )
                         )

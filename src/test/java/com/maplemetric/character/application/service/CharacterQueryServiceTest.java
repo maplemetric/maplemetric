@@ -1136,7 +1136,10 @@ class CharacterQueryServiceTest {
                 new LinkSkill(
                         "데들리 인스팅트",
                         2,
-                        "https://example.com/deadly-instinct.png"
+                        "https://example.com/deadly-instinct.png",
+                        "치명적인 일격을 노린다.",
+                        "크리티컬 확률 10% 증가",
+                        "크리티컬 확률 15% 증가"
                 );
 
         return new CharacterSkills(
@@ -1150,7 +1153,10 @@ class CharacterQueryServiceTest {
                 List.of(
                         new FifthSkill(
                                 "조커",
-                                "https://example.com/joker.png"
+                                "https://example.com/joker.png",
+                                "조커를 소환한다.",
+                                "데미지 300%",
+                                "데미지 320%"
                         )
                 ),
                 List.of(linkSkill),
@@ -1177,7 +1183,10 @@ class CharacterQueryServiceTest {
                 List.of(
                         new SixthSkill(
                                 "템페스트 오브 카드 VI",
-                                "https://example.com/tempest-vi.png"
+                                "https://example.com/tempest-vi.png",
+                                "카드를 흩뿌린다.",
+                                "데미지 500%",
+                                "데미지 520%"
                         )
                 ),
                 List.of(

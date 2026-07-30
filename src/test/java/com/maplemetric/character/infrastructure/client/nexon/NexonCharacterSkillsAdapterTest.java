@@ -53,7 +53,10 @@ class NexonCharacterSkillsAdapterTest {
                 new CharacterSkillResponse.Skill(
                         "조커",
                         30,
-                        "https://example.com/joker.png"
+                        "https://example.com/joker.png",
+                        "조커를 소환한다.",
+                        "데미지 300%",
+                        "데미지 320%"
                 );
 
         given(characterClient.getCharacterSkill(OCID, "5"))
@@ -70,7 +73,10 @@ class NexonCharacterSkillsAdapterTest {
                 new CharacterLinkSkillResponse.LinkSkill(
                         "데들리 인스팅트",
                         2,
-                        "https://example.com/deadly-instinct.png"
+                        "https://example.com/deadly-instinct.png",
+                        "치명적인 일격을 노린다.",
+                        "크리티컬 확률 10% 증가",
+                        "크리티컬 확률 15% 증가"
                 );
 
         given(characterClient.getCharacterLinkSkill(OCID))
@@ -102,7 +108,10 @@ class NexonCharacterSkillsAdapterTest {
                 .containsExactly(
                         new FifthSkill(
                                 "조커",
-                                "https://example.com/joker.png"
+                                "https://example.com/joker.png",
+                                "조커를 소환한다.",
+                                "데미지 300%",
+                                "데미지 320%"
                         ),
                         null
                 );
@@ -112,7 +121,10 @@ class NexonCharacterSkillsAdapterTest {
                         new LinkSkill(
                                 "데들리 인스팅트",
                                 2,
-                                "https://example.com/deadly-instinct.png"
+                                "https://example.com/deadly-instinct.png",
+                                "치명적인 일격을 노린다.",
+                                "크리티컬 확률 10% 증가",
+                                "크리티컬 확률 15% 증가"
                         )
                 );
 
@@ -121,7 +133,10 @@ class NexonCharacterSkillsAdapterTest {
                         new LinkSkill(
                                 "데들리 인스팅트",
                                 2,
-                                "https://example.com/deadly-instinct.png"
+                                "https://example.com/deadly-instinct.png",
+                                "치명적인 일격을 노린다.",
+                                "크리티컬 확률 10% 증가",
+                                "크리티컬 확률 15% 증가"
                         )
                 );
 

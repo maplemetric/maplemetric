@@ -30,7 +30,10 @@ public interface LoadCharacterHexaPort {
 
     record SixthSkill(
             String skillName,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 

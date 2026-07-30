@@ -30,15 +30,24 @@ class GetCharacterSkillsResultTest {
         List<FifthSkill> fifthSkills = List.of(
                 new FifthSkill(
                         "조커",
-                        "first-icon"
+                        "first-icon",
+                        "조커를 소환한다.",
+                        "데미지 300%",
+                        "데미지 320%"
                 ),
                 new FifthSkill(
                         "조커",
-                        "second-icon"
+                        "second-icon",
+                        null,
+                        null,
+                        null
                 ),
                 new FifthSkill(
                         " ",
-                        "blank-name-icon"
+                        "blank-name-icon",
+                        null,
+                        null,
+                        null
                 )
         );
 
@@ -87,6 +96,9 @@ class GetCharacterSkillsResultTest {
         List<FifthSkill> fifthSkills = List.of(
                 new FifthSkill(
                         "조커",
+                        null,
+                        null,
+                        null,
                         null
                 )
         );
@@ -258,7 +270,10 @@ class GetCharacterSkillsResultTest {
         return new LinkSkill(
                 skillName,
                 skillLevel,
-                skillName + "-icon"
+                skillName + "-icon",
+                skillName + " 설명",
+                skillName + " 효과",
+                skillName + " 다음 효과"
         );
     }
 }
