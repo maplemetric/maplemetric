@@ -32,7 +32,7 @@ public class OverallRankingSnapshotStoreService {
                         collection.snapshotDate(),
                         collection.rows().stream()
                                 .map(row -> new ObservedName(
-                                        row.className(),
+                                        row.jobName(),
                                         1L
                                 ))
                                 .toList(),

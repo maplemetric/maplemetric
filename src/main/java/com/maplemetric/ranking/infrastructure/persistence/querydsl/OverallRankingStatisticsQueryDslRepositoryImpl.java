@@ -7,6 +7,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -115,18 +116,19 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 );
 
         NumberExpression<Long> count = snapshot.count();
+        StringExpression jobName = jobName(snapshot);
 
         return queryFactory
                 .select(Projections.constructor(
                         ClassNameAggregate.class,
-                        snapshot.className,
+                        jobName,
                         count,
                         averageLevel
                 ))
                 .from(snapshot)
                 .where(snapshot.collection.id.eq(collectionId))
-                .groupBy(snapshot.className)
-                .orderBy(count.desc(), snapshot.className.asc())
+                .groupBy(jobName)
+                .orderBy(count.desc(), jobName.asc())
                 .fetch();
     }
 
@@ -145,24 +147,36 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 );
 
         NumberExpression<Long> count = snapshot.count();
+        StringExpression jobName = jobName(snapshot);
 
         return queryFactory
                 .select(Projections.constructor(
                         ClassNameAggregateByCollection.class,
                         snapshot.collection.id,
-                        snapshot.className,
+                        jobName,
                         count,
                         averageLevel
                 ))
                 .from(snapshot)
                 .where(snapshot.collection.id.in(collectionIds))
-                .groupBy(snapshot.collection.id, snapshot.className)
+                .groupBy(snapshot.collection.id, jobName)
                 .orderBy(
                         snapshot.collection.id.asc(),
                         count.desc(),
-                        snapshot.className.asc()
+                        jobName.asc()
                 )
                 .fetch();
+    }
+
+    private StringExpression jobName(
+            QOverallRankingSnapshotEntity snapshot
+    ) {
+        return Expressions.stringTemplate(
+                "case when nullif(trim({0}), '') is not null "
+                        + "then {0} else {1} end",
+                snapshot.subClassName,
+                snapshot.className
+        );
     }
 
     @Override
