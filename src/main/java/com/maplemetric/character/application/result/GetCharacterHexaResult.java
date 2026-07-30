@@ -1,5 +1,6 @@
 package com.maplemetric.character.application.result;
 
+import com.maplemetric.character.application.calculator.HexaStatIncrease;
 import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.CharacterHexa;
 import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.HexaCore;
 import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.HexaStatCore;
@@ -7,6 +8,7 @@ import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.Link
 import com.maplemetric.character.application.port.out.LoadCharacterHexaPort.SixthSkill;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -136,6 +138,10 @@ public record GetCharacterHexaResult(
                         convertSlotNo(stat.slotId()),
                         stat.mainStatName(),
                         stat.mainStatLevel(),
+                        HexaStatIncrease.ofMain(
+                                stat.mainStatName(),
+                                stat.mainStatLevel()
+                        ),
                         convertSubStats(stat)
                 ))
                 .toList();
@@ -145,11 +151,11 @@ public record GetCharacterHexaResult(
             HexaStatCore stat
     ) {
         return Stream.of(
-                        new SubStatResult(
+                        toSubStat(
                                 stat.subStatName1(),
                                 stat.subStatLevel1()
                         ),
-                        new SubStatResult(
+                        toSubStat(
                                 stat.subStatName2(),
                                 stat.subStatLevel2()
                         )
@@ -157,6 +163,17 @@ public record GetCharacterHexaResult(
                 .filter(subStat -> subStat.statName() != null
                         && !subStat.statName().isBlank())
                 .toList();
+    }
+
+    private static SubStatResult toSubStat(
+            String statName,
+            Integer statLevel
+    ) {
+        return new SubStatResult(
+                statName,
+                statLevel,
+                HexaStatIncrease.ofSub(statName, statLevel)
+        );
     }
 
     private static Integer convertSlotNo(
@@ -207,13 +224,15 @@ public record GetCharacterHexaResult(
             Integer slotNo,
             String mainStatName,
             Integer mainStatLevel,
+            BigDecimal mainStatIncrease,
             List<SubStatResult> subStats
     ) {
     }
 
     public record SubStatResult(
             String statName,
-            Integer statLevel
+            Integer statLevel,
+            BigDecimal statIncrease
     ) {
     }
 }

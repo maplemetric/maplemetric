@@ -180,6 +180,15 @@ class CharacterControllerTest {
                                 .value(1)
                 )
                 .andExpect(
+                        jsonPath("$.data.hexa.stats[0].mainStatIncrease")
+                                .value(1.40)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.hexa.stats[0].subStats[0].statIncrease"
+                        ).value(40)
+                )
+                .andExpect(
                         jsonPath(
                                 "$.data.equipment.itemEquipment[0]"
                                         + ".additionalOptionEvaluation.calculable"
@@ -537,10 +546,12 @@ class CharacterControllerTest {
                                 1,
                                 "크리티컬 데미지 증가",
                                 4,
+                                new BigDecimal("1.40"),
                                 List.of(
                                         new GetCharacterHexaResult.SubStatResult(
                                                 "공격력 증가",
-                                                8
+                                                8,
+                                                new BigDecimal("40")
                                         )
                                 )
                         )
