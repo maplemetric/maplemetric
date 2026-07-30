@@ -12,6 +12,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSetEffectResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
@@ -50,6 +51,8 @@ public class CharacterClientImpl implements CharacterClient {
 
     private static final String CHARACTER_SYMBOL_PATH = "/maplestory/v1/character/symbol-equipment";
 
+    private static final String CHARACTER_SET_EFFECT_PATH = "/maplestory/v1/character/set-effect";
+
     private static final String CHARACTER_SKILL_PATH = "/maplestory/v1/character/skill";
 
     private static final String CHARACTER_LINK_SKILL_PATH = "/maplestory/v1/character/link-skill";
@@ -73,6 +76,8 @@ public class CharacterClientImpl implements CharacterClient {
     private static final String CHARACTER_UNION_API = "캐릭터 유니온 정보";
 
     private static final String CHARACTER_SYMBOL_API = "캐릭터 장착 심볼 정보";
+
+    private static final String CHARACTER_SET_EFFECT_API = "캐릭터 세트 효과 정보";
 
     private static final String CHARACTER_LINK_SKILL_API = "캐릭터 링크 스킬 정보";
 
@@ -251,6 +256,21 @@ public class CharacterClientImpl implements CharacterClient {
                 ocid,
                 CharacterSymbolResponse.class,
                 CHARACTER_SYMBOL_API,
+                "ocid",
+                ocid
+        );
+    }
+
+    @Override
+    public CharacterSetEffectResponse getCharacterSetEffect(
+            String ocid
+    ) {
+        return request(
+                CHARACTER_SET_EFFECT_PATH,
+                "ocid",
+                ocid,
+                CharacterSetEffectResponse.class,
+                CHARACTER_SET_EFFECT_API,
                 "ocid",
                 ocid
         );

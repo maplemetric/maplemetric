@@ -17,6 +17,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSetEffectResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterUnionResponse;
@@ -79,6 +80,9 @@ class CharacterClientImplTest {
 
     private static final String CHARACTER_SYMBOL_PATH =
             "/maplestory/v1/character/symbol-equipment";
+
+    private static final String CHARACTER_SET_EFFECT_PATH =
+            "/maplestory/v1/character/set-effect";
 
     private static final String CHARACTER_SKILL_PATH =
             "/maplestory/v1/character/skill";
@@ -448,6 +452,61 @@ class CharacterClientImplTest {
 
         assertThat(sixthSkill.characterSkill().get(0).skillName())
                 .isEqualTo("템페스트 오브 카드 VI");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void 세트효과정보를조회한다() {
+        expectGetRequest(
+                CHARACTER_SET_EFFECT_PATH,
+                "ocid",
+                OCID,
+                withSuccess(
+                        """
+                        {
+                          "set_effect": [
+                            {
+                              "set_name": "여명의 보스 세트",
+                              "total_set_count": 2,
+                              "set_effect_info": [
+                                {
+                                  "set_count": 2,
+                                  "set_option": "보스 몬스터 공격 시 데미지 : +10%"
+                                }
+                              ],
+                              "set_option_full": [
+                                {
+                                  "set_count": 2,
+                                  "set_option": "보스 몬스터 공격 시 데미지 : +10%"
+                                },
+                                {
+                                  "set_count": 3,
+                                  "set_option": "올스탯 : +20"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON
+                )
+        );
+
+        CharacterSetEffectResponse result =
+                characterClient.getCharacterSetEffect(OCID);
+
+        assertThat(result.setEffect())
+                .extracting(
+                        effect -> effect.setName(),
+                        effect -> effect.totalSetCount(),
+                        effect -> effect.setEffectInfo().size(),
+                        effect -> effect.setOptionFull().get(1).setCount(),
+                        effect -> effect.setOptionFull().get(1).setOption()
+                )
+                .containsExactly(
+                        tuple("여명의 보스 세트", 2, 1, 3, "올스탯 : +20")
+                );
 
         mockServer.verify();
     }

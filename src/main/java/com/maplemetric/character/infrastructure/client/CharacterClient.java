@@ -9,6 +9,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterHexaMatrixSt
 import com.maplemetric.character.infrastructure.client.dto.CharacterHyperStatResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterLinkSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterPopularityResponse;
+import com.maplemetric.character.infrastructure.client.dto.CharacterSetEffectResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSkillResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterSymbolResponse;
 import com.maplemetric.character.infrastructure.client.dto.CharacterStatResponse;
@@ -34,6 +35,8 @@ public interface CharacterClient {
     CharacterUnionResponse getCharacterUnion(String ocid);
 
     CharacterSymbolResponse getCharacterSymbol(String ocid);
+
+    CharacterSetEffectResponse getCharacterSetEffect(String ocid);
 
     CharacterSkillResponse getCharacterSkill(
             String ocid,
