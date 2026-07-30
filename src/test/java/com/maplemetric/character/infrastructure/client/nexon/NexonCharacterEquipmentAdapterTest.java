@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemExceptionalOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 import com.maplemetric.character.infrastructure.client.CharacterClient;
 import com.maplemetric.character.infrastructure.client.dto.CharacterEquipmentResponse;
@@ -78,6 +79,9 @@ class NexonCharacterEquipmentAdapterTest {
         CharacterEquipmentResponse.ItemOption option =
                 createResponseOption();
 
+        CharacterEquipmentResponse.ItemExceptionalOption exceptionalOption =
+                createResponseExceptionalOption();
+
         return new CharacterEquipmentResponse.ItemEquipment(
                 "무기",
                 "무기",
@@ -99,6 +103,7 @@ class NexonCharacterEquipmentAdapterTest {
                 "테스트 소울",
                 "공격력 : +3%",
                 option,
+                exceptionalOption,
                 option,
                 null,
                 "22",
@@ -141,6 +146,7 @@ class NexonCharacterEquipmentAdapterTest {
 
     private ItemEquipment createExpectedItem() {
         ItemOption option = createExpectedOption();
+        ItemExceptionalOption exceptionalOption = createExpectedExceptionalOption();
 
         return new ItemEquipment(
                 "무기",
@@ -163,6 +169,7 @@ class NexonCharacterEquipmentAdapterTest {
                 "테스트 소울",
                 "공격력 : +3%",
                 option,
+                exceptionalOption,
                 option,
                 null,
                 "22",
@@ -177,6 +184,34 @@ class NexonCharacterEquipmentAdapterTest {
                 "올스탯 : +3%",
                 4,
                 "2026-12-31T00:00+09:00"
+        );
+    }
+
+    private CharacterEquipmentResponse.ItemExceptionalOption createResponseExceptionalOption() {
+        return new CharacterEquipmentResponse.ItemExceptionalOption(
+                "50",
+                "51",
+                "52",
+                "53",
+                "540",
+                "550",
+                "56",
+                "57",
+                2
+        );
+    }
+
+    private ItemExceptionalOption createExpectedExceptionalOption() {
+        return new ItemExceptionalOption(
+                "50",
+                "51",
+                "52",
+                "53",
+                "540",
+                "550",
+                "56",
+                "57",
+                2
         );
     }
 

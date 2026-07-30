@@ -39,6 +39,7 @@ public interface LoadCharacterEquipmentPort {
             String soulName,
             String soulOption,
             ItemOption itemAddOption,
+            ItemExceptionalOption itemExceptionalOption,
             ItemOption itemEtcOption,
             ItemOption itemStarforceOption,
             String starforce,
@@ -53,6 +54,19 @@ public interface LoadCharacterEquipmentPort {
             String additionalPotentialOption3,
             Integer specialRingLevel,
             String dateExpire
+    ) {
+    }
+
+    record ItemExceptionalOption(
+            String str,
+            String dex,
+            String intelligence,
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            Integer exceptionalUpgrade
     ) {
     }
 

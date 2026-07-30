@@ -1221,6 +1221,7 @@ class CharacterQueryServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }

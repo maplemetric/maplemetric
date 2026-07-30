@@ -3,6 +3,7 @@ package com.maplemetric.character.application.result;
 import com.maplemetric.character.application.calculator.AdditionalOptionCalculator;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.CharacterEquipment;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemEquipment;
+import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemExceptionalOption;
 import com.maplemetric.character.application.port.out.LoadCharacterEquipmentPort.ItemOption;
 
 import java.util.List;
@@ -91,6 +92,7 @@ public record GetCharacterEquipmentResult(
             String soulName,
             String soulOption,
             ItemOptionResult itemAddOption,
+            ItemExceptionalOptionResult itemExceptionalOption,
             AdditionalOptionEvaluationResult additionalOptionEvaluation,
             ItemOptionResult itemEtcOption,
             ItemOptionResult itemStarforceOption,
@@ -133,6 +135,7 @@ public record GetCharacterEquipmentResult(
                     item.soulName(),
                     item.soulOption(),
                     ItemOptionResult.from(item.itemAddOption()),
+                    ItemExceptionalOptionResult.from(item.itemExceptionalOption()),
                     calculator.calculate(
                             characterClass,
                             item.itemAddOption()
@@ -151,6 +154,37 @@ public record GetCharacterEquipmentResult(
                     item.additionalPotentialOption3(),
                     item.specialRingLevel(),
                     item.dateExpire()
+            );
+        }
+    }
+
+    public record ItemExceptionalOptionResult(
+            String str,
+            String dex,
+            String intelligence,
+            String luk,
+            String maxHp,
+            String maxMp,
+            String attackPower,
+            String magicPower,
+            Integer exceptionalUpgrade
+    ) {
+
+        public static ItemExceptionalOptionResult from(ItemExceptionalOption option) {
+            if (option == null) {
+                return null;
+            }
+
+            return new ItemExceptionalOptionResult(
+                    option.str(),
+                    option.dex(),
+                    option.intelligence(),
+                    option.luk(),
+                    option.maxHp(),
+                    option.maxMp(),
+                    option.attackPower(),
+                    option.magicPower(),
+                    option.exceptionalUpgrade()
             );
         }
     }
