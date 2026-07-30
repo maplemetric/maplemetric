@@ -15,6 +15,8 @@ import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort
 import com.maplemetric.character.application.port.out.LoadCharacterHyperStatPort.CharacterHyperStat;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort;
 import com.maplemetric.character.application.port.out.LoadCharacterPopularityPort.CharacterPopularity;
+import com.maplemetric.character.application.port.out.LoadCharacterSetEffectPort;
+import com.maplemetric.character.application.port.out.LoadCharacterSetEffectPort.CharacterSetEffect;
 import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort;
 import com.maplemetric.character.application.port.out.LoadCharacterSkillsPort.CharacterSkills;
 import com.maplemetric.character.application.port.out.LoadCharacterStatPort;
@@ -31,6 +33,7 @@ import com.maplemetric.character.application.result.GetCharacterHexaResult;
 import com.maplemetric.character.application.result.GetCharacterHyperStatResult;
 import com.maplemetric.character.application.result.GetCharacterPopularityResult;
 import com.maplemetric.character.application.result.GetCharacterRankingResult;
+import com.maplemetric.character.application.result.GetCharacterSetEffectResult;
 import com.maplemetric.character.application.result.GetCharacterSkillsResult;
 import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
@@ -66,6 +69,7 @@ public class CharacterQueryService {
     private final LoadCharacterHexaPort loadCharacterHexaPort;
     private final LoadCharacterHyperStatPort loadCharacterHyperStatPort;
     private final LoadCharacterPopularityPort loadCharacterPopularityPort;
+    private final LoadCharacterSetEffectPort loadCharacterSetEffectPort;
     private final LoadCharacterSkillsPort loadCharacterSkillsPort;
     private final LoadCharacterStatPort loadCharacterStatPort;
     private final LoadCharacterSymbolPort loadCharacterSymbolPort;
@@ -83,6 +87,7 @@ public class CharacterQueryService {
             LoadCharacterHexaPort loadCharacterHexaPort,
             LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
+            LoadCharacterSetEffectPort loadCharacterSetEffectPort,
             LoadCharacterSkillsPort loadCharacterSkillsPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
@@ -98,6 +103,7 @@ public class CharacterQueryService {
                 loadCharacterHexaPort,
                 loadCharacterHyperStatPort,
                 loadCharacterPopularityPort,
+                loadCharacterSetEffectPort,
                 loadCharacterSkillsPort,
                 loadCharacterStatPort,
                 loadCharacterSymbolPort,
@@ -116,6 +122,7 @@ public class CharacterQueryService {
             LoadCharacterHexaPort loadCharacterHexaPort,
             LoadCharacterHyperStatPort loadCharacterHyperStatPort,
             LoadCharacterPopularityPort loadCharacterPopularityPort,
+            LoadCharacterSetEffectPort loadCharacterSetEffectPort,
             LoadCharacterSkillsPort loadCharacterSkillsPort,
             LoadCharacterStatPort loadCharacterStatPort,
             LoadCharacterSymbolPort loadCharacterSymbolPort,
@@ -134,6 +141,7 @@ public class CharacterQueryService {
         this.loadCharacterHyperStatPort = loadCharacterHyperStatPort;
         this.loadCharacterPopularityPort =
                 loadCharacterPopularityPort;
+        this.loadCharacterSetEffectPort = loadCharacterSetEffectPort;
         this.loadCharacterSkillsPort = loadCharacterSkillsPort;
         this.loadCharacterStatPort = loadCharacterStatPort;
         this.loadCharacterSymbolPort = loadCharacterSymbolPort;
@@ -221,6 +229,10 @@ public class CharacterQueryService {
                 loadCharacterEquipmentPort
                         .loadCharacterEquipment(ocid);
 
+        CharacterSetEffect setEffect =
+                loadCharacterSetEffectPort
+                        .loadCharacterSetEffect(ocid);
+
         return GetCharacterSummaryResult.of(
                 GetCharacterBasicResult.from(basic),
                 GetCharacterStatResult.from(stat),
@@ -241,6 +253,7 @@ public class CharacterQueryService {
                         basic.characterClass(),
                         additionalOptionCalculator
                 ),
+                GetCharacterSetEffectResult.from(setEffect),
                 GetCharacterPopularityResult.from(
                         popularity
                 ),
