@@ -264,14 +264,16 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
     }
 
     @Test
-    void className기준으로집계하고subClassName은사용하지않는다() {
+    void subClassName이유효하면우선하고없으면className으로집계한다() {
         OverallRankingCollectionEntity collection =
                 saveAllConditionCollection(
                         LocalDate.of(2026, 7, 24),
                         new Row[] {
-                                row(1, "아크메이지(불,독)", null, 200),
-                                row(2, "아크메이지(불,독)", "전체 전직", 210),
-                                row(3, "히어로", "", 220)
+                                row(1, "마법사", "비숍", 200),
+                                row(2, "마법사", "비숍", 210),
+                                row(3, "비숍", null, 220),
+                                row(4, "히어로", "", 230),
+                                row(5, "팔라딘", "   ", 240)
                         }
                 );
 
@@ -280,17 +282,16 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
 
         assertThat(aggregates)
                 .extracting(aggregate -> aggregate.className())
-                .containsExactlyInAnyOrder("아크메이지(불,독)", "히어로");
+                .containsExactly("비숍", "팔라딘", "히어로");
 
-        var archmage = aggregates.stream()
-                .filter(aggregate -> aggregate.className()
-                        .equals("아크메이지(불,독)"))
+        var bishop = aggregates.stream()
+                .filter(aggregate -> aggregate.className().equals("비숍"))
                 .findFirst()
                 .orElseThrow();
 
-        assertThat(archmage.count()).isEqualTo(2);
-        assertThat(archmage.averageLevel())
-                .isEqualByComparingTo(BigDecimal.valueOf(205));
+        assertThat(bishop.count()).isEqualTo(3);
+        assertThat(bishop.averageLevel())
+                .isEqualByComparingTo(BigDecimal.valueOf(210));
     }
 
     @Test
@@ -576,14 +577,14 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
         OverallRankingCollectionEntity first =
                 saveAllConditionCollection(
                         LocalDate.of(2026, 7, 23),
-                        new Row[] {row(1, "히어로", null, 200)}
+                        new Row[] {row(1, "전사", "히어로", 200)}
                 );
 
         OverallRankingCollectionEntity second =
                 saveAllConditionCollection(
                         LocalDate.of(2026, 7, 24),
                         new Row[] {
-                                row(1, "히어로", null, 210),
+                                row(1, "전사", "히어로", 210),
                                 row(2, "팬텀", null, 220)
                         }
                 );
