@@ -48,7 +48,10 @@ public record GetCharacterHexaResponse(
 
     public record LinkedSkillResponse(
             String skillName,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
 
         public static LinkedSkillResponse from(
@@ -56,7 +59,10 @@ public record GetCharacterHexaResponse(
         ) {
             return new LinkedSkillResponse(
                     result.skillName(),
-                    result.skillIcon()
+                    result.skillIcon(),
+                    result.skillDescription(),
+                    result.skillEffect(),
+                    result.skillEffectNext()
             );
         }
     }

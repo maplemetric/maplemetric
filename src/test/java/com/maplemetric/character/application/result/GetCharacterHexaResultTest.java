@@ -28,11 +28,17 @@ class GetCharacterHexaResultTest {
         List<SixthSkill> sixthSkills = Arrays.asList(
                 new SixthSkill(
                         "템페스트 오브 카드 VI",
-                        "first-icon"
+                        "first-icon",
+                        "카드를 흩뿌린다.",
+                        "데미지 500%",
+                        "데미지 520%"
                 ),
                 new SixthSkill(
                         "템페스트 오브 카드 VI",
-                        "second-icon"
+                        "second-icon",
+                        null,
+                        null,
+                        null
                 ),
                 null
         );

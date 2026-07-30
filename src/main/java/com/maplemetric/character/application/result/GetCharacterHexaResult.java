@@ -115,9 +115,10 @@ public record GetCharacterHexaResult(
 
                     return new LinkedSkillResult(
                             linkedSkill.hexaSkillId(),
-                            skill == null
-                                    ? null
-                                    : skill.skillIcon()
+                            skill == null ? null : skill.skillIcon(),
+                            skill == null ? null : skill.skillDescription(),
+                            skill == null ? null : skill.skillEffect(),
+                            skill == null ? null : skill.skillEffectNext()
                     );
                 })
                 .toList();
@@ -215,7 +216,10 @@ public record GetCharacterHexaResult(
 
     public record LinkedSkillResult(
             String skillName,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 

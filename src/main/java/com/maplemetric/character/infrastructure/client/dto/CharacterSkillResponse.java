@@ -16,7 +16,10 @@ public record CharacterSkillResponse(
     public record Skill(
             String skillName,
             Integer skillLevel,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 }

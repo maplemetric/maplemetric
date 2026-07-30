@@ -81,7 +81,10 @@ class NexonCharacterHexaAdapterTest {
                 new CharacterSkillResponse.Skill(
                         "템페스트 오브 카드 VI",
                         18,
-                        "https://example.com/tempest-vi.png"
+                        "https://example.com/tempest-vi.png",
+                        "카드를 흩뿌린다.",
+                        "데미지 500%",
+                        "데미지 520%"
                 );
 
         given(characterClient.getCharacterSkill(OCID, "6"))
@@ -117,7 +120,10 @@ class NexonCharacterHexaAdapterTest {
                 .containsExactly(
                         new SixthSkill(
                                 "템페스트 오브 카드 VI",
-                                "https://example.com/tempest-vi.png"
+                                "https://example.com/tempest-vi.png",
+                                "카드를 흩뿌린다.",
+                                "데미지 500%",
+                                "데미지 520%"
                         ),
                         null
                 );

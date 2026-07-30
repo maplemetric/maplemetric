@@ -25,7 +25,10 @@ public record CharacterLinkSkillResponse(
     public record LinkSkill(
             String skillName,
             Integer skillLevel,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
     }
 }

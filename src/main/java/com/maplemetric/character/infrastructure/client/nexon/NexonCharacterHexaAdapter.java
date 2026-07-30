@@ -53,7 +53,10 @@ class NexonCharacterHexaAdapter
                         sixthSkillResponse.characterSkill(),
                         skill -> new SixthSkill(
                                 skill.skillName(),
-                                skill.skillIcon()
+                                skill.skillIcon(),
+                                skill.skillDescription(),
+                                skill.skillEffect(),
+                                skill.skillEffectNext()
                         )
                 ),
                 convertList(

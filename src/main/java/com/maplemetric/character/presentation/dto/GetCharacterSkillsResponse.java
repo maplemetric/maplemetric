@@ -57,7 +57,10 @@ public record GetCharacterSkillsResponse(
 
     public record SkillResponse(
             String skillName,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
 
         public static SkillResponse from(
@@ -65,7 +68,10 @@ public record GetCharacterSkillsResponse(
         ) {
             return new SkillResponse(
                     result.skillName(),
-                    result.skillIcon()
+                    result.skillIcon(),
+                    result.skillDescription(),
+                    result.skillEffect(),
+                    result.skillEffectNext()
             );
         }
     }
@@ -114,7 +120,10 @@ public record GetCharacterSkillsResponse(
     public record LinkSkillResponse(
             String skillName,
             Integer skillLevel,
-            String skillIcon
+            String skillIcon,
+            String skillDescription,
+            String skillEffect,
+            String skillEffectNext
     ) {
 
         public static LinkSkillResponse from(
@@ -123,7 +132,10 @@ public record GetCharacterSkillsResponse(
             return new LinkSkillResponse(
                     result.skillName(),
                     result.skillLevel(),
-                    result.skillIcon()
+                    result.skillIcon(),
+                    result.skillDescription(),
+                    result.skillEffect(),
+                    result.skillEffectNext()
             );
         }
     }
