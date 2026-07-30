@@ -105,7 +105,20 @@ class CharacterControllerTest {
                         jsonPath(
                                 "$.data.symbols.arcaneSymbols[0].symbolForce"
                         )
-                                .doesNotExist()
+                                .value("530")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.symbols.arcaneSymbols[0].symbolStr"
+                        )
+                                .value("2200")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.symbols.arcaneSymbols[0]"
+                                        + ".symbolRequireGrowthCount"
+                        )
+                                .value(4000)
                 )
                 .andExpect(
                         jsonPath(
@@ -135,7 +148,7 @@ class CharacterControllerTest {
                         jsonPath(
                                 "$.data.symbols.authenticSymbols[1].symbolForce"
                         )
-                                .doesNotExist()
+                                .value("530")
                 )
                 .andExpect(
                         jsonPath(
@@ -459,24 +472,49 @@ class CharacterControllerTest {
     private GetCharacterSymbolResult createSymbolResult() {
         return new GetCharacterSymbolResult(
                 List.of(
-                        new GetCharacterSymbolResult.SymbolResult(
+                        createSymbolResult(
                                 "아케인심볼 : 소멸의 여로",
                                 20,
                                 "arcane-icon"
                         )
                 ),
                 List.of(
-                        new GetCharacterSymbolResult.SymbolResult(
+                        createSymbolResult(
                                 "어센틱심볼 : 세르니움",
                                 11,
                                 "authentic-icon"
                         ),
-                        new GetCharacterSymbolResult.SymbolResult(
+                        createSymbolResult(
                                 "그랜드 어센틱심볼 : 탈라하트",
                                 5,
                                 "grand-authentic-icon"
                         )
                 )
+        );
+    }
+
+    private GetCharacterSymbolResult.SymbolResult createSymbolResult(
+            String symbolName,
+            Integer symbolLevel,
+            String symbolIcon
+    ) {
+        return new GetCharacterSymbolResult.SymbolResult(
+                symbolName,
+                symbolLevel,
+                symbolIcon,
+                "테스트 설명",
+                "테스트 추가 효과",
+                "530",
+                "2200",
+                "0",
+                "0",
+                "0",
+                "0",
+                "1",
+                "2",
+                "3",
+                2678,
+                4000
         );
     }
 

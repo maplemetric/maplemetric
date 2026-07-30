@@ -13,8 +13,21 @@ public interface LoadCharacterSymbolPort {
 
     record Symbol(
             String symbolName,
+            String symbolIcon,
+            String symbolDescription,
+            String symbolOtherEffectDescription,
+            String symbolForce,
             Integer symbolLevel,
-            String symbolIcon
+            String symbolStr,
+            String symbolDex,
+            String symbolIntelligence,
+            String symbolLuk,
+            String symbolHp,
+            String symbolDropRate,
+            String symbolMesoRate,
+            String symbolExpRate,
+            Integer symbolGrowthCount,
+            Integer symbolRequireGrowthCount
     ) {
     }
 }

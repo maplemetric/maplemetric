@@ -33,12 +33,12 @@ class NexonCharacterSymbolAdapterTest {
                                 "2026-07-23T00:00+09:00",
                                 "팬텀",
                                 List.of(
-                                        new CharacterSymbolResponse.Symbol(
+                                        createResponseSymbol(
                                                 "아케인심볼 : 소멸의 여로",
                                                 20,
                                                 "https://example.com/vanishing.png"
                                         ),
-                                        new CharacterSymbolResponse.Symbol(
+                                        createResponseSymbol(
                                                 "어센틱심볼 : 세르니움",
                                                 11,
                                                 "https://example.com/cernium.png"
@@ -52,12 +52,12 @@ class NexonCharacterSymbolAdapterTest {
 
         assertThat(characterSymbol.symbols())
                 .containsExactly(
-                        new Symbol(
+                        createExpectedSymbol(
                                 "아케인심볼 : 소멸의 여로",
                                 20,
                                 "https://example.com/vanishing.png"
                         ),
-                        new Symbol(
+                        createExpectedSymbol(
                                 "어센틱심볼 : 세르니움",
                                 11,
                                 "https://example.com/cernium.png"
@@ -89,6 +89,56 @@ class NexonCharacterSymbolAdapterTest {
 
         verify(characterClient).getCharacterSymbol(OCID);
         verifyNoMoreInteractions(characterClient);
+    }
+
+    private CharacterSymbolResponse.Symbol createResponseSymbol(
+            String symbolName,
+            Integer symbolLevel,
+            String symbolIcon
+    ) {
+        return new CharacterSymbolResponse.Symbol(
+                symbolName,
+                symbolIcon,
+                "테스트 설명",
+                "테스트 추가 효과",
+                "530",
+                symbolLevel,
+                "2200",
+                "0",
+                "0",
+                "0",
+                "0",
+                "1",
+                "2",
+                "3",
+                2678,
+                4000
+        );
+    }
+
+    private Symbol createExpectedSymbol(
+            String symbolName,
+            Integer symbolLevel,
+            String symbolIcon
+    ) {
+        return new Symbol(
+                symbolName,
+                symbolIcon,
+                "테스트 설명",
+                "테스트 추가 효과",
+                "530",
+                symbolLevel,
+                "2200",
+                "0",
+                "0",
+                "0",
+                "0",
+                "1",
+                "2",
+                "3",
+                2678,
+                4000
+        );
     }
 
     private NexonCharacterSymbolAdapter createAdapter() {
