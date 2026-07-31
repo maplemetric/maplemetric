@@ -273,7 +273,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                                 row(2, "마법사", "비숍", 210),
                                 row(3, "비숍", null, 220),
                                 row(4, "히어로", "", 230),
-                                row(5, "팔라딘", "   ", 240)
+                                row(5, "팔라딘", "   ", 240),
+                                row(6, "나이트로드", "\t", 250),
+                                row(7, "아크메이지(불,독)", "\n", 260)
                         }
                 );
 
@@ -282,7 +284,13 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
 
         assertThat(aggregates)
                 .extracting(aggregate -> aggregate.className())
-                .containsExactly("비숍", "팔라딘", "히어로");
+                .containsExactlyInAnyOrder(
+                        "비숍",
+                        "히어로",
+                        "팔라딘",
+                        "나이트로드",
+                        "아크메이지(불,독)"
+                );
 
         var bishop = aggregates.stream()
                 .filter(aggregate -> aggregate.className().equals("비숍"))
