@@ -41,6 +41,11 @@ public class StatisticsExceptionHandler {
                     StatisticsErrorCode.JOB_STATISTICS_SNAPSHOT_NOT_FOUND;
             case DATA_INVALID ->
                     StatisticsErrorCode.JOB_STATISTICS_DATA_INVALID;
+            case JOB_NOT_FOUND ->
+                    StatisticsErrorCode.JOB_STATISTICS_JOB_NOT_FOUND;
+            case INVALID_HISTORY_REQUEST ->
+                    StatisticsErrorCode
+                            .JOB_STATISTICS_HISTORY_INVALID_REQUEST;
         };
     }
 
