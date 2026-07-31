@@ -32,6 +32,7 @@ import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobC
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
 import com.maplemetric.statistics.application.result.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.statistics.application.result.StatisticsDataAvailability;
 import com.maplemetric.statistics.application.service.JobStatisticsDetailQueryService;
@@ -454,7 +455,15 @@ class StatisticsControllerTest {
                                                 320L,
                                                 new BigDecimal("12.40"),
                                                 new BigDecimal("187.3"),
-                                                null
+                                                new WorldComparisonResult(
+                                                        305L,
+                                                        new BigDecimal("11.65"),
+                                                        15L,
+                                                        new BigDecimal("4.92"),
+                                                        new BigDecimal("6.44"),
+                                                        new BigDecimal("0.75"),
+                                                        StatisticsTrend.UP
+                                                )
                                         ),
                                         new WorldStatisticsResult(
                                                 "bera",
@@ -462,7 +471,15 @@ class StatisticsControllerTest {
                                                 0L,
                                                 new BigDecimal("0.00"),
                                                 null,
-                                                null
+                                                new WorldComparisonResult(
+                                                        0L,
+                                                        new BigDecimal("0.00"),
+                                                        0L,
+                                                        null,
+                                                        null,
+                                                        new BigDecimal("0.00"),
+                                                        StatisticsTrend.STABLE
+                                                )
                                         )
                                 ),
                                 2581,
@@ -472,8 +489,8 @@ class StatisticsControllerTest {
                                 13,
                                 100,
                                 false,
-                                null,
-                                null
+                                PREVIOUS_SNAPSHOT_DATE,
+                                3
                         )
                 );
 
@@ -520,6 +537,30 @@ class StatisticsControllerTest {
                         jsonPath("$.data.worlds[0].averageLevel")
                                 .value(187.3)
                 )
+                .andExpect(
+                        jsonPath(
+                                "$.data.worlds[0].comparison.previousCount"
+                        ).value(305)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.data.worlds[0].comparison"
+                                        + ".percentagePointChange"
+                        ).value(0.75)
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[0].comparison.trend")
+                                .value("UP")
+                )
+                .andExpect(
+                        jsonPath("$.data.worlds[1].comparison.trend")
+                                .value("STABLE")
+                )
+                .andExpect(
+                        jsonPath("$.data.previousAsOf")
+                                .value("2026-07-21")
+                )
+                .andExpect(jsonPath("$.data.daysBetween").value(3))
                 .andExpect(
                         jsonPath("$.data.sampleSize")
                                 .value(2581)

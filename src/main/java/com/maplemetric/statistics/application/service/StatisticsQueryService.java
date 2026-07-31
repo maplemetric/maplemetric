@@ -6,10 +6,12 @@ import com.maplemetric.ranking.api.OverallRankingComparisonQuery;
 import com.maplemetric.ranking.api.OverallRankingComparisonQueryException;
 import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
-import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
+import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
+import com.maplemetric.statistics.application.exception.WorldStatisticsException;
+import com.maplemetric.statistics.application.exception.WorldStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;
@@ -23,18 +25,15 @@ import org.springframework.stereotype.Service;
 public class StatisticsQueryService {
 
     private final OverallRankingComparisonQuery overallRankingComparisonQuery;
-    private final OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery;
     private final JobCatalogQuery jobCatalogQuery;
     private final WorldCatalogQuery worldCatalogQuery;
 
     public StatisticsQueryService(
             OverallRankingComparisonQuery overallRankingComparisonQuery,
-            OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery,
             JobCatalogQuery jobCatalogQuery,
             WorldCatalogQuery worldCatalogQuery
     ) {
         this.overallRankingComparisonQuery = overallRankingComparisonQuery;
-        this.overallRankingWorldStatisticsQuery = overallRankingWorldStatisticsQuery;
         this.jobCatalogQuery = jobCatalogQuery;
         this.worldCatalogQuery = worldCatalogQuery;
     }
@@ -99,21 +98,55 @@ public class StatisticsQueryService {
     }
 
     public GetWorldStatisticsResult getWorldStatistics() {
-        OverallRankingWorldStatisticsSnapshot snapshot =
-                overallRankingWorldStatisticsQuery.getLatestWorldStatistics();
+        OverallRankingWorldStatisticsComparisonSnapshot comparison =
+                loadWorldStatisticsComparison();
 
         Set<String> worldNames = new LinkedHashSet<>();
 
-        snapshot.worldCounts()
-                .forEach(worldCount -> worldNames.add(worldCount.worldName()));
+        addWorldNames(worldNames, comparison.latest());
+        addWorldNames(worldNames, comparison.previous());
 
         Map<String, CanonicalWorld> canonicalWorldsByWorldName =
                 worldCatalogQuery.resolveAliases(worldNames);
 
         return GetWorldStatisticsResult.from(
-                snapshot,
+                comparison,
                 worldCatalogQuery.findAll(),
                 canonicalWorldsByWorldName
         );
+    }
+
+    private void addWorldNames(
+            Set<String> worldNames,
+            OverallRankingWorldStatisticsSnapshot snapshot
+    ) {
+        if (snapshot == null) {
+            return;
+        }
+
+        snapshot.worldCounts()
+                .forEach(worldCount -> worldNames.add(worldCount.worldName()));
+    }
+
+    private OverallRankingWorldStatisticsComparisonSnapshot
+            loadWorldStatisticsComparison() {
+        try {
+            return overallRankingComparisonQuery
+                    .getWorldStatisticsComparison();
+        } catch (OverallRankingComparisonQueryException exception) {
+            throw new WorldStatisticsException(
+                    toWorldStatisticsFailure(exception),
+                    exception
+            );
+        }
+    }
+
+    private WorldStatisticsFailure toWorldStatisticsFailure(
+            OverallRankingComparisonQueryException exception
+    ) {
+        return switch (exception.getFailure()) {
+            case NOT_FOUND -> WorldStatisticsFailure.SNAPSHOT_NOT_FOUND;
+            case DATA_INVALID -> WorldStatisticsFailure.DATA_INVALID;
+        };
     }
 }
