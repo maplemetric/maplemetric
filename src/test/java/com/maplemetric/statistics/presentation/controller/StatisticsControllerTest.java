@@ -858,4 +858,16 @@ class StatisticsControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("STATISTICS_006"));
     }
+
+    @Test
+    void malformedHistoryDateReturns400() throws Exception {
+        mockMvc.perform(get("/api/v1/statistics/jobs/hero/history")
+                        .param("from", "2026-07-XX")
+                        .param("to", "2026-07-07"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("GLOBAL_001"));
+
+        then(jobStatisticsDetailQueryService).shouldHaveNoInteractions();
+    }
 }

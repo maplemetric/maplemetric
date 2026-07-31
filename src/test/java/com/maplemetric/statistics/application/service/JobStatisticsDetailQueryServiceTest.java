@@ -354,6 +354,33 @@ class JobStatisticsDetailQueryServiceTest {
         );
     }
 
+    @Test
+    void exactly365InclusiveDaysAreAllowed() {
+        LocalDate from = LocalDate.of(2025, 7, 31);
+        LocalDate to = LocalDate.of(2026, 7, 30);
+
+        givenAvailableJobAndLatestSnapshot();
+        given(overallRankingStatisticsHistoryQuery
+                .getJobStatisticsHistory(from, to))
+                .willReturn(List.of());
+        given(jobCatalogQuery.resolveAliases(any()))
+                .willReturn(Map.of());
+
+        GetJobStatisticsHistoryResult result =
+                service.getJobStatisticsHistory(
+                        "hero",
+                        null,
+                        from,
+                        to
+                );
+
+        assertThat(result.range().requestedFrom()).isEqualTo(from);
+        assertThat(result.range().requestedTo()).isEqualTo(to);
+        assertThat(result.range().missingDateCount()).isEqualTo(365);
+        verify(overallRankingStatisticsHistoryQuery)
+                .getJobStatisticsHistory(from, to);
+    }
+
     @ParameterizedTest
     @MethodSource("invalidHistoryRequests")
     void 잘못된History요청은조회전에거부한다(
