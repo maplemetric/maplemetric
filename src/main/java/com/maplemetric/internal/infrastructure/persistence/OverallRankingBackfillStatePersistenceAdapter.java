@@ -1,6 +1,7 @@
 package com.maplemetric.internal.infrastructure.persistence;
 
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,8 @@ class OverallRankingBackfillStatePersistenceAdapter
                 )
         );
 
-        dateRepository.saveAll(createDates(job));
+        // 같은 Transaction에서 곧바로 점유해도 Native Query가 행을 볼 수 있어야 한다.
+        dateRepository.saveAllAndFlush(createDates(job));
 
         return toBackfillJob(job);
     }
@@ -65,19 +67,29 @@ class OverallRankingBackfillStatePersistenceAdapter
         }
 
         OverallRankingBackfillDateEntity date = claimed.get();
+        UUID claimedDateId = date.getId();
+
         date.claim();
 
-        jobRepository.findById(backfillJobId)
-                .ifPresent(job -> job.startIfPending());
+        // 조건부 UPDATE가 영속성 컨텍스트를 비우므로 점유 결과를 다시 읽는다.
+        jobRepository.startIfPending(
+                backfillJobId,
+                BackfillStatus.RUNNING,
+                BackfillStatus.PENDING,
+                Instant.now()
+        );
 
-        return Optional.of(toBackfillDate(date));
+        return Optional.of(toBackfillDate(getDate(claimedDateId)));
     }
 
     @Override
     public void succeedDate(UUID backfillDateId) {
         OverallRankingBackfillDateEntity date = getDate(backfillDateId);
 
-        date.succeed();
+        if (!date.succeed()) {
+            return;
+        }
+
         jobRepository.increaseSucceededDateCount(date.getBackfillJobId());
         finishJobIfDone(date.getBackfillJobId());
     }
@@ -86,7 +98,10 @@ class OverallRankingBackfillStatePersistenceAdapter
     public void skipDate(UUID backfillDateId) {
         OverallRankingBackfillDateEntity date = getDate(backfillDateId);
 
-        date.skip();
+        if (!date.skip()) {
+            return;
+        }
+
         jobRepository.increaseSkippedDateCount(date.getBackfillJobId());
         finishJobIfDone(date.getBackfillJobId());
     }
@@ -99,9 +114,7 @@ class OverallRankingBackfillStatePersistenceAdapter
     ) {
         OverallRankingBackfillDateEntity date = getDate(backfillDateId);
 
-        date.fail(errorType, retryable);
-
-        if (retryable) {
+        if (!date.fail(errorType, retryable) || retryable) {
             return;
         }
 
@@ -111,12 +124,12 @@ class OverallRankingBackfillStatePersistenceAdapter
 
     @Override
     public void cancelJob(UUID backfillJobId) {
-        dateRepository
-                .findByBackfillJobIdOrderBySnapshotDateAsc(backfillJobId)
+        OverallRankingBackfillJobEntity job = getJobForUpdate(backfillJobId);
+
+        dateRepository.findByBackfillJobIdForUpdate(backfillJobId)
                 .forEach(date -> date.cancel());
 
-        jobRepository.findById(backfillJobId)
-                .ifPresent(job -> job.cancel());
+        job.cancel();
     }
 
     private List<OverallRankingBackfillDateEntity> createDates(
@@ -148,9 +161,17 @@ class OverallRankingBackfillStatePersistenceAdapter
             return;
         }
 
-        jobRepository.findById(backfillJobId)
-                .ifPresent(job -> job.finish(
-                        dateRepository.countFailed(backfillJobId) > 0L
+        getJobForUpdate(backfillJobId).finish(
+                dateRepository.countFailed(backfillJobId) > 0L
+        );
+    }
+
+    private OverallRankingBackfillJobEntity getJobForUpdate(
+            UUID backfillJobId
+    ) {
+        return jobRepository.findByIdForUpdate(backfillJobId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Backfill Job을 찾을 수 없습니다."
                 ));
     }
 

@@ -240,6 +240,55 @@ class OverallRankingBackfillStatePersistenceTest {
     }
 
     @Test
+    void 취소된기준일은뒤늦은성공기록으로되살아나지않는다() {
+        BackfillJob job = service.createJob(FROM, TO);
+
+        // 실행기가 외부 호출을 하는 사이 관리자가 Job을 취소한 상황이다.
+        UUID claimedDateId = claim(job.id()).id();
+        service.cancelJob(job.id());
+
+        service.succeedDate(claimedDateId);
+
+        assertThat(service.findDates(job.id()))
+                .extracting(date -> date.status())
+                .containsOnly(BackfillStatus.CANCELLED);
+
+        BackfillJob cancelled = findJob(job.id());
+
+        assertThat(cancelled.status()).isEqualTo(BackfillStatus.CANCELLED);
+        assertThat(cancelled.succeededDateCount()).isZero();
+    }
+
+    @Test
+    void 종료된기준일에Skip과실패를기록해도집계가바뀌지않는다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        UUID claimedDateId = claim(job.id()).id();
+        service.succeedDate(claimedDateId);
+
+        service.skipDate(claimedDateId);
+        service.failDate(
+                claimedDateId,
+                BackfillErrorType.UNKNOWN,
+                false
+        );
+
+        BackfillJob finished = findJob(job.id());
+
+        assertThat(finished.succeededDateCount()).isEqualTo(1);
+        assertThat(finished.skippedDateCount()).isZero();
+        assertThat(finished.failedDateCount()).isZero();
+        assertThat(onlyDate(job.id()).status())
+                .isEqualTo(BackfillStatus.SUCCEEDED);
+    }
+
+    @Test
+    void 없는Job을취소하면예외를던진다() {
+        assertThatThrownBy(() -> service.cancelJob(UUID.randomUUID()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void 오류분류밖의값은저장하지못한다() {
         BackfillJob job = service.createJob(FROM, FROM);
         entityManager.flush();

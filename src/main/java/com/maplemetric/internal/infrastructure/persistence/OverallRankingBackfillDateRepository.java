@@ -1,9 +1,11 @@
 package com.maplemetric.internal.infrastructure.persistence;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +14,22 @@ interface OverallRankingBackfillDateRepository
 
     List<OverallRankingBackfillDateEntity>
             findByBackfillJobIdOrderBySnapshotDateAsc(UUID backfillJobId);
+
+    /**
+     * 취소처럼 여러 기준일을 한 번에 바꿀 때 행을 잠근 채로 읽는다.
+     *
+     * 잠그지 않으면 다른 실행기가 같은 기준일을 동시에 점유해 취소가 유실된다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select date
+              from OverallRankingBackfillDateEntity date
+             where date.backfillJobId = :backfillJobId
+             order by date.snapshotDate
+            """)
+    List<OverallRankingBackfillDateEntity> findByBackfillJobIdForUpdate(
+            @Param("backfillJobId") UUID backfillJobId
+    );
 
     /**
      * 다음 PENDING 기준일을 잠근 채로 가져온다.

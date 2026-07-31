@@ -88,20 +88,6 @@ public class OverallRankingBackfillJobEntity {
     }
 
     /**
-     * 첫 기준일을 점유할 때 실행 중으로 표시한다.
-     *
-     * 이미 실행 중이거나 종료된 Job의 시작 시각을 덮어쓰지 않는다.
-     */
-    public void startIfPending() {
-        if (status != BackfillStatus.PENDING) {
-            return;
-        }
-
-        status = BackfillStatus.RUNNING;
-        startedAt = Instant.now();
-    }
-
-    /**
      * 남은 기준일이 없을 때 Job을 종료한다.
      *
      * 실패한 기준일이 하나라도 있으면 Job도 실패다. 부분 성공을 성공으로 보고하지

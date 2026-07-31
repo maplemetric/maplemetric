@@ -112,12 +112,19 @@ public class OverallRankingBackfillDateEntity {
         finishedAt = null;
     }
 
-    public void succeed() {
-        finishWith(BackfillStatus.SUCCEEDED, null);
+    /**
+     * 결과 기록은 점유 중인 기준일에만 적용한다.
+     *
+     * 실행기가 외부 호출을 하는 동안 Job이 취소될 수 있다. 상태를 확인하지 않으면
+     * 취소된 기준일이 되살아나고 Job 집계까지 어긋난다. 이미 끝난 기준일이면 아무것도
+     * 바꾸지 않고 {@code false}를 돌려 호출자가 집계를 올리지 않게 한다.
+     */
+    public boolean succeed() {
+        return finishIfRunning(BackfillStatus.SUCCEEDED, null);
     }
 
-    public void skip() {
-        finishWith(BackfillStatus.SKIPPED, null);
+    public boolean skip() {
+        return finishIfRunning(BackfillStatus.SKIPPED, null);
     }
 
     /**
@@ -126,7 +133,7 @@ public class OverallRankingBackfillDateEntity {
      * 재시도 가능하면 PENDING으로 되돌려 다시 점유되게 한다. 이때는 종료 시각을 남기지
      * 않는다. 아직 끝난 기준일이 아니기 때문이다.
      */
-    public void fail(
+    public boolean fail(
             BackfillErrorType errorType,
             boolean retryable
     ) {
@@ -136,16 +143,22 @@ public class OverallRankingBackfillDateEntity {
             );
         }
 
+        if (status != BackfillStatus.RUNNING) {
+            return false;
+        }
+
         lastErrorType = errorType;
 
         if (retryable) {
             status = BackfillStatus.PENDING;
             finishedAt = null;
-            return;
+            return true;
         }
 
         status = BackfillStatus.FAILED;
         finishedAt = Instant.now();
+
+        return true;
     }
 
     public void cancel() {
@@ -161,6 +174,19 @@ public class OverallRankingBackfillDateEntity {
                 || status == BackfillStatus.FAILED
                 || status == BackfillStatus.SKIPPED
                 || status == BackfillStatus.CANCELLED;
+    }
+
+    private boolean finishIfRunning(
+            BackfillStatus terminalStatus,
+            BackfillErrorType errorType
+    ) {
+        if (status != BackfillStatus.RUNNING) {
+            return false;
+        }
+
+        finishWith(terminalStatus, errorType);
+
+        return true;
     }
 
     private void finishWith(
