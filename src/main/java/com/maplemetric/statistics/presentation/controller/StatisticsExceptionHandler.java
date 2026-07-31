@@ -65,6 +65,8 @@ public class StatisticsExceptionHandler {
             WorldStatisticsException exception
     ) {
         return switch (exception.getFailure()) {
+            case SNAPSHOT_NOT_FOUND ->
+                    StatisticsErrorCode.WORLD_STATISTICS_SNAPSHOT_NOT_FOUND;
             case DATA_INVALID ->
                     StatisticsErrorCode.WORLD_STATISTICS_DATA_INVALID;
             case WORLD_NOT_FOUND ->
