@@ -1005,12 +1005,12 @@ class StatisticsControllerTest {
                 StatisticsDataAvailability.AVAILABLE,
                 new GetWorldStatisticsHistoryResult.RangeResult(
                         "7D",
-                        PREVIOUS_SNAPSHOT_DATE,
+                        SNAPSHOT_DATE.minusDays(6),
                         SNAPSHOT_DATE,
                         PREVIOUS_SNAPSHOT_DATE,
                         SNAPSHOT_DATE,
                         2,
-                        2
+                        5
                 ),
                 new GetWorldStatisticsHistoryResult.RangeComparisonResult(
                         PREVIOUS_SNAPSHOT_DATE,
@@ -1060,8 +1060,12 @@ class StatisticsControllerTest {
                                 .value("WORLD_STATISTICS_HISTORY_SEARCH_SUCCESS")
                 )
                 .andExpect(jsonPath("$.data.range.preset").value("7D"))
+                .andExpect(
+                        jsonPath("$.data.range.requestedFrom")
+                                .value("2026-07-18")
+                )
                 .andExpect(jsonPath("$.data.range.pointCount").value(2))
-                .andExpect(jsonPath("$.data.range.missingDateCount").value(2))
+                .andExpect(jsonPath("$.data.range.missingDateCount").value(5))
                 .andExpect(jsonPath("$.data.points.length()").value(2))
                 .andExpect(
                         jsonPath("$.data.points[0].asOf")
