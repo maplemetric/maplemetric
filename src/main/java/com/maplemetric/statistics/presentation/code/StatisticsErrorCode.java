@@ -41,6 +41,18 @@ public enum StatisticsErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
             "STATISTICS_006",
             "직업 통계 History 기간 요청이 올바르지 않습니다."
+    ),
+
+    WORLD_STATISTICS_WORLD_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "STATISTICS_007",
+            "요청한 Canonical 월드 Slug를 찾을 수 없습니다."
+    ),
+
+    WORLD_STATISTICS_HISTORY_INVALID_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "STATISTICS_008",
+            "월드 통계 History 기간 요청이 올바르지 않습니다."
     );
 
     private final HttpStatus httpStatus;

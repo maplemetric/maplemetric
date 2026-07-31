@@ -356,8 +356,9 @@ class JobStatisticsDetailQueryServiceTest {
 
     @Test
     void exactly365InclusiveDaysAreAllowed() {
-        LocalDate from = LocalDate.of(2025, 7, 31);
-        LocalDate to = LocalDate.of(2026, 7, 30);
+        // Custom 범위만 today와 비교하므로 고정 날짜를 쓰면 시스템 날짜에 결과가 묶인다.
+        LocalDate to = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate from = to.minusDays(364);
 
         givenAvailableJobAndLatestSnapshot();
         given(overallRankingStatisticsHistoryQuery

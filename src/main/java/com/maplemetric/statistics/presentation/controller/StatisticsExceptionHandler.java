@@ -3,6 +3,7 @@ package com.maplemetric.statistics.presentation.controller;
 import com.maplemetric.common.ApiResponse;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
+import com.maplemetric.statistics.application.exception.WorldStatisticsException;
 import com.maplemetric.statistics.presentation.code.StatisticsErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +15,17 @@ public class StatisticsExceptionHandler {
     @ExceptionHandler(JobStatisticsException.class)
     public ResponseEntity<ApiResponse<Void>> handleJobStatisticsException(
             JobStatisticsException exception
+    ) {
+        StatisticsErrorCode errorCode = resolveErrorCode(exception);
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ApiResponse.error(errorCode));
+    }
+
+    @ExceptionHandler(WorldStatisticsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWorldStatisticsException(
+            WorldStatisticsException exception
     ) {
         StatisticsErrorCode errorCode = resolveErrorCode(exception);
 
@@ -46,6 +58,20 @@ public class StatisticsExceptionHandler {
             case INVALID_HISTORY_REQUEST ->
                     StatisticsErrorCode
                             .JOB_STATISTICS_HISTORY_INVALID_REQUEST;
+        };
+    }
+
+    private StatisticsErrorCode resolveErrorCode(
+            WorldStatisticsException exception
+    ) {
+        return switch (exception.getFailure()) {
+            case DATA_INVALID ->
+                    StatisticsErrorCode.WORLD_STATISTICS_DATA_INVALID;
+            case WORLD_NOT_FOUND ->
+                    StatisticsErrorCode.WORLD_STATISTICS_WORLD_NOT_FOUND;
+            case INVALID_HISTORY_REQUEST ->
+                    StatisticsErrorCode
+                            .WORLD_STATISTICS_HISTORY_INVALID_REQUEST;
         };
     }
 
