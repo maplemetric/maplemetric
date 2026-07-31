@@ -1,6 +1,7 @@
 package com.maplemetric.statistics.presentation.controller;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,12 +12,23 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
+import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult.ComparisonResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult.JobResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult.LatestResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult.SourceMetaResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult.PointResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult.RangeComparisonResult;
+import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult.RangeResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobComparisonResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
 import com.maplemetric.statistics.application.result.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
+import com.maplemetric.statistics.application.result.StatisticsDataAvailability;
+import com.maplemetric.statistics.application.service.JobStatisticsDetailQueryService;
 import com.maplemetric.statistics.application.service.StatisticsQueryService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -45,6 +57,9 @@ class StatisticsControllerTest {
 
     @MockitoBean
     private StatisticsQueryService statisticsQueryService;
+
+    @MockitoBean
+    private JobStatisticsDetailQueryService jobStatisticsDetailQueryService;
 
     @Test
     void 직업별통계응답을반환한다() throws Exception {
@@ -582,5 +597,265 @@ class StatisticsControllerTest {
                 .andExpect(
                         jsonPath("$.code").value("STATISTICS_004")
                 );
+    }
+
+    @Test
+    void 직업상세통계응답을반환한다() throws Exception {
+        given(jobStatisticsDetailQueryService
+                .getJobStatisticsDetail("hero"))
+                .willReturn(new GetJobStatisticsDetailResult(
+                        new JobResult(
+                                "hero",
+                                "히어로",
+                                "모험가",
+                                "전사",
+                                true
+                        ),
+                        StatisticsDataAvailability.AVAILABLE,
+                        new LatestResult(
+                                SNAPSHOT_DATE,
+                                320L,
+                                new BigDecimal("12.40"),
+                                new BigDecimal("287.3")
+                        ),
+                        new ComparisonResult(
+                                PREVIOUS_SNAPSHOT_DATE,
+                                300L,
+                                20L,
+                                new BigDecimal("6.67"),
+                                new BigDecimal("11.60"),
+                                new BigDecimal("6.90"),
+                                new BigDecimal("0.80"),
+                                StatisticsTrend.UP
+                        ),
+                        new SourceMetaResult(
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                2581,
+                                13,
+                                100,
+                                false
+                        )
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs/hero"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value(
+                        "JOB_STATISTICS_DETAIL_SEARCH_SUCCESS"
+                ))
+                .andExpect(jsonPath("$.data.job.jobSlug").value("hero"))
+                .andExpect(jsonPath("$.data.job.jobName").value("히어로"))
+                .andExpect(jsonPath("$.data.job.jobGroup").value("모험가"))
+                .andExpect(jsonPath("$.data.job.jobBranch").value("전사"))
+                .andExpect(jsonPath("$.data.job.available").value(true))
+                .andExpect(jsonPath("$.data.dataAvailability")
+                        .value("AVAILABLE"))
+                .andExpect(jsonPath("$.data.latest.asOf")
+                        .value("2026-07-24"))
+                .andExpect(jsonPath("$.data.latest.count").value(320))
+                .andExpect(jsonPath("$.data.latest.percentage").value(12.40))
+                .andExpect(jsonPath("$.data.latest.averageLevel").value(287.3))
+                .andExpect(jsonPath("$.data.comparison.previousAsOf")
+                        .value("2026-07-21"))
+                .andExpect(jsonPath("$.data.comparison.countChangeRate")
+                        .value(6.67))
+                .andExpect(jsonPath(
+                        "$.data.comparison.percentageChangeRate"
+                ).value(6.90))
+                .andExpect(jsonPath(
+                        "$.data.comparison.percentagePointChange"
+                ).value(0.80))
+                .andExpect(jsonPath("$.data.comparison.trend").value("UP"))
+                .andExpect(jsonPath("$.data.sourceMeta.sampleSize")
+                        .value(2581));
+    }
+
+    @Test
+    void 정상직업이지만수집이력이없으면상세를200으로반환한다()
+            throws Exception {
+        given(jobStatisticsDetailQueryService
+                .getJobStatisticsDetail("hero"))
+                .willReturn(new GetJobStatisticsDetailResult(
+                        new JobResult(
+                                "hero",
+                                "히어로",
+                                "모험가",
+                                "전사",
+                                true
+                        ),
+                        StatisticsDataAvailability.NOT_COLLECTED,
+                        null,
+                        null,
+                        null
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs/hero"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.dataAvailability")
+                        .value("NOT_COLLECTED"))
+                .andExpect(jsonPath("$.data.latest").isEmpty())
+                .andExpect(jsonPath("$.data.comparison").isEmpty())
+                .andExpect(jsonPath("$.data.sourceMeta").isEmpty());
+    }
+
+    @Test
+    void 직업History응답을반환한다() throws Exception {
+        given(jobStatisticsDetailQueryService.getJobStatisticsHistory(
+                "hero",
+                "7D",
+                null,
+                null
+        )).willReturn(new GetJobStatisticsHistoryResult(
+                new GetJobStatisticsHistoryResult.JobResult(
+                        "hero",
+                        "히어로"
+                ),
+                StatisticsDataAvailability.AVAILABLE,
+                new RangeResult(
+                        "7D",
+                        LocalDate.of(2026, 7, 18),
+                        SNAPSHOT_DATE,
+                        LocalDate.of(2026, 7, 18),
+                        SNAPSHOT_DATE,
+                        6,
+                        1
+                ),
+                new RangeComparisonResult(
+                        LocalDate.of(2026, 7, 18),
+                        SNAPSHOT_DATE,
+                        280L,
+                        320L,
+                        40L,
+                        new BigDecimal("14.29"),
+                        new BigDecimal("10.80"),
+                        new BigDecimal("12.40"),
+                        new BigDecimal("14.81"),
+                        new BigDecimal("1.60")
+                ),
+                List.of(new PointResult(
+                        LocalDate.of(2026, 7, 18),
+                        280L,
+                        new BigDecimal("10.80"),
+                        new BigDecimal("284.1"),
+                        2592,
+                        13,
+                        100,
+                        false,
+                        COLLECTED_AT
+                )),
+                List.of()
+        ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs/hero/history")
+                        .param("range", "7D"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(
+                        "JOB_STATISTICS_HISTORY_SEARCH_SUCCESS"
+                ))
+                .andExpect(jsonPath("$.data.job.jobSlug").value("hero"))
+                .andExpect(jsonPath("$.data.dataAvailability")
+                        .value("AVAILABLE"))
+                .andExpect(jsonPath("$.data.range.preset").value("7D"))
+                .andExpect(jsonPath("$.data.range.requestedFrom")
+                        .value("2026-07-18"))
+                .andExpect(jsonPath("$.data.range.pointCount").value(6))
+                .andExpect(jsonPath("$.data.range.missingDateCount").value(1))
+                .andExpect(jsonPath("$.data.rangeComparison.countChangeRate")
+                        .value(14.29))
+                .andExpect(jsonPath(
+                        "$.data.rangeComparison.percentageChangeRate"
+                ).value(14.81))
+                .andExpect(jsonPath(
+                        "$.data.rangeComparison.percentagePointChange"
+                ).value(1.60))
+                .andExpect(jsonPath("$.data.points[0].asOf")
+                        .value("2026-07-18"))
+                .andExpect(jsonPath("$.data.points[0].sampleSize")
+                        .value(2592))
+                .andExpect(jsonPath("$.data.limitations").isEmpty());
+    }
+
+    @Test
+    void CustomHistory날짜를파싱하고미수집Range를반환한다()
+            throws Exception {
+        LocalDate from = LocalDate.of(2026, 7, 1);
+        LocalDate to = LocalDate.of(2026, 7, 7);
+
+        given(jobStatisticsDetailQueryService.getJobStatisticsHistory(
+                "hero",
+                null,
+                from,
+                to
+        )).willReturn(new GetJobStatisticsHistoryResult(
+                new GetJobStatisticsHistoryResult.JobResult(
+                        "hero",
+                        "히어로"
+                ),
+                StatisticsDataAvailability.NOT_COLLECTED,
+                new RangeResult(
+                        null,
+                        from,
+                        to,
+                        null,
+                        null,
+                        0,
+                        7
+                ),
+                null,
+                List.of(),
+                List.of()
+        ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs/hero/history")
+                        .param("from", "2026-07-01")
+                        .param("to", "2026-07-07"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.dataAvailability")
+                        .value("NOT_COLLECTED"))
+                .andExpect(jsonPath("$.data.range.preset").isEmpty())
+                .andExpect(jsonPath("$.data.range.requestedFrom")
+                        .value("2026-07-01"))
+                .andExpect(jsonPath("$.data.range.requestedTo")
+                        .value("2026-07-07"))
+                .andExpect(jsonPath("$.data.range.pointCount").value(0))
+                .andExpect(jsonPath("$.data.range.missingDateCount").value(7))
+                .andExpect(jsonPath("$.data.rangeComparison").isEmpty())
+                .andExpect(jsonPath("$.data.points").isEmpty());
+
+        then(jobStatisticsDetailQueryService).should()
+                .getJobStatisticsHistory("hero", null, from, to);
+    }
+
+    @Test
+    void 알수없는직업Slug면404를반환한다() throws Exception {
+        given(jobStatisticsDetailQueryService
+                .getJobStatisticsDetail("unknown"))
+                .willThrow(new JobStatisticsException(
+                        JobStatisticsFailure.JOB_NOT_FOUND
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs/unknown"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("STATISTICS_005"));
+    }
+
+    @Test
+    void 잘못된History기간요청이면400을반환한다() throws Exception {
+        given(jobStatisticsDetailQueryService.getJobStatisticsHistory(
+                "hero",
+                "ALL",
+                null,
+                null
+        )).willThrow(new JobStatisticsException(
+                JobStatisticsFailure.INVALID_HISTORY_REQUEST
+        ));
+
+        mockMvc.perform(get("/api/v1/statistics/jobs/hero/history")
+                        .param("range", "ALL"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("STATISTICS_006"));
     }
 }
