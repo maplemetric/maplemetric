@@ -1,7 +1,8 @@
 package com.maplemetric.statistics.presentation.response;
 
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
-import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
+import com.maplemetric.statistics.application.result.StatisticsTrend;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -15,7 +16,9 @@ public record GetWorldStatisticsResponse(
         Instant collectedAt,
         int pageCount,
         int requestedMaxPages,
-        boolean truncated
+        boolean truncated,
+        LocalDate previousAsOf,
+        Integer daysBetween
 ) {
 
     public static GetWorldStatisticsResponse from(
@@ -28,7 +31,8 @@ public record GetWorldStatisticsResponse(
                         world.worldName(),
                         world.count(),
                         world.percentage(),
-                        world.averageLevel()
+                        world.averageLevel(),
+                        toComparison(world.comparison())
                 ))
                 .toList();
 
@@ -40,7 +44,23 @@ public record GetWorldStatisticsResponse(
                 result.collectedAt(),
                 result.pageCount(),
                 result.requestedMaxPages(),
-                result.truncated()
+                result.truncated(),
+                result.previousAsOf(),
+                result.daysBetween()
+        );
+    }
+
+    private static WorldComparison toComparison(
+            WorldComparisonResult comparison
+    ) {
+        return new WorldComparison(
+                comparison.previousCount(),
+                comparison.previousPercentage(),
+                comparison.countChange(),
+                comparison.countChangeRate(),
+                comparison.percentageChangeRate(),
+                comparison.percentagePointChange(),
+                comparison.trend()
         );
     }
 
@@ -49,7 +69,19 @@ public record GetWorldStatisticsResponse(
             String worldName,
             long count,
             BigDecimal percentage,
-            BigDecimal averageLevel
+            BigDecimal averageLevel,
+            WorldComparison comparison
+    ) {
+    }
+
+    public record WorldComparison(
+            Long previousCount,
+            BigDecimal previousPercentage,
+            Long countChange,
+            BigDecimal countChangeRate,
+            BigDecimal percentageChangeRate,
+            BigDecimal percentagePointChange,
+            StatisticsTrend trend
     ) {
     }
 }
