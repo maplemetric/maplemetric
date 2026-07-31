@@ -15,7 +15,6 @@ import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResul
 import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobStatisticsDetailQueryService {
 
     private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
-
-    private static final int MAX_HISTORY_DAYS = 365;
 
     private final OverallRankingComparisonQuery overallRankingComparisonQuery;
     private final OverallRankingStatisticsHistoryQuery
@@ -88,12 +85,15 @@ public class JobStatisticsDetailQueryService {
             LocalDate from,
             LocalDate to
     ) {
-        HistoryRequest historyRequest =
-                HistoryRequest.from(
+        StatisticsHistoryRequest historyRequest =
+                StatisticsHistoryRequest.from(
                         range,
                         from,
                         to,
-                        LocalDate.now(KOREA_ZONE)
+                        LocalDate.now(KOREA_ZONE),
+                        () -> new JobStatisticsException(
+                                JobStatisticsFailure.INVALID_HISTORY_REQUEST
+                        )
                 );
 
         CanonicalJob canonicalJob = loadCanonicalJob(jobSlug);
@@ -118,9 +118,10 @@ public class JobStatisticsDetailQueryService {
             throw dataInvalid(exception);
         }
 
-        HistoryPeriod historyPeriod = historyRequest.resolve(
-                latestComparison.latest().asOf()
-        );
+        StatisticsHistoryRequest.HistoryPeriod historyPeriod =
+                historyRequest.resolve(
+                        latestComparison.latest().asOf()
+                );
 
         List<OverallRankingStatisticsSnapshot> snapshots;
 
@@ -197,119 +198,5 @@ public class JobStatisticsDetailQueryService {
                 JobStatisticsFailure.DATA_INVALID,
                 cause
         );
-    }
-
-    private record HistoryRequest(
-            HistoryPreset preset,
-            LocalDate from,
-            LocalDate to
-    ) {
-
-        private static HistoryRequest from(
-                String range,
-                LocalDate from,
-                LocalDate to,
-                LocalDate today
-        ) {
-            if (range != null) {
-                if (range.isBlank() || from != null || to != null) {
-                    throw invalidRequest();
-                }
-
-                return new HistoryRequest(
-                        HistoryPreset.from(range),
-                        null,
-                        null
-                );
-            }
-
-            if (from == null && to == null) {
-                return new HistoryRequest(
-                        HistoryPreset.SEVEN_DAYS,
-                        null,
-                        null
-                );
-            }
-
-            validateCustomRange(from, to, today);
-
-            return new HistoryRequest(null, from, to);
-        }
-
-        private static void validateCustomRange(
-                LocalDate from,
-                LocalDate to,
-                LocalDate today
-        ) {
-            if (from == null || to == null || from.isAfter(to)) {
-                throw invalidRequest();
-            }
-
-            long inclusiveDays = ChronoUnit.DAYS.between(from, to) + 1;
-
-            if (inclusiveDays > MAX_HISTORY_DAYS || to.isAfter(today)) {
-                throw invalidRequest();
-            }
-        }
-
-        private HistoryPeriod resolve(LocalDate latestAsOf) {
-            if (preset == null) {
-                return new HistoryPeriod(from, to);
-            }
-
-            return new HistoryPeriod(
-                    latestAsOf.minusDays(preset.days() - 1L),
-                    latestAsOf
-            );
-        }
-
-        private String presetCode() {
-            return preset == null ? null : preset.code();
-        }
-
-        private static JobStatisticsException invalidRequest() {
-            return new JobStatisticsException(
-                    JobStatisticsFailure.INVALID_HISTORY_REQUEST
-            );
-        }
-    }
-
-    private record HistoryPeriod(
-            LocalDate from,
-            LocalDate to
-    ) {
-    }
-
-    private enum HistoryPreset {
-        SEVEN_DAYS("7D", 7),
-        THIRTY_DAYS("30D", 30),
-        NINETY_DAYS("90D", 90),
-        ONE_YEAR("1Y", 365);
-
-        private final String code;
-        private final int days;
-
-        HistoryPreset(String code, int days) {
-            this.code = code;
-            this.days = days;
-        }
-
-        private static HistoryPreset from(String code) {
-            for (HistoryPreset preset : values()) {
-                if (preset.code.equals(code)) {
-                    return preset;
-                }
-            }
-
-            throw HistoryRequest.invalidRequest();
-        }
-
-        private String code() {
-            return code;
-        }
-
-        private int days() {
-            return days;
-        }
     }
 }

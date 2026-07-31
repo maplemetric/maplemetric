@@ -12,6 +12,12 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
+import com.maplemetric.statistics.application.exception.WorldStatisticsException;
+import com.maplemetric.statistics.application.exception.WorldStatisticsFailure;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsDetailResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsHistoryResult;
+import com.maplemetric.statistics.application.service.WorldStatisticsDetailQueryService;
+import com.maplemetric.world.api.CanonicalWorld;
 import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult.ComparisonResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult.JobResult;
@@ -60,6 +66,10 @@ class StatisticsControllerTest {
 
     @MockitoBean
     private JobStatisticsDetailQueryService jobStatisticsDetailQueryService;
+
+    @MockitoBean
+    private WorldStatisticsDetailQueryService
+            worldStatisticsDetailQueryService;
 
     @Test
     void 직업별통계응답을반환한다() throws Exception {
@@ -443,13 +453,15 @@ class StatisticsControllerTest {
                                                 "루나",
                                                 320L,
                                                 new BigDecimal("12.40"),
-                                                new BigDecimal("187.3")
+                                                new BigDecimal("187.3"),
+                                                null
                                         ),
                                         new WorldStatisticsResult(
                                                 "bera",
                                                 "베라",
                                                 0L,
                                                 new BigDecimal("0.00"),
+                                                null,
                                                 null
                                         )
                                 ),
@@ -459,7 +471,9 @@ class StatisticsControllerTest {
                                 COLLECTED_AT,
                                 13,
                                 100,
-                                false
+                                false,
+                                null,
+                                null
                         )
                 );
 
@@ -548,7 +562,9 @@ class StatisticsControllerTest {
                                 COLLECTED_AT,
                                 1,
                                 100,
-                                false
+                                false,
+                                null,
+                                null
                         )
                 );
 
@@ -869,5 +885,227 @@ class StatisticsControllerTest {
                 .andExpect(jsonPath("$.code").value("GLOBAL_001"));
 
         then(jobStatisticsDetailQueryService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 월드상세통계응답을반환한다() throws Exception {
+        given(worldStatisticsDetailQueryService
+                .getWorldStatisticsDetail("luna"))
+                .willReturn(new GetWorldStatisticsDetailResult(
+                        new GetWorldStatisticsDetailResult.WorldResult(
+                                "luna",
+                                "루나",
+                                CanonicalWorld.Status.ACTIVE,
+                                10
+                        ),
+                        StatisticsDataAvailability.AVAILABLE,
+                        new GetWorldStatisticsDetailResult.LatestResult(
+                                SNAPSHOT_DATE,
+                                320L,
+                                new BigDecimal("12.40"),
+                                new BigDecimal("187.3")
+                        ),
+                        new GetWorldStatisticsDetailResult.ComparisonResult(
+                                PREVIOUS_SNAPSHOT_DATE,
+                                305L,
+                                15L,
+                                new BigDecimal("4.92"),
+                                new BigDecimal("11.65"),
+                                new BigDecimal("6.44"),
+                                new BigDecimal("0.75"),
+                                StatisticsTrend.UP
+                        ),
+                        new GetWorldStatisticsDetailResult.SourceMetaResult(
+                                "NEXON_OPEN_API",
+                                COLLECTED_AT,
+                                2581,
+                                13,
+                                100,
+                                false
+                        )
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds/luna"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.code")
+                                .value("WORLD_STATISTICS_DETAIL_SEARCH_SUCCESS")
+                )
+                .andExpect(jsonPath("$.data.world.worldSlug").value("luna"))
+                .andExpect(jsonPath("$.data.world.status").value("ACTIVE"))
+                .andExpect(
+                        jsonPath("$.data.dataAvailability")
+                                .value("AVAILABLE")
+                )
+                .andExpect(jsonPath("$.data.latest.count").value(320))
+                .andExpect(
+                        jsonPath("$.data.latest.percentage").value(12.40)
+                )
+                .andExpect(
+                        jsonPath("$.data.comparison.percentagePointChange")
+                                .value(0.75)
+                )
+                .andExpect(jsonPath("$.data.comparison.trend").value("UP"))
+                .andExpect(
+                        jsonPath("$.data.sourceMeta.sampleSize").value(2581)
+                );
+    }
+
+    @Test
+    void 월드상세Snapshot이없으면200과NOT_COLLECTED를반환한다() throws Exception {
+        given(worldStatisticsDetailQueryService
+                .getWorldStatisticsDetail("luna"))
+                .willReturn(GetWorldStatisticsDetailResult.notCollected(
+                        new CanonicalWorld(
+                                "luna",
+                                "루나",
+                                CanonicalWorld.Status.ACTIVE,
+                                10
+                        )
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds/luna"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.data.dataAvailability")
+                                .value("NOT_COLLECTED")
+                )
+                .andExpect(jsonPath("$.data.latest").doesNotExist())
+                .andExpect(jsonPath("$.data.comparison").doesNotExist());
+    }
+
+    @Test
+    void 존재하지않는월드Slug면404를반환한다() throws Exception {
+        given(worldStatisticsDetailQueryService
+                .getWorldStatisticsDetail("unknown"))
+                .willThrow(new WorldStatisticsException(
+                        WorldStatisticsFailure.WORLD_NOT_FOUND
+                ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds/unknown"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("STATISTICS_007"));
+    }
+
+    @Test
+    void 월드History응답을반환한다() throws Exception {
+        given(worldStatisticsDetailQueryService.getWorldStatisticsHistory(
+                "luna",
+                "7D",
+                null,
+                null
+        )).willReturn(new GetWorldStatisticsHistoryResult(
+                new GetWorldStatisticsHistoryResult.WorldResult(
+                        "luna",
+                        "루나"
+                ),
+                StatisticsDataAvailability.AVAILABLE,
+                new GetWorldStatisticsHistoryResult.RangeResult(
+                        "7D",
+                        PREVIOUS_SNAPSHOT_DATE,
+                        SNAPSHOT_DATE,
+                        PREVIOUS_SNAPSHOT_DATE,
+                        SNAPSHOT_DATE,
+                        2,
+                        2
+                ),
+                new GetWorldStatisticsHistoryResult.RangeComparisonResult(
+                        PREVIOUS_SNAPSHOT_DATE,
+                        SNAPSHOT_DATE,
+                        305L,
+                        320L,
+                        15L,
+                        new BigDecimal("4.92"),
+                        new BigDecimal("11.65"),
+                        new BigDecimal("12.40"),
+                        new BigDecimal("6.44"),
+                        new BigDecimal("0.75")
+                ),
+                List.of(
+                        new GetWorldStatisticsHistoryResult.PointResult(
+                                PREVIOUS_SNAPSHOT_DATE,
+                                305L,
+                                new BigDecimal("11.65"),
+                                new BigDecimal("186.9"),
+                                2618,
+                                13,
+                                100,
+                                false,
+                                COLLECTED_AT
+                        ),
+                        new GetWorldStatisticsHistoryResult.PointResult(
+                                SNAPSHOT_DATE,
+                                320L,
+                                new BigDecimal("12.40"),
+                                new BigDecimal("187.3"),
+                                2581,
+                                13,
+                                100,
+                                false,
+                                COLLECTED_AT
+                        )
+                ),
+                List.of("전체 이용자 모집단이 아니라 수집한 종합 랭킹 표본입니다.")
+        ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds/luna/history")
+                        .param("range", "7D"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(
+                        jsonPath("$.code")
+                                .value("WORLD_STATISTICS_HISTORY_SEARCH_SUCCESS")
+                )
+                .andExpect(jsonPath("$.data.range.preset").value("7D"))
+                .andExpect(jsonPath("$.data.range.pointCount").value(2))
+                .andExpect(jsonPath("$.data.range.missingDateCount").value(2))
+                .andExpect(jsonPath("$.data.points.length()").value(2))
+                .andExpect(
+                        jsonPath("$.data.points[0].asOf")
+                                .value("2026-07-21")
+                )
+                .andExpect(
+                        jsonPath("$.data.rangeComparison.percentagePointChange")
+                                .value(0.75)
+                )
+                .andExpect(jsonPath("$.data.limitations.length()").value(1));
+    }
+
+    @Test
+    void 잘못된월드History기간요청이면400을반환한다() throws Exception {
+        given(worldStatisticsDetailQueryService.getWorldStatisticsHistory(
+                "luna",
+                "ALL",
+                null,
+                null
+        )).willThrow(new WorldStatisticsException(
+                WorldStatisticsFailure.INVALID_HISTORY_REQUEST
+        ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds/luna/history")
+                        .param("range", "ALL"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("STATISTICS_008"));
+    }
+
+    @Test
+    void 월드History집계가정합하지않으면500을반환한다() throws Exception {
+        given(worldStatisticsDetailQueryService.getWorldStatisticsHistory(
+                "luna",
+                null,
+                null,
+                null
+        )).willThrow(new WorldStatisticsException(
+                WorldStatisticsFailure.DATA_INVALID
+        ));
+
+        mockMvc.perform(get("/api/v1/statistics/worlds/luna/history"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("STATISTICS_004"));
     }
 }
