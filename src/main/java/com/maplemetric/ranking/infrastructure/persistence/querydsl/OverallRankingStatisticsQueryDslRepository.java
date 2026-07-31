@@ -15,9 +15,9 @@ public interface OverallRankingStatisticsQueryDslRepository {
             LocalDate baseSnapshotDate
     );
 
-    List<OverallRankingCollectionEntity> findAllConditionCollectionsWithin(
-            LocalDate baseSnapshotDate,
-            int days
+    List<OverallRankingCollectionEntity> findAllConditionCollectionsBetween(
+            LocalDate from,
+            LocalDate to
     );
 
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);

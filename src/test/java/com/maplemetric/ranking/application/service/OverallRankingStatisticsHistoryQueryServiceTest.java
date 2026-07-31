@@ -3,14 +3,16 @@ package com.maplemetric.ranking.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.maplemetric.ranking.api.OverallRankingStatisticsHistoryQueryException;
+import com.maplemetric.ranking.api.OverallRankingStatisticsHistoryQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
-import com.maplemetric.ranking.api.OverallRankingStatisticsTrendQueryException;
-import com.maplemetric.ranking.api.OverallRankingStatisticsTrendQueryFailure;
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort;
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort.ClassNameAggregateByCollection;
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort.LatestCollection;
@@ -18,7 +20,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,14 +27,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OverallRankingStatisticsTrendQueryServiceTest {
+class OverallRankingStatisticsHistoryQueryServiceTest {
 
     private static final UUID LATEST_COLLECTION_ID = UUID.randomUUID();
     private static final UUID PREVIOUS_COLLECTION_ID = UUID.randomUUID();
 
-    private static final LocalDate LATEST_SNAPSHOT_DATE =
-            LocalDate.of(2026, 7, 24);
-
+    private static final LocalDate FROM = LocalDate.of(2026, 7, 18);
+    private static final LocalDate TO = LocalDate.of(2026, 7, 24);
+    private static final LocalDate LATEST_SNAPSHOT_DATE = TO;
     private static final LocalDate PREVIOUS_SNAPSHOT_DATE =
             LocalDate.of(2026, 7, 21);
 
@@ -44,29 +45,22 @@ class OverallRankingStatisticsTrendQueryServiceTest {
     private LoadOverallRankingStatisticsPort loadOverallRankingStatisticsPort;
 
     @Test
-    void 전체조건Collection이없으면NOT_FOUND예외를던진다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
+    void 기간내Collection이없으면빈목록을반환하고집계하지않는다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween();
 
-        given(loadOverallRankingStatisticsPort
-                .loadLatestAllConditionCollection())
-                .willReturn(Optional.empty());
+        List<OverallRankingStatisticsSnapshot> history =
+                service.getJobStatisticsHistory(FROM, TO);
 
-        OverallRankingStatisticsTrendQueryException exception =
-                catchThrowableOfType(
-                        () -> service.getJobStatisticsTrend(7),
-                        OverallRankingStatisticsTrendQueryException.class
-                );
-
-        assertThat(exception.getFailure())
-                .isEqualTo(OverallRankingStatisticsTrendQueryFailure.NOT_FOUND);
+        assertThat(history).isEmpty();
+        verify(loadOverallRankingStatisticsPort, never())
+                .aggregateByClassName(anyList());
     }
 
     @Test
     void 포인트를asOf오름차순으로정렬한다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
-
-        givenLatestCollection();
-        givenCollectionsWithin(
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween(
                 collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 1),
                 collection(PREVIOUS_COLLECTION_ID, PREVIOUS_SNAPSHOT_DATE, 1)
         );
@@ -78,20 +72,18 @@ class OverallRankingStatisticsTrendQueryServiceTest {
                 classNameAggregate(PREVIOUS_COLLECTION_ID, "히어로", 1L, 190)
         ));
 
-        List<OverallRankingStatisticsSnapshot> trend =
-                service.getJobStatisticsTrend(7);
+        List<OverallRankingStatisticsSnapshot> history =
+                service.getJobStatisticsHistory(FROM, TO);
 
-        assertThat(trend)
+        assertThat(history)
                 .extracting(snapshot -> snapshot.asOf())
                 .containsExactly(PREVIOUS_SNAPSHOT_DATE, LATEST_SNAPSHOT_DATE);
     }
 
     @Test
     void 각포인트가자신의collectionId집계만포함한다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
-
-        givenLatestCollection();
-        givenCollectionsWithin(
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween(
                 collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 1),
                 collection(PREVIOUS_COLLECTION_ID, PREVIOUS_SNAPSHOT_DATE, 1)
         );
@@ -103,15 +95,15 @@ class OverallRankingStatisticsTrendQueryServiceTest {
                 classNameAggregate(PREVIOUS_COLLECTION_ID, "팬텀", 1L, 190)
         ));
 
-        List<OverallRankingStatisticsSnapshot> trend =
-                service.getJobStatisticsTrend(7);
+        List<OverallRankingStatisticsSnapshot> history =
+                service.getJobStatisticsHistory(FROM, TO);
 
-        OverallRankingStatisticsSnapshot latestPoint = trend.stream()
+        OverallRankingStatisticsSnapshot latestPoint = history.stream()
                 .filter(snapshot -> snapshot.asOf().equals(LATEST_SNAPSHOT_DATE))
                 .findFirst()
                 .orElseThrow();
 
-        OverallRankingStatisticsSnapshot previousPoint = trend.stream()
+        OverallRankingStatisticsSnapshot previousPoint = history.stream()
                 .filter(snapshot -> snapshot.asOf().equals(PREVIOUS_SNAPSHOT_DATE))
                 .findFirst()
                 .orElseThrow();
@@ -125,11 +117,9 @@ class OverallRankingStatisticsTrendQueryServiceTest {
     }
 
     @Test
-    void 최신Collection1건만있으면포인트1건을반환한다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
-
-        givenLatestCollection();
-        givenCollectionsWithin(
+    void Collection1건이면Meta를유지한포인트1건을반환한다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween(
                 collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 1)
         );
 
@@ -139,19 +129,24 @@ class OverallRankingStatisticsTrendQueryServiceTest {
                 classNameAggregate(LATEST_COLLECTION_ID, "히어로", 1L, 200)
         ));
 
-        List<OverallRankingStatisticsSnapshot> trend =
-                service.getJobStatisticsTrend(7);
+        List<OverallRankingStatisticsSnapshot> history =
+                service.getJobStatisticsHistory(FROM, TO);
 
-        assertThat(trend).hasSize(1);
-        assertThat(trend.get(0).asOf()).isEqualTo(LATEST_SNAPSHOT_DATE);
+        assertThat(history).hasSize(1);
+        OverallRankingStatisticsSnapshot point = history.get(0);
+        assertThat(point.asOf()).isEqualTo(LATEST_SNAPSHOT_DATE);
+        assertThat(point.source()).isEqualTo("NEXON_OPEN_API");
+        assertThat(point.collectedAt()).isEqualTo(COLLECTED_AT);
+        assertThat(point.sampleSize()).isEqualTo(1);
+        assertThat(point.pageCount()).isEqualTo(1);
+        assertThat(point.requestedMaxPages()).isEqualTo(100);
+        assertThat(point.truncated()).isFalse();
     }
 
     @Test
     void 어느포인트든집계합계가sampleSize와다르면DATA_INVALID예외를던진다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
-
-        givenLatestCollection();
-        givenCollectionsWithin(
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween(
                 collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 5)
         );
 
@@ -161,22 +156,22 @@ class OverallRankingStatisticsTrendQueryServiceTest {
                 classNameAggregate(LATEST_COLLECTION_ID, "히어로", 2L, 200)
         ));
 
-        OverallRankingStatisticsTrendQueryException exception =
+        OverallRankingStatisticsHistoryQueryException exception =
                 catchThrowableOfType(
-                        () -> service.getJobStatisticsTrend(7),
-                        OverallRankingStatisticsTrendQueryException.class
+                        () -> service.getJobStatisticsHistory(FROM, TO),
+                        OverallRankingStatisticsHistoryQueryException.class
                 );
 
         assertThat(exception.getFailure())
-                .isEqualTo(OverallRankingStatisticsTrendQueryFailure.DATA_INVALID);
+                .isEqualTo(
+                        OverallRankingStatisticsHistoryQueryFailure.DATA_INVALID
+                );
     }
 
     @Test
     void sampleSize가0이고집계가비어있으면정상결과다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
-
-        givenLatestCollection();
-        givenCollectionsWithin(
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween(
                 collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 0)
         );
 
@@ -184,35 +179,67 @@ class OverallRankingStatisticsTrendQueryServiceTest {
                 List.of(LATEST_COLLECTION_ID)
         )).willReturn(List.of());
 
-        List<OverallRankingStatisticsSnapshot> trend =
-                service.getJobStatisticsTrend(7);
+        List<OverallRankingStatisticsSnapshot> history =
+                service.getJobStatisticsHistory(FROM, TO);
 
-        assertThat(trend).hasSize(1);
-        assertThat(trend.get(0).jobCounts()).isEmpty();
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).jobCounts()).isEmpty();
     }
 
     @Test
-    void days가1미만이면거부한다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
+    void 시작일이나종료일이null이면거부한다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> service.getJobStatisticsTrend(0));
+                .isThrownBy(() -> service.getJobStatisticsHistory(null, TO));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> service.getJobStatisticsHistory(FROM, null));
+
+        verifyNoInteractions(loadOverallRankingStatisticsPort);
     }
 
     @Test
-    void days가31을초과하면거부한다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
+    void 시작일이종료일보다늦으면거부한다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> service.getJobStatisticsTrend(32));
+                .isThrownBy(() -> service.getJobStatisticsHistory(
+                        TO.plusDays(1),
+                        TO
+                ));
+
+        verifyNoInteractions(loadOverallRankingStatisticsPort);
     }
 
     @Test
-    void 집계조회를포인트수만큼반복호출하지않는다() {
-        OverallRankingStatisticsTrendQueryService service = createService();
+    void 포함달력일365일범위는허용한다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        LocalDate from = TO.minusDays(364);
 
-        givenLatestCollection();
-        givenCollectionsWithin(
+        given(loadOverallRankingStatisticsPort
+                .loadAllConditionCollectionsBetween(from, TO))
+                .willReturn(List.of());
+
+        assertThat(service.getJobStatisticsHistory(from, TO)).isEmpty();
+    }
+
+    @Test
+    void 포함달력일366일범위는거부한다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> service.getJobStatisticsHistory(
+                        TO.minusDays(365),
+                        TO
+                ));
+
+        verifyNoInteractions(loadOverallRankingStatisticsPort);
+    }
+
+    @Test
+    void 집계조회를포인트수와무관하게한번만호출한다() {
+        OverallRankingStatisticsHistoryQueryService service = createService();
+        givenCollectionsBetween(
                 collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 1),
                 collection(PREVIOUS_COLLECTION_ID, PREVIOUS_SNAPSHOT_DATE, 1)
         );
@@ -224,7 +251,7 @@ class OverallRankingStatisticsTrendQueryServiceTest {
                 classNameAggregate(PREVIOUS_COLLECTION_ID, "히어로", 1L, 190)
         ));
 
-        service.getJobStatisticsTrend(7);
+        service.getJobStatisticsHistory(FROM, TO);
 
         verify(loadOverallRankingStatisticsPort, times(1))
                 .aggregateByClassName(List.of(
@@ -238,37 +265,26 @@ class OverallRankingStatisticsTrendQueryServiceTest {
     @Test
     void 랭킹통계조회Port에만의존하고외부API를호출하지않는다() {
         assertThat(
-                OverallRankingStatisticsTrendQueryService.class
+                OverallRankingStatisticsHistoryQueryService.class
                         .getDeclaredConstructors()
         ).hasSize(1);
 
         assertThat(
-                OverallRankingStatisticsTrendQueryService.class
+                OverallRankingStatisticsHistoryQueryService.class
                         .getDeclaredConstructors()[0]
                         .getParameterTypes()
         ).containsExactly(LoadOverallRankingStatisticsPort.class);
     }
 
-    private OverallRankingStatisticsTrendQueryService createService() {
-        return new OverallRankingStatisticsTrendQueryService(
+    private OverallRankingStatisticsHistoryQueryService createService() {
+        return new OverallRankingStatisticsHistoryQueryService(
                 loadOverallRankingStatisticsPort
         );
     }
 
-    private void givenLatestCollection() {
+    private void givenCollectionsBetween(LatestCollection... collections) {
         given(loadOverallRankingStatisticsPort
-                .loadLatestAllConditionCollection())
-                .willReturn(Optional.of(
-                        collection(LATEST_COLLECTION_ID, LATEST_SNAPSHOT_DATE, 1)
-                ));
-    }
-
-    private void givenCollectionsWithin(LatestCollection... collections) {
-        given(loadOverallRankingStatisticsPort
-                .loadAllConditionCollectionsWithin(
-                        LATEST_SNAPSHOT_DATE,
-                        7
-                ))
+                .loadAllConditionCollectionsBetween(FROM, TO))
                 .willReturn(List.of(collections));
     }
 

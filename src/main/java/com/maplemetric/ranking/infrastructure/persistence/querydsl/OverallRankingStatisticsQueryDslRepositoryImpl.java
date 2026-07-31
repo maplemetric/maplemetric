@@ -68,9 +68,9 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
     }
 
     @Override
-    public List<OverallRankingCollectionEntity> findAllConditionCollectionsWithin(
-            LocalDate baseSnapshotDate,
-            int days
+    public List<OverallRankingCollectionEntity> findAllConditionCollectionsBetween(
+            LocalDate from,
+            LocalDate to
     ) {
         QOverallRankingCollectionEntity collection =
                 QOverallRankingCollectionEntity.overallRankingCollectionEntity;
@@ -79,10 +79,8 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 .selectFrom(collection)
                 .where(
                         allCondition(collection),
-                        collection.snapshotDate.loe(baseSnapshotDate),
-                        collection.snapshotDate.gt(
-                                baseSnapshotDate.minusDays(days)
-                        )
+                        collection.snapshotDate.goe(from),
+                        collection.snapshotDate.loe(to)
                 )
                 .orderBy(collection.snapshotDate.asc())
                 .fetch();
