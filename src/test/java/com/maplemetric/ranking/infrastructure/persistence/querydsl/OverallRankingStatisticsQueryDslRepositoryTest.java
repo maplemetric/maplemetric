@@ -418,7 +418,7 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
     }
 
     @Test
-    void 기준일로부터지정한일수이내의전체조건Collection만조회한다() {
+    void 양끝날짜를포함한전체조건Collection만조회한다() {
         saveAllConditionCollection(
                 LocalDate.of(2026, 7, 22),
                 new Row[] {row(1, "히어로", null, 200)}
@@ -434,9 +434,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 new Row[] {row(1, "히어로", null, 210)}
         );
 
-        var collections = repository.findAllConditionCollectionsWithin(
-                LocalDate.of(2026, 7, 24),
-                3
+        var collections = repository.findAllConditionCollectionsBetween(
+                LocalDate.of(2026, 7, 22),
+                LocalDate.of(2026, 7, 24)
         );
 
         assertThat(collections)
@@ -460,9 +460,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 new Row[] {row(1, "히어로", null, 210)}
         );
 
-        var collections = repository.findAllConditionCollectionsWithin(
-                LocalDate.of(2026, 7, 24),
-                3
+        var collections = repository.findAllConditionCollectionsBetween(
+                LocalDate.of(2026, 7, 22),
+                LocalDate.of(2026, 7, 24)
         );
 
         assertThat(collections)
@@ -482,9 +482,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 new Row[] {row(1, "히어로", null, 215)}
         );
 
-        var collections = repository.findAllConditionCollectionsWithin(
-                LocalDate.of(2026, 7, 24),
-                3
+        var collections = repository.findAllConditionCollectionsBetween(
+                LocalDate.of(2026, 7, 22),
+                LocalDate.of(2026, 7, 24)
         );
 
         assertThat(collections)
@@ -530,9 +530,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
 
         collectionRepository.saveAndFlush(filtered);
 
-        var collections = repository.findAllConditionCollectionsWithin(
-                LocalDate.of(2026, 7, 24),
-                3
+        var collections = repository.findAllConditionCollectionsBetween(
+                LocalDate.of(2026, 7, 22),
+                LocalDate.of(2026, 7, 24)
         );
 
         assertThat(collections)
@@ -552,9 +552,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 new Row[] {row(1, "히어로", null, 210)}
         );
 
-        var collections = repository.findAllConditionCollectionsWithin(
-                LocalDate.of(2026, 7, 24),
-                7
+        var collections = repository.findAllConditionCollectionsBetween(
+                LocalDate.of(2026, 7, 18),
+                LocalDate.of(2026, 7, 24)
         );
 
         assertThat(collections)
@@ -572,9 +572,9 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 new Row[] {row(1, "히어로", null, 200)}
         );
 
-        var collections = repository.findAllConditionCollectionsWithin(
-                LocalDate.of(2026, 7, 24),
-                3
+        var collections = repository.findAllConditionCollectionsBetween(
+                LocalDate.of(2026, 7, 22),
+                LocalDate.of(2026, 7, 24)
         );
 
         assertThat(collections).isEmpty();
