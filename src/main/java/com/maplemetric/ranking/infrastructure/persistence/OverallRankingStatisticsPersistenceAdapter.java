@@ -108,4 +108,20 @@ class OverallRankingStatisticsPersistenceAdapter
                 ))
                 .toList();
     }
+
+    @Override
+    public List<WorldNameAggregateByCollection> aggregateByWorldName(
+            List<UUID> collectionIds
+    ) {
+        return queryDslRepository
+                .aggregateByWorldName(collectionIds)
+                .stream()
+                .map(aggregate -> new WorldNameAggregateByCollection(
+                        aggregate.collectionId(),
+                        aggregate.worldName(),
+                        aggregate.count(),
+                        aggregate.averageLevel()
+                ))
+                .toList();
+    }
 }
