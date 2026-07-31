@@ -29,6 +29,18 @@ public enum StatisticsErrorCode implements ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "STATISTICS_004",
             "월드별 통계 집계 데이터가 정합하지 않습니다."
+    ),
+
+    JOB_STATISTICS_JOB_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "STATISTICS_005",
+            "요청한 Canonical 직업 Slug를 찾을 수 없습니다."
+    ),
+
+    JOB_STATISTICS_HISTORY_INVALID_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "STATISTICS_006",
+            "직업 통계 History 기간 요청이 올바르지 않습니다."
     );
 
     private final HttpStatus httpStatus;

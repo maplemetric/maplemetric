@@ -6,6 +6,10 @@ public class JobStatisticsException extends RuntimeException {
 
     private final JobStatisticsFailure failure;
 
+    public JobStatisticsException(JobStatisticsFailure failure) {
+        this.failure = Objects.requireNonNull(failure);
+    }
+
     public JobStatisticsException(
             JobStatisticsFailure failure,
             Throwable cause

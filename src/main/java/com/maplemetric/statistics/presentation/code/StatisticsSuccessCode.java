@@ -14,6 +14,16 @@ public enum StatisticsSuccessCode implements SuccessCode {
     WORLD_STATISTICS_SEARCH_SUCCESS(
             "WORLD_STATISTICS_SEARCH_SUCCESS",
             "월드별 통계 조회에 성공했습니다."
+    ),
+
+    JOB_STATISTICS_DETAIL_SEARCH_SUCCESS(
+            "JOB_STATISTICS_DETAIL_SEARCH_SUCCESS",
+            "직업 상세 통계 조회에 성공했습니다."
+    ),
+
+    JOB_STATISTICS_HISTORY_SEARCH_SUCCESS(
+            "JOB_STATISTICS_HISTORY_SEARCH_SUCCESS",
+            "직업 통계 History 조회에 성공했습니다."
     );
 
     private final String code;
