@@ -16,13 +16,14 @@ import com.maplemetric.ranking.api.OverallRankingComparisonQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot.JobCount;
-import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQuery;
-import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
-import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
+import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot.WorldCount;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
+import com.maplemetric.statistics.application.exception.WorldStatisticsException;
+import com.maplemetric.statistics.application.exception.WorldStatisticsFailure;
+import com.maplemetric.statistics.application.result.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;
@@ -98,9 +99,6 @@ class StatisticsQueryServiceTest {
 
     @Mock
     private OverallRankingComparisonQuery overallRankingComparisonQuery;
-
-    @Mock
-    private OverallRankingWorldStatisticsQuery overallRankingWorldStatisticsQuery;
 
     @Mock
     private JobCatalogQuery jobCatalogQuery;
@@ -704,7 +702,6 @@ class StatisticsQueryServiceTest {
 
         service.getJobStatistics();
 
-        verifyNoInteractions(overallRankingWorldStatisticsQuery);
         verifyNoInteractions(worldCatalogQuery);
     }
 
@@ -854,29 +851,138 @@ class StatisticsQueryServiceTest {
     }
 
     @Test
-    void 월드별ranking조회실패는변환없이그대로전파한다() {
+    void 월드별ranking조회실패는월드통계실패로변환한다() {
         StatisticsQueryService service = createService();
 
-        given(overallRankingWorldStatisticsQuery.getLatestWorldStatistics())
-                .willThrow(new OverallRankingWorldStatisticsQueryException(
-                        OverallRankingWorldStatisticsQueryFailure.NOT_FOUND
+        given(overallRankingComparisonQuery.getWorldStatisticsComparison())
+                .willThrow(new OverallRankingComparisonQueryException(
+                        OverallRankingComparisonQueryFailure.NOT_FOUND
                 ));
 
-        OverallRankingWorldStatisticsQueryException exception =
+        WorldStatisticsException exception =
                 catchThrowableOfType(
                         service::getWorldStatistics,
-                        OverallRankingWorldStatisticsQueryException.class
+                        WorldStatisticsException.class
                 );
 
         assertThat(exception.getFailure())
-                .isEqualTo(OverallRankingWorldStatisticsQueryFailure.NOT_FOUND);
+                .isEqualTo(WorldStatisticsFailure.SNAPSHOT_NOT_FOUND);
         verifyNoInteractions(worldCatalogQuery);
+    }
+
+    @Test
+    void 월드별집계정합성오류는DATA_INVALID로변환한다() {
+        StatisticsQueryService service = createService();
+
+        given(overallRankingComparisonQuery.getWorldStatisticsComparison())
+                .willThrow(new OverallRankingComparisonQueryException(
+                        OverallRankingComparisonQueryFailure.DATA_INVALID
+                ));
+
+        WorldStatisticsException exception =
+                catchThrowableOfType(
+                        service::getWorldStatistics,
+                        WorldStatisticsException.class
+                );
+
+        assertThat(exception.getFailure())
+                .isEqualTo(WorldStatisticsFailure.DATA_INVALID);
+    }
+
+    @Test
+    void 월드목록은이전Snapshot과비교해Trend를제공한다() {
+        StatisticsQueryService service = createService();
+
+        givenWorldComparison(
+                worldSnapshot(
+                        SNAPSHOT_DATE,
+                        100,
+                        List.of(
+                                new WorldCount(
+                                        "루나",
+                                        20L,
+                                        new BigDecimal("200")
+                                ),
+                                new WorldCount(
+                                        "베라",
+                                        80L,
+                                        new BigDecimal("210")
+                                )
+                        )
+                ),
+                worldSnapshot(
+                        SNAPSHOT_DATE.minusDays(1),
+                        100,
+                        List.of(
+                                new WorldCount(
+                                        "루나",
+                                        10L,
+                                        new BigDecimal("190")
+                                ),
+                                new WorldCount(
+                                        "베라",
+                                        90L,
+                                        new BigDecimal("205")
+                                )
+                        )
+                ),
+                1
+        );
+        givenWorldCatalog(
+                List.of(LUNA, BERA),
+                Map.of("루나", LUNA, "베라", BERA)
+        );
+
+        GetWorldStatisticsResult result = service.getWorldStatistics();
+
+        assertThat(result.previousAsOf())
+                .isEqualTo(SNAPSHOT_DATE.minusDays(1));
+        assertThat(result.daysBetween()).isEqualTo(1);
+
+        assertThat(result.worlds())
+                .extracting(
+                        world -> world.worldSlug(),
+                        world -> world.comparison().previousCount(),
+                        world -> world.comparison().percentagePointChange(),
+                        world -> world.comparison().trend()
+                )
+                .containsExactly(
+                        tuple(
+                                "luna",
+                                10L,
+                                new BigDecimal("10.00"),
+                                StatisticsTrend.UP
+                        ),
+                        tuple(
+                                "bera",
+                                90L,
+                                new BigDecimal("-10.00"),
+                                StatisticsTrend.DOWN
+                        )
+                );
+    }
+
+    @Test
+    void 이전Snapshot이없으면월드목록Trend는INSUFFICIENT_DATA다() {
+        StatisticsQueryService service = createService();
+
+        givenWorldSnapshot(
+                100,
+                List.of(new WorldCount("루나", 10L, new BigDecimal("200")))
+        );
+        givenWorldCatalog(List.of(LUNA), Map.of("루나", LUNA));
+
+        GetWorldStatisticsResult result = service.getWorldStatistics();
+
+        assertThat(result.previousAsOf()).isNull();
+        assertThat(result.daysBetween()).isNull();
+        assertThat(result.worlds().get(0).comparison().trend())
+                .isEqualTo(StatisticsTrend.INSUFFICIENT_DATA);
     }
 
     private StatisticsQueryService createService() {
         return new StatisticsQueryService(
                 overallRankingComparisonQuery,
-                overallRankingWorldStatisticsQuery,
                 jobCatalogQuery,
                 worldCatalogQuery
         );
@@ -908,17 +1014,43 @@ class StatisticsQueryServiceTest {
             int sampleSize,
             List<WorldCount> worldCounts
     ) {
-        given(overallRankingWorldStatisticsQuery.getLatestWorldStatistics())
-                .willReturn(new OverallRankingWorldStatisticsSnapshot(
-                        SNAPSHOT_DATE,
-                        "NEXON_OPEN_API",
-                        COLLECTED_AT,
-                        sampleSize,
-                        1,
-                        100,
-                        false,
-                        worldCounts
-                ));
+        givenWorldComparison(
+                worldSnapshot(SNAPSHOT_DATE, sampleSize, worldCounts),
+                null,
+                null
+        );
+    }
+
+    private void givenWorldComparison(
+            OverallRankingWorldStatisticsSnapshot latest,
+            OverallRankingWorldStatisticsSnapshot previous,
+            Integer daysBetween
+    ) {
+        given(overallRankingComparisonQuery.getWorldStatisticsComparison())
+                .willReturn(
+                        new OverallRankingWorldStatisticsComparisonSnapshot(
+                                latest,
+                                previous,
+                                daysBetween
+                        )
+                );
+    }
+
+    private OverallRankingWorldStatisticsSnapshot worldSnapshot(
+            LocalDate asOf,
+            int sampleSize,
+            List<WorldCount> worldCounts
+    ) {
+        return new OverallRankingWorldStatisticsSnapshot(
+                asOf,
+                "NEXON_OPEN_API",
+                COLLECTED_AT,
+                sampleSize,
+                1,
+                100,
+                false,
+                worldCounts
+        );
     }
 
     private void givenWorldCatalog(
