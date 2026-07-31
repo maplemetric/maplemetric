@@ -4,13 +4,18 @@ import com.maplemetric.common.ApiResponse;
 import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsDetailResult;
+import com.maplemetric.statistics.application.result.GetWorldStatisticsHistoryResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.statistics.application.service.JobStatisticsDetailQueryService;
 import com.maplemetric.statistics.application.service.StatisticsQueryService;
+import com.maplemetric.statistics.application.service.WorldStatisticsDetailQueryService;
 import com.maplemetric.statistics.presentation.code.StatisticsSuccessCode;
 import com.maplemetric.statistics.presentation.response.GetJobStatisticsDetailResponse;
 import com.maplemetric.statistics.presentation.response.GetJobStatisticsHistoryResponse;
 import com.maplemetric.statistics.presentation.response.GetJobStatisticsResponse;
+import com.maplemetric.statistics.presentation.response.GetWorldStatisticsDetailResponse;
+import com.maplemetric.statistics.presentation.response.GetWorldStatisticsHistoryResponse;
 import com.maplemetric.statistics.presentation.response.GetWorldStatisticsResponse;
 import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,15 +32,21 @@ public class StatisticsController {
     private final StatisticsQueryService statisticsQueryService;
     private final JobStatisticsDetailQueryService
             jobStatisticsDetailQueryService;
+    private final WorldStatisticsDetailQueryService
+            worldStatisticsDetailQueryService;
 
     public StatisticsController(
             StatisticsQueryService statisticsQueryService,
             JobStatisticsDetailQueryService
-                    jobStatisticsDetailQueryService
+                    jobStatisticsDetailQueryService,
+            WorldStatisticsDetailQueryService
+                    worldStatisticsDetailQueryService
     ) {
         this.statisticsQueryService = statisticsQueryService;
         this.jobStatisticsDetailQueryService =
                 jobStatisticsDetailQueryService;
+        this.worldStatisticsDetailQueryService =
+                worldStatisticsDetailQueryService;
     }
 
     @GetMapping("/jobs")
@@ -102,6 +113,51 @@ public class StatisticsController {
                 StatisticsSuccessCode
                         .JOB_STATISTICS_HISTORY_SEARCH_SUCCESS,
                 GetJobStatisticsHistoryResponse.from(result)
+        );
+    }
+
+    @GetMapping("/worlds/{worldSlug}")
+    public ApiResponse<GetWorldStatisticsDetailResponse>
+            getWorldStatisticsDetail(
+                    @PathVariable String worldSlug
+            ) {
+        GetWorldStatisticsDetailResult result =
+                worldStatisticsDetailQueryService
+                        .getWorldStatisticsDetail(worldSlug);
+
+        return ApiResponse.ok(
+                StatisticsSuccessCode
+                        .WORLD_STATISTICS_DETAIL_SEARCH_SUCCESS,
+                GetWorldStatisticsDetailResponse.from(result)
+        );
+    }
+
+    @GetMapping("/worlds/{worldSlug}/history")
+    public ApiResponse<GetWorldStatisticsHistoryResponse>
+            getWorldStatisticsHistory(
+                    @PathVariable String worldSlug,
+                    @RequestParam(required = false)
+                    String range,
+                    @RequestParam(required = false)
+                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate from,
+                    @RequestParam(required = false)
+                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate to
+            ) {
+        GetWorldStatisticsHistoryResult result =
+                worldStatisticsDetailQueryService
+                        .getWorldStatisticsHistory(
+                                worldSlug,
+                                range,
+                                from,
+                                to
+                        );
+
+        return ApiResponse.ok(
+                StatisticsSuccessCode
+                        .WORLD_STATISTICS_HISTORY_SEARCH_SUCCESS,
+                GetWorldStatisticsHistoryResponse.from(result)
         );
     }
 }
