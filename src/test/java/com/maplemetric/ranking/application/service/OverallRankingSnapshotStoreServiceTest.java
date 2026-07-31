@@ -64,13 +64,17 @@ class OverallRankingSnapshotStoreServiceTest {
                 new ObservedName("팬텀", 1L),
                 new ObservedName("  PHANTOM  ", 1L),
                 new ObservedName("히어로", 1L),
-                new ObservedName("비숍", 1L)
+                new ObservedName("비숍", 1L),
+                new ObservedName("나이트로드", 1L),
+                new ObservedName("아크메이지(불,독)", 1L)
         );
         assertThat(event.worldNames()).containsExactly(
                 new ObservedName("루나", 1L),
                 new ObservedName("  LUNA  ", 1L),
                 new ObservedName("스카니아", 1L),
-                new ObservedName("베라", 1L)
+                new ObservedName("베라", 1L),
+                new ObservedName("루나", 1L),
+                new ObservedName("스카니아", 1L)
         );
         assertThatThrownBy(() -> event.jobNames().add(
                 new ObservedName("히어로", 1L)
@@ -115,7 +119,9 @@ class OverallRankingSnapshotStoreServiceTest {
                         createRow(1, "루나", "도적", "팬텀"),
                         createRow(2, "  LUNA  ", "  PHANTOM  ", null),
                         createRow(3, "스카니아", "히어로", ""),
-                        createRow(4, "베라", "비숍", "   ")
+                        createRow(4, "베라", "비숍", "   "),
+                        createRow(5, "루나", "나이트로드", "\t"),
+                        createRow(6, "스카니아", "아크메이지(불,독)", "\n")
                 )
         );
     }

@@ -172,7 +172,8 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
             QOverallRankingSnapshotEntity snapshot
     ) {
         return Expressions.stringTemplate(
-                "case when nullif(trim({0}), '') is not null "
+                "case when nullif(function('regexp_replace', {0}, "
+                        + "'[[:space:]]', '', 'g'), '') is not null "
                         + "then {0} else {1} end",
                 snapshot.subClassName,
                 snapshot.className
