@@ -31,7 +31,7 @@ public enum StatisticsErrorCode implements ErrorCode {
             "월드별 통계 집계 데이터가 정합하지 않습니다."
     ),
 
-    JOB_NOT_FOUND(
+    JOB_STATISTICS_JOB_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "STATISTICS_005",
             "요청한 Canonical 직업 Slug를 찾을 수 없습니다."
