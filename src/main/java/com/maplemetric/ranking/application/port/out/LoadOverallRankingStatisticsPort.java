@@ -28,6 +28,10 @@ public interface LoadOverallRankingStatisticsPort {
 
     List<WorldNameAggregate> aggregateByWorldName(UUID collectionId);
 
+    List<WorldNameAggregateByCollection> aggregateByWorldName(
+            List<UUID> collectionIds
+    );
+
     record LatestCollection(
             UUID collectionId,
             LocalDate snapshotDate,
@@ -56,6 +60,14 @@ public interface LoadOverallRankingStatisticsPort {
     }
 
     record WorldNameAggregate(
+            String worldName,
+            long count,
+            BigDecimal averageLevel
+    ) {
+    }
+
+    record WorldNameAggregateByCollection(
+            UUID collectionId,
             String worldName,
             long count,
             BigDecimal averageLevel

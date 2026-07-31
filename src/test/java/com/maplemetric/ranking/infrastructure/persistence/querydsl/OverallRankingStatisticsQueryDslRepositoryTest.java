@@ -655,6 +655,96 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
                 .containsExactly("팬텀", "나이트로드");
     }
 
+    @Test
+    void 여러collectionId의월드집계를각collection에연결해반환한다() {
+        OverallRankingCollectionEntity first =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 23),
+                        new WorldRow[] {
+                                worldRow(1, "루나", 200),
+                                worldRow(2, "루나", 210)
+                        }
+                );
+
+        OverallRankingCollectionEntity second =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 24),
+                        new WorldRow[] {
+                                worldRow(1, "베라", 220),
+                                worldRow(2, "스카니아", 230)
+                        }
+                );
+
+        var aggregates = repository.aggregateByWorldName(
+                List.of(first.getId(), second.getId())
+        );
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(first.getId()))
+                .extracting(aggregate -> aggregate.worldName())
+                .containsExactly("루나");
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(second.getId()))
+                .extracting(aggregate -> aggregate.worldName())
+                .containsExactlyInAnyOrder("베라", "스카니아");
+
+        var luna = aggregates.stream()
+                .filter(aggregate ->
+                        aggregate.collectionId().equals(first.getId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(luna.count()).isEqualTo(2);
+        assertThat(luna.averageLevel())
+                .isEqualByComparingTo(BigDecimal.valueOf(205));
+    }
+
+    @Test
+    void 여러collectionId의월드집계도count내림차순worldName오름차순으로정렬한다() {
+        OverallRankingCollectionEntity first =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 23),
+                        new WorldRow[] {
+                                worldRow(1, "루나", 200),
+                                worldRow(2, "루나", 205),
+                                worldRow(3, "베라", 210)
+                        }
+                );
+
+        OverallRankingCollectionEntity second =
+                saveAllConditionCollectionByWorld(
+                        LocalDate.of(2026, 7, 24),
+                        new WorldRow[] {
+                                worldRow(1, "스카니아", 200),
+                                worldRow(2, "스카니아", 205),
+                                worldRow(3, "스카니아", 210),
+                                worldRow(4, "루나", 215),
+                                worldRow(5, "루나", 220),
+                                worldRow(6, "베라", 225),
+                                worldRow(7, "베라", 230)
+                        }
+                );
+
+        var aggregates = repository.aggregateByWorldName(
+                List.of(first.getId(), second.getId())
+        );
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(first.getId()))
+                .extracting(aggregate -> aggregate.worldName())
+                .containsExactly("루나", "베라");
+
+        assertThat(aggregates)
+                .filteredOn(aggregate ->
+                        aggregate.collectionId().equals(second.getId()))
+                .extracting(aggregate -> aggregate.worldName())
+                .containsExactly("스카니아", "루나", "베라");
+    }
+
     private OverallRankingCollectionEntity saveAllConditionCollection(
             LocalDate snapshotDate,
             Row[] rows
