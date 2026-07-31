@@ -1,13 +1,15 @@
 package com.maplemetric.ranking.application.service;
 
+import com.maplemetric.ranking.api.OverallRankingStatisticsHistoryQuery;
+import com.maplemetric.ranking.api.OverallRankingStatisticsHistoryQueryException;
+import com.maplemetric.ranking.api.OverallRankingStatisticsHistoryQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot.JobCount;
-import com.maplemetric.ranking.api.OverallRankingStatisticsTrendQuery;
-import com.maplemetric.ranking.api.OverallRankingStatisticsTrendQueryException;
-import com.maplemetric.ranking.api.OverallRankingStatisticsTrendQueryFailure;
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort;
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort.ClassNameAggregateByCollection;
 import com.maplemetric.ranking.application.port.out.LoadOverallRankingStatisticsPort.LatestCollection;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -17,15 +19,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class OverallRankingStatisticsTrendQueryService
-        implements OverallRankingStatisticsTrendQuery {
+public class OverallRankingStatisticsHistoryQueryService
+        implements OverallRankingStatisticsHistoryQuery {
 
-    private static final int MIN_DAYS = 1;
-    private static final int MAX_DAYS = 31;
+    private static final int MAX_RANGE_DAYS = 365;
 
     private final LoadOverallRankingStatisticsPort loadOverallRankingStatisticsPort;
 
-    OverallRankingStatisticsTrendQueryService(
+    OverallRankingStatisticsHistoryQueryService(
             LoadOverallRankingStatisticsPort loadOverallRankingStatisticsPort
     ) {
         this.loadOverallRankingStatisticsPort =
@@ -34,22 +35,18 @@ public class OverallRankingStatisticsTrendQueryService
 
     @Override
     @Transactional(readOnly = true)
-    public List<OverallRankingStatisticsSnapshot> getJobStatisticsTrend(
-            int days
+    public List<OverallRankingStatisticsSnapshot> getJobStatisticsHistory(
+            LocalDate from,
+            LocalDate to
     ) {
-        requireValidDays(days);
-
-        LatestCollection latest = loadOverallRankingStatisticsPort
-                .loadLatestAllConditionCollection()
-                .orElseThrow(() -> new OverallRankingStatisticsTrendQueryException(
-                        OverallRankingStatisticsTrendQueryFailure.NOT_FOUND
-                ));
+        requireValidRange(from, to);
 
         List<LatestCollection> collections = loadOverallRankingStatisticsPort
-                .loadAllConditionCollectionsWithin(
-                        latest.snapshotDate(),
-                        days
-                );
+                .loadAllConditionCollectionsBetween(from, to);
+
+        if (collections.isEmpty()) {
+            return List.of();
+        }
 
         List<UUID> collectionIds = collections.stream()
                 .map(collection -> collection.collectionId())
@@ -86,8 +83,8 @@ public class OverallRankingStatisticsTrendQueryService
                 .sum();
 
         if (totalCount != collection.sampleSize()) {
-            throw new OverallRankingStatisticsTrendQueryException(
-                    OverallRankingStatisticsTrendQueryFailure.DATA_INVALID
+            throw new OverallRankingStatisticsHistoryQueryException(
+                    OverallRankingStatisticsHistoryQueryFailure.DATA_INVALID
             );
         }
 
@@ -111,11 +108,24 @@ public class OverallRankingStatisticsTrendQueryService
         );
     }
 
-    private void requireValidDays(int days) {
-        if (days < MIN_DAYS || days > MAX_DAYS) {
+    private void requireValidRange(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
             throw new IllegalArgumentException(
-                    "조회 일수는 " + MIN_DAYS + " 이상 "
-                            + MAX_DAYS + " 이하여야 합니다."
+                    "조회 시작일과 종료일은 필수입니다."
+            );
+        }
+
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException(
+                    "조회 시작일은 종료일보다 늦을 수 없습니다."
+            );
+        }
+
+        long rangeDays = ChronoUnit.DAYS.between(from, to) + 1;
+
+        if (rangeDays > MAX_RANGE_DAYS) {
+            throw new IllegalArgumentException(
+                    "조회 기간은 " + MAX_RANGE_DAYS + "일 이하여야 합니다."
             );
         }
     }

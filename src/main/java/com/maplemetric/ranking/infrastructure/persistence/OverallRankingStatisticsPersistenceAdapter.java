@@ -37,12 +37,12 @@ class OverallRankingStatisticsPersistenceAdapter
     }
 
     @Override
-    public List<LatestCollection> loadAllConditionCollectionsWithin(
-            LocalDate baseSnapshotDate,
-            int days
+    public List<LatestCollection> loadAllConditionCollectionsBetween(
+            LocalDate from,
+            LocalDate to
     ) {
         return queryDslRepository
-                .findAllConditionCollectionsWithin(baseSnapshotDate, days)
+                .findAllConditionCollectionsBetween(from, to)
                 .stream()
                 .map(collection -> toLatestCollection(collection))
                 .toList();

@@ -15,9 +15,9 @@ public interface LoadOverallRankingStatisticsPort {
             LocalDate baseSnapshotDate
     );
 
-    List<LatestCollection> loadAllConditionCollectionsWithin(
-            LocalDate baseSnapshotDate,
-            int days
+    List<LatestCollection> loadAllConditionCollectionsBetween(
+            LocalDate from,
+            LocalDate to
     );
 
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
