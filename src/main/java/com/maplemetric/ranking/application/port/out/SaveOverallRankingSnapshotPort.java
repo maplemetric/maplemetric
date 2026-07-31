@@ -42,5 +42,13 @@ public interface SaveOverallRankingSnapshotPort {
             Integer characterPopularity,
             String characterGuildName
     ) {
+
+        public String jobName() {
+            if (subClassName != null && !subClassName.isBlank()) {
+                return subClassName;
+            }
+
+            return className;
+        }
     }
 }

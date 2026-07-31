@@ -62,11 +62,15 @@ class OverallRankingSnapshotStoreServiceTest {
         assertThat(event.snapshotDate()).isEqualTo(SNAPSHOT_DATE);
         assertThat(event.jobNames()).containsExactly(
                 new ObservedName("팬텀", 1L),
-                new ObservedName("  PHANTOM  ", 1L)
+                new ObservedName("  PHANTOM  ", 1L),
+                new ObservedName("히어로", 1L),
+                new ObservedName("비숍", 1L)
         );
         assertThat(event.worldNames()).containsExactly(
                 new ObservedName("루나", 1L),
-                new ObservedName("  LUNA  ", 1L)
+                new ObservedName("  LUNA  ", 1L),
+                new ObservedName("스카니아", 1L),
+                new ObservedName("베라", 1L)
         );
         assertThatThrownBy(() -> event.jobNames().add(
                 new ObservedName("히어로", 1L)
@@ -108,8 +112,10 @@ class OverallRankingSnapshotStoreServiceTest {
                 false,
                 Instant.parse("2026-07-27T00:30:00Z"),
                 List.of(
-                        createRow(1, "루나", "팬텀"),
-                        createRow(2, "  LUNA  ", "  PHANTOM  ")
+                        createRow(1, "루나", "도적", "팬텀"),
+                        createRow(2, "  LUNA  ", "  PHANTOM  ", null),
+                        createRow(3, "스카니아", "히어로", ""),
+                        createRow(4, "베라", "비숍", "   ")
                 )
         );
     }
@@ -117,14 +123,15 @@ class OverallRankingSnapshotStoreServiceTest {
     private RankingRow createRow(
             int ranking,
             String worldName,
-            String className
+            String className,
+            String subClassName
     ) {
         return new RankingRow(
                 ranking,
                 "캐릭터" + ranking,
                 worldName,
                 className,
-                null,
+                subClassName,
                 300,
                 0L,
                 0,
