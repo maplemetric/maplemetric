@@ -258,6 +258,36 @@ class OverallRankingBackfillRunnerTest {
         verify(backfillStateService).succeedDate(any());
     }
 
+    @Test
+    void 대기중중단되면점유한기준일을풀고예외를올린다() {
+        givenClaims(date(FIRST_DATE, 1), date(FIRST_DATE.plusDays(1), 1));
+        givenCollected();
+
+        sleeper.interrupt = true;
+
+        try {
+            org.assertj.core.api.Assertions
+                    .assertThatThrownBy(() -> runner.run(JOB_ID))
+                    .isInstanceOf(IllegalStateException.class);
+
+            // 두 번째 기준일을 점유한 뒤 중단됐다. RUNNING으로 남기면 다시 잡히지 않는다.
+            verify(backfillStateService).failDate(
+                    any(),
+                    org.mockito.ArgumentMatchers.eq(
+                            BackfillErrorType.UNKNOWN
+                    ),
+                    org.mockito.ArgumentMatchers.eq(true)
+            );
+
+            // 첫 기준일은 정상 처리됐다.
+            verify(backfillStateService).succeedDate(any());
+            verify(collectUseCase, times(1)).collect(any());
+        } finally {
+            // 다른 테스트에 Interrupt 상태를 넘기지 않는다.
+            Thread.interrupted();
+        }
+    }
+
     private OverallRankingBackfillRunner createRunner(int maxDatesPerRun) {
         return new OverallRankingBackfillRunner(
                 backfillStateService,
@@ -328,8 +358,14 @@ class OverallRankingBackfillRunnerTest {
 
         private final List<Duration> sleeps = new java.util.ArrayList<>();
 
+        private boolean interrupt;
+
         @Override
-        public void sleep(Duration duration) {
+        public void sleep(Duration duration) throws InterruptedException {
+            if (interrupt) {
+                throw new InterruptedException("중단");
+            }
+
             sleeps.add(duration);
         }
     }

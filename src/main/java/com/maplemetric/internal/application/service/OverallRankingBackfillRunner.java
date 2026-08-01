@@ -104,11 +104,14 @@ public class OverallRankingBackfillRunner {
                 break;
             }
 
+            BackfillDate date = claimed.get();
+
+            // 빈 대기열에서 헛되이 기다리지 않도록 점유 뒤에 간격을 둔다.
             if (processed > 0) {
-                sleepBetweenRequests();
+                sleepBetweenRequests(date);
             }
 
-            processDate(claimed.get());
+            processDate(date);
             processed++;
         }
 
@@ -188,7 +191,14 @@ public class OverallRankingBackfillRunner {
         backfillStateService.failDate(date.id(), errorType, retryLeft);
     }
 
-    private void sleepBetweenRequests() {
+    /**
+     * 다음 호출까지 간격을 둔다.
+     *
+     * 이 시점에는 이미 기준일을 점유한 상태다. 중단되면 그 기준일을 RUNNING으로 남긴 채
+     * 실행이 끝나는데, 점유를 회수하는 경로가 없어 그 기준일은 다시 잡히지 않는다.
+     * 중단 시 점유를 먼저 풀고 예외를 올린다.
+     */
+    private void sleepBetweenRequests(BackfillDate claimedDate) {
         if (properties.requestInterval().isZero()) {
             return;
         }
@@ -197,6 +207,8 @@ public class OverallRankingBackfillRunner {
             sleeper.sleep(properties.requestInterval());
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
+
+            recordFailure(claimedDate, BackfillErrorType.UNKNOWN, true);
 
             throw new IllegalStateException(
                     "Backfill 실행이 중단되었습니다.",
