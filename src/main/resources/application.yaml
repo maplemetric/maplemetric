@@ -91,3 +91,11 @@ maplemetric:
         # 강제 종료로 점유된 채 남은 기준일을 회수하는 기준이다.
         # 한 기준일의 정상 수집 소요보다 넉넉해야 실행 중인 기준일을 뺏지 않는다.
         stale-claim-timeout: ${RANKING_BACKFILL_STALE_CLAIM_TIMEOUT:10m}
+
+      # 수집 결과 보존 한도다.
+      # enabled는 기본이 꺼짐이다. 삭제는 되돌릴 수 없고 보존 일수도 아직 운영
+      # 데이터를 측정해 확정하지 않았다. 켜기 전에 retention-days를 다시 정한다.
+      overall-ranking-retention:
+        enabled: ${RANKING_RETENTION_ENABLED:false}
+        retention-days: ${RANKING_RETENTION_DAYS:1095}
+        max-dates-per-run: ${RANKING_RETENTION_MAX_DATES_PER_RUN:30}
