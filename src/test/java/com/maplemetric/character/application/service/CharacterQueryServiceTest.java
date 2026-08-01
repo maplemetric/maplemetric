@@ -60,7 +60,9 @@ import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import java.math.BigDecimal;
+import com.maplemetric.character.infrastructure.properties.CharacterSnapshotProperties;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -118,6 +120,9 @@ class CharacterQueryServiceTest {
     @Mock
     private CharacterRankingQuery characterRankingQuery;
 
+    @Mock
+    private CharacterSnapshotStoreService characterSnapshotStoreService;
+
     private AdditionalOptionCalculator additionalOptionCalculator;
     private CharacterQueryService characterQueryService;
 
@@ -150,8 +155,48 @@ class CharacterQueryServiceTest {
                         loadCharacterUnionPort,
                         additionalOptionCalculator,
                         characterRankingQuery,
+                        characterSnapshotStoreService,
+                        new CharacterSnapshotProperties(Duration.ofMinutes(5)),
                         clock
                 );
+    }
+
+    @Test
+    void 저장에실패해도이미수집한결과를돌려준다() {
+        org.mockito.Mockito
+                .doThrow(new IllegalStateException("저장 실패"))
+                .when(characterSnapshotStoreService)
+                .store(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()
+                );
+
+        given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
+                .willReturn(OCID);
+        given(loadCharacterBasicPort.loadCharacterBasic(OCID))
+                .willReturn(createBasic());
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(createStatResponse(List.of(
+                        new FinalStat("전투력", "116871666")
+                )));
+        givenRankingResponse();
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+        givenExtendedSummaryResponses();
+        given(loadCharacterEquipmentPort.loadCharacterEquipment(OCID))
+                .willReturn(createEquipmentResponse(List.of()));
+
+        // 저장은 다음 조회를 아끼기 위한 것이지 응답의 일부가 아니다.
+        // 이미 쓴 Nexon 21회를 저장 실패로 버리지 않는다.
+        assertThat(
+                characterQueryService
+                        .getCharacterSummary(CHARACTER_NAME)
+                        .basic()
+                        .characterName()
+        ).isEqualTo(CHARACTER_NAME);
     }
 
     @Test

@@ -39,6 +39,8 @@ import com.maplemetric.character.application.result.GetCharacterStatResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterUnionResult;
+import com.maplemetric.character.application.service.CharacterSnapshotStoreService.StoredSummary;
+import com.maplemetric.character.infrastructure.properties.CharacterSnapshotProperties;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.ranking.api.CharacterRanking;
@@ -46,11 +48,14 @@ import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Service
 public class CharacterQueryService {
 
@@ -76,6 +81,8 @@ public class CharacterQueryService {
     private final LoadCharacterUnionPort loadCharacterUnionPort;
     private final AdditionalOptionCalculator additionalOptionCalculator;
     private final CharacterRankingQuery characterRankingQuery;
+    private final CharacterSnapshotStoreService characterSnapshotStoreService;
+    private final CharacterSnapshotProperties characterSnapshotProperties;
     private final Clock clock;
 
     @Autowired
@@ -93,7 +100,9 @@ public class CharacterQueryService {
             LoadCharacterSymbolPort loadCharacterSymbolPort,
             LoadCharacterUnionPort loadCharacterUnionPort,
             AdditionalOptionCalculator additionalOptionCalculator,
-            CharacterRankingQuery characterRankingQuery
+            CharacterRankingQuery characterRankingQuery,
+            CharacterSnapshotStoreService characterSnapshotStoreService,
+            CharacterSnapshotProperties characterSnapshotProperties
     ) {
         this(
                 loadCharacterAbilityPort,
@@ -110,6 +119,8 @@ public class CharacterQueryService {
                 loadCharacterUnionPort,
                 additionalOptionCalculator,
                 characterRankingQuery,
+                characterSnapshotStoreService,
+                characterSnapshotProperties,
                 Clock.systemUTC()
         );
     }
@@ -129,6 +140,8 @@ public class CharacterQueryService {
             LoadCharacterUnionPort loadCharacterUnionPort,
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery,
+            CharacterSnapshotStoreService characterSnapshotStoreService,
+            CharacterSnapshotProperties characterSnapshotProperties,
             Clock clock
     ) {
         this.loadCharacterAbilityPort = loadCharacterAbilityPort;
@@ -149,6 +162,8 @@ public class CharacterQueryService {
         this.additionalOptionCalculator =
                 additionalOptionCalculator;
         this.characterRankingQuery = characterRankingQuery;
+        this.characterSnapshotStoreService = characterSnapshotStoreService;
+        this.characterSnapshotProperties = characterSnapshotProperties;
         this.clock = clock;
     }
 
@@ -181,6 +196,64 @@ public class CharacterQueryService {
 
     public GetCharacterSummaryResult getCharacterSummary(
             String characterName
+    ) {
+        return getCharacterSummary(characterName, false);
+    }
+
+    /**
+     * 캐릭터 종합 정보를 조회한다.
+     *
+     * 저장본이 있으면 그것을 돌려준다. 한 번의 종합 조회가 Nexon을 21회 호출하므로
+     * 같은 캐릭터를 다시 보는 것만으로 호출량을 쓰지 않게 한다.
+     *
+     * {@code refresh}는 사용자가 갱신을 요청한 경우다. 저장본이 있어도 다시 수집한다.
+     * 다만 최근에 이미 갱신했다면 저장본을 그대로 돌려준다. 연타로 21회씩 소비하지
+     * 않게 하려는 것이며, 응답의 {@code dataUpdatedAt}이 그대로라 소비 측이 갱신되지
+     * 않았음을 알 수 있다.
+     */
+    public GetCharacterSummaryResult getCharacterSummary(
+            String characterName,
+            boolean refresh
+    ) {
+        Optional<StoredSummary> stored =
+                characterSnapshotStoreService
+                        .findByCharacterName(characterName);
+
+        if (stored.isPresent() && !shouldFetch(stored.get(), refresh)) {
+            return stored.get().summary();
+        }
+
+        Instant fetchedAt = Instant.now(clock);
+
+        GetCharacterSummaryResult summary =
+                collectCharacterSummary(characterName, fetchedAt);
+
+        return summary;
+    }
+
+    /**
+     * 저장본이 있는데도 다시 수집할지 판단한다.
+     *
+     * 갱신 요청이 아니면 다시 수집하지 않는다. 갱신 요청이라도 최소 간격 안이면
+     * 저장본을 유지한다.
+     */
+    private boolean shouldFetch(
+            StoredSummary stored,
+            boolean refresh
+    ) {
+        if (!refresh) {
+            return false;
+        }
+
+        Instant refreshableFrom = stored.fetchedAt()
+                .plus(characterSnapshotProperties.minRefreshInterval());
+
+        return !Instant.now(clock).isBefore(refreshableFrom);
+    }
+
+    private GetCharacterSummaryResult collectCharacterSummary(
+            String characterName,
+            Instant fetchedAt
     ) {
         String ocid = getValidatedOcid(characterName);
 
@@ -233,7 +306,7 @@ public class CharacterQueryService {
                 loadCharacterSetEffectPort
                         .loadCharacterSetEffect(ocid);
 
-        return GetCharacterSummaryResult.of(
+        GetCharacterSummaryResult summary = GetCharacterSummaryResult.of(
                 GetCharacterBasicResult.from(basic),
                 GetCharacterStatResult.from(stat),
                 GetCharacterRankingResult.of(
@@ -266,8 +339,26 @@ public class CharacterQueryService {
                 GetCharacterDojangResult.from(
                         dojang
                 ),
-                Instant.now(clock).toString()
+                fetchedAt.toString()
         );
+
+        // 저장은 다음 조회를 아끼기 위한 것이지 응답의 일부가 아니다. 저장이 실패해도
+        // 이미 성공한 21회 조회를 버리지 않는다.
+        try {
+            characterSnapshotStoreService.store(
+                    ocid,
+                    summary,
+                    fetchedAt
+            );
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "캐릭터 조회 결과를 저장하지 못했습니다. characterName={}",
+                    characterName,
+                    exception
+            );
+        }
+
+        return summary;
     }
 
     private CharacterRanking getCharacterRanking(
