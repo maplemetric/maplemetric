@@ -69,7 +69,14 @@ public class CharacterSnapshotStoreService {
             return Optional.empty();
         }
 
-        Instant fetchedAt = profile.get().fetchedAt();
+        // 구간별 조회 시각이 다를 수 있다. 이 저장본 전체가 언제 것인지는 가장 오래된
+        // 구간이 답이다. 지금은 세 구간을 함께 저장하지만 탭별 지연 로딩이 들어오면
+        // 달라진다.
+        Instant fetchedAt = oldest(
+                profile.get().fetchedAt(),
+                equipment.get().fetchedAt(),
+                skill.get().fetchedAt()
+        );
 
         return Optional.of(new StoredSummary(
                 ocid,
@@ -130,6 +137,16 @@ public class CharacterSnapshotStoreService {
                 ),
                 fetchedAt
         );
+    }
+
+    private Instant oldest(
+            Instant first,
+            Instant second,
+            Instant third
+    ) {
+        Instant oldest = first.isBefore(second) ? first : second;
+
+        return oldest.isBefore(third) ? oldest : third;
     }
 
     private GetCharacterSummaryResult assemble(

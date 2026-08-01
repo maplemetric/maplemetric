@@ -112,10 +112,10 @@ class CharacterSectionSnapshotPersistenceAdapter
     }
 
     /**
-     * 저장 실패는 조회를 막지 않는다.
+     * 조회 결과를 저장 형식으로 바꾼다.
      *
-     * 이 저장은 다음 조회를 빠르게 하기 위한 것이지 응답의 일부가 아니다. 직렬화가
-     * 실패했다고 이미 성공한 Nexon 조회를 버리면 호출 21회를 그냥 날린다.
+     * 직렬화 실패는 원인을 담아 던진다. 이 예외를 응답으로 노출하지 않는 것은
+     * 호출자의 책임이다.
      */
     private String serialize(Object payload) {
         try {

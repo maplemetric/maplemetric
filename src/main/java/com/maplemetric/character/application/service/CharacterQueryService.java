@@ -215,20 +215,33 @@ public class CharacterQueryService {
             String characterName,
             boolean refresh
     ) {
+        Instant now = Instant.now(clock);
+
         Optional<StoredSummary> stored =
                 characterSnapshotStoreService
                         .findByCharacterName(characterName);
 
-        if (stored.isPresent() && !shouldFetch(stored.get(), refresh)) {
+        if (stored.isPresent() && !shouldFetch(stored.get(), refresh, now)) {
             return stored.get().summary();
         }
 
-        Instant fetchedAt = Instant.now(clock);
+        try {
+            return collectCharacterSummary(characterName, now);
+        } catch (RuntimeException exception) {
+            if (stored.isEmpty()) {
+                throw exception;
+            }
 
-        GetCharacterSummaryResult summary =
-                collectCharacterSummary(characterName, fetchedAt);
+            // 갱신에 실패했다고 이미 가지고 있던 데이터까지 잃게 하지 않는다.
+            // 응답의 dataUpdatedAt이 그대로라 갱신되지 않았음을 알 수 있다.
+            log.warn(
+                    "갱신 수집이 실패해 저장본을 돌려줍니다. characterName={}",
+                    characterName,
+                    exception
+            );
 
-        return summary;
+            return stored.get().summary();
+        }
     }
 
     /**
@@ -239,7 +252,8 @@ public class CharacterQueryService {
      */
     private boolean shouldFetch(
             StoredSummary stored,
-            boolean refresh
+            boolean refresh,
+            Instant now
     ) {
         if (!refresh) {
             return false;
@@ -248,7 +262,7 @@ public class CharacterQueryService {
         Instant refreshableFrom = stored.fetchedAt()
                 .plus(characterSnapshotProperties.minRefreshInterval());
 
-        return !Instant.now(clock).isBefore(refreshableFrom);
+        return !now.isBefore(refreshableFrom);
     }
 
     private GetCharacterSummaryResult collectCharacterSummary(
