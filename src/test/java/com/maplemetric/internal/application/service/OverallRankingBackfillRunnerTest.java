@@ -260,7 +260,10 @@ class OverallRankingBackfillRunnerTest {
 
     @Test
     void 대기중중단되면점유한기준일을풀고예외를올린다() {
-        givenClaims(date(FIRST_DATE, 1), date(FIRST_DATE.plusDays(1), 1));
+        BackfillDate firstDate = date(FIRST_DATE, 1);
+        BackfillDate secondDate = date(FIRST_DATE.plusDays(1), 1);
+
+        givenClaims(firstDate, secondDate);
         givenCollected();
 
         sleeper.interrupt = true;
@@ -272,7 +275,7 @@ class OverallRankingBackfillRunnerTest {
 
             // 두 번째 기준일을 점유한 뒤 중단됐다. RUNNING으로 남기면 다시 잡히지 않는다.
             verify(backfillStateService).failDate(
-                    any(),
+                    org.mockito.ArgumentMatchers.eq(secondDate.id()),
                     org.mockito.ArgumentMatchers.eq(
                             BackfillErrorType.UNKNOWN
                     ),
@@ -280,7 +283,10 @@ class OverallRankingBackfillRunnerTest {
             );
 
             // 첫 기준일은 정상 처리됐다.
-            verify(backfillStateService).succeedDate(any());
+            verify(backfillStateService)
+                    .succeedDate(
+                            org.mockito.ArgumentMatchers.eq(firstDate.id())
+                    );
             verify(collectUseCase, times(1)).collect(any());
         } finally {
             // 다른 테스트에 Interrupt 상태를 넘기지 않는다.
