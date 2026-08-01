@@ -58,6 +58,18 @@ class OverallRankingBackfillStatePersistenceAdapter
     }
 
     @Override
+    public List<BackfillDate> findStaleClaims(
+            UUID backfillJobId,
+            Instant claimedBefore
+    ) {
+        return dateRepository
+                .findStaleClaims(backfillJobId, claimedBefore)
+                .stream()
+                .map(date -> toBackfillDate(date))
+                .toList();
+    }
+
+    @Override
     public Optional<BackfillDate> claimNextPendingDate(UUID backfillJobId) {
         Optional<OverallRankingBackfillDateEntity> claimed =
                 dateRepository.lockNextPending(backfillJobId);

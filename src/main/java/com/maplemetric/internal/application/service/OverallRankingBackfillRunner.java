@@ -11,7 +11,9 @@ import com.maplemetric.ranking.api.OverallRankingCollectionException;
 import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -94,6 +96,8 @@ public class OverallRankingBackfillRunner {
      * @return 이번 실행에서 처리한 기준일 수
      */
     public int run(UUID backfillJobId) {
+        reclaimStaleClaims(backfillJobId);
+
         int processed = 0;
 
         while (processed < properties.maxDatesPerRun()) {
@@ -122,6 +126,42 @@ public class OverallRankingBackfillRunner {
         );
 
         return processed;
+    }
+
+    /**
+     * 앞선 실행이 점유한 채 남긴 기준일을 회수한다.
+     *
+     * 실행기가 강제 종료되면 기준일이 RUNNING으로 남는다. 점유 조회는 PENDING만 보므로
+     * 회수하지 않으면 그 기준일은 영영 다시 잡히지 않고 Job도 닫히지 않는다.
+     *
+     * 회수는 실패 기록과 같은 경로를 쓴다. 그래야 시도 한도 규칙이 그대로 적용돼
+     * 매번 죽는 기준일이 무한히 회수되지 않는다.
+     */
+    private void reclaimStaleClaims(UUID backfillJobId) {
+        Instant claimedBefore =
+                Instant.now().minus(properties.staleClaimTimeout());
+
+        List<BackfillDate> staleClaims =
+                backfillStateService.findStaleClaims(
+                        backfillJobId,
+                        claimedBefore
+                );
+
+        if (staleClaims.isEmpty()) {
+            return;
+        }
+
+        log.warn(
+                "중단된 점유를 회수합니다. jobId={}, 기준일 수={}",
+                backfillJobId,
+                staleClaims.size()
+        );
+
+        staleClaims.forEach(date -> recordFailure(
+                date,
+                BackfillErrorType.UNKNOWN,
+                true
+        ));
     }
 
     private void processDate(BackfillDate date) {

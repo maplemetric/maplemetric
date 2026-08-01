@@ -4,6 +4,7 @@ import com.maplemetric.internal.application.port.out.OverallRankingBackfillState
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillDate;
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillErrorType;
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillJob;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +45,17 @@ public class OverallRankingBackfillStateService {
     @Transactional(readOnly = true)
     public List<BackfillDate> findDates(UUID backfillJobId) {
         return backfillStatePort.findDates(backfillJobId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BackfillDate> findStaleClaims(
+            UUID backfillJobId,
+            Instant claimedBefore
+    ) {
+        return backfillStatePort.findStaleClaims(
+                backfillJobId,
+                claimedBefore
+        );
     }
 
     /**

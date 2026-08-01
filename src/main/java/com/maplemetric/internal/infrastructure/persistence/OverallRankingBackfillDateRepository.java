@@ -1,6 +1,7 @@
 package com.maplemetric.internal.infrastructure.persistence;
 
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,28 @@ interface OverallRankingBackfillDateRepository
 
     List<OverallRankingBackfillDateEntity>
             findByBackfillJobIdOrderBySnapshotDateAsc(UUID backfillJobId);
+
+    /**
+     * 오래 점유된 채 남은 기준일을 찾는다.
+     *
+     * 실행기가 강제 종료되면 기준일이 RUNNING으로 남고, 점유 조회는 PENDING만 보므로
+     * 그 기준일은 다시 잡히지 않는다. 임계 시각보다 오래된 점유만 대상으로 삼아
+     * 정상 실행 중인 다른 실행기의 기준일을 뺏지 않는다.
+     */
+    @Query("""
+            select date
+              from OverallRankingBackfillDateEntity date
+             where date.backfillJobId = :backfillJobId
+               and date.status =
+                   com.maplemetric.internal.application.port.out
+                       .OverallRankingBackfillStatePort.BackfillStatus.RUNNING
+               and date.startedAt < :claimedBefore
+             order by date.snapshotDate
+            """)
+    List<OverallRankingBackfillDateEntity> findStaleClaims(
+            @Param("backfillJobId") UUID backfillJobId,
+            @Param("claimedBefore") Instant claimedBefore
+    );
 
     /**
      * 취소처럼 여러 기준일을 한 번에 바꿀 때 행을 잠근 채로 읽는다.

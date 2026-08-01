@@ -87,3 +87,7 @@ maplemetric:
         max-attempts-per-date: ${RANKING_BACKFILL_MAX_ATTEMPTS_PER_DATE:3}
         max-dates-per-run: ${RANKING_BACKFILL_MAX_DATES_PER_RUN:7}
         request-interval: ${RANKING_BACKFILL_REQUEST_INTERVAL:2s}
+
+        # 강제 종료로 점유된 채 남은 기준일을 회수하는 기준이다.
+        # 한 기준일의 정상 수집 소요보다 넉넉해야 실행 중인 기준일을 뺏지 않는다.
+        stale-claim-timeout: ${RANKING_BACKFILL_STALE_CLAIM_TIMEOUT:10m}
