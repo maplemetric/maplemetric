@@ -21,10 +21,22 @@ public class CharacterController {
         this.characterQueryService = characterQueryService;
     }
 
+    /**
+     * 캐릭터 종합 정보를 조회한다.
+     *
+     * 기본은 저장된 조회 결과를 돌려준다. {@code refresh=true}면 Nexon에서 다시
+     * 수집한다. 응답의 {@code dataUpdatedAt}이 그 데이터를 가져온 시각이다.
+     */
     @GetMapping("/search")
-    public ApiResponse<GetCharacterSummaryResponse> searchCharacter(@RequestParam @NotBlank(message = "캐릭터명은 필수입니다.") String characterName) {
+    public ApiResponse<GetCharacterSummaryResponse> searchCharacter(
+            @RequestParam @NotBlank(message = "캐릭터명은 필수입니다.") String characterName,
+            @RequestParam(defaultValue = "false") boolean refresh
+    ) {
         GetCharacterSummaryResult result =
-                characterQueryService.getCharacterSummary(characterName);
+                characterQueryService.getCharacterSummary(
+                        characterName,
+                        refresh
+                );
 
         return ApiResponse.ok(
                 CharacterSuccessCode.CHARACTER_SEARCH_SUCCESS,

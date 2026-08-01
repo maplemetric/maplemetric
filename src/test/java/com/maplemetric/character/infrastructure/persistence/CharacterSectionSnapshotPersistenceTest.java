@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -31,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureTestDatabase(
         replace = AutoConfigureTestDatabase.Replace.NONE
 )
+@ImportAutoConfiguration(JacksonAutoConfiguration.class)
 @Import(CharacterSectionSnapshotPersistenceAdapter.class)
 class CharacterSectionSnapshotPersistenceTest {
 
@@ -57,43 +60,50 @@ class CharacterSectionSnapshotPersistenceTest {
     @Autowired
     private EntityManager entityManager;
 
+    record TestPayload(String value) {
+    }
+
     @Test
     void 구간별로저장하고ocid로읽는다() {
         port.save(
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.PROFILE,
-                """
-                {"combatPower":"116871666"}
-                """,
+                new TestPayload("116871666"),
                 FETCHED_AT
         );
         port.save(
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.EQUIPMENT,
-                """
-                {"itemEquipment":[]}
-                """,
+                new TestPayload("equipment"),
                 FETCHED_AT
         );
 
-        CharacterSectionSnapshot profile =
-                port.findByOcid(OCID, CharacterSection.PROFILE)
-                        .orElseThrow();
+        CharacterSectionSnapshot<TestPayload> profile =
+                port.findByOcid(
+                        OCID,
+                        CharacterSection.PROFILE,
+                        TestPayload.class
+                ).orElseThrow();
 
         assertThat(profile.characterName()).isEqualTo(CHARACTER_NAME);
-        assertThat(profile.section())
-                .isEqualTo(CharacterSection.PROFILE);
-        assertThat(profile.payload()).contains("116871666");
+        assertThat(profile.section()).isEqualTo(CharacterSection.PROFILE);
+        assertThat(profile.payload().value()).isEqualTo("116871666");
         assertThat(profile.fetchedAt()).isEqualTo(FETCHED_AT);
 
-        assertThat(port.findByOcid(OCID, CharacterSection.EQUIPMENT))
-                .isPresent();
+        assertThat(port.findByOcid(
+                OCID,
+                CharacterSection.EQUIPMENT,
+                TestPayload.class
+        )).isPresent();
 
         // 열지 않은 탭 구간은 저장본이 없다.
-        assertThat(port.findByOcid(OCID, CharacterSection.SKILL))
-                .isEmpty();
+        assertThat(port.findByOcid(
+                OCID,
+                CharacterSection.SKILL,
+                TestPayload.class
+        )).isEmpty();
     }
 
     @Test
@@ -102,9 +112,7 @@ class CharacterSectionSnapshotPersistenceTest {
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.PROFILE,
-                """
-                {"combatPower":"100"}
-                """,
+                new TestPayload("100"),
                 FETCHED_AT
         );
 
@@ -114,19 +122,20 @@ class CharacterSectionSnapshotPersistenceTest {
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.PROFILE,
-                """
-                {"combatPower":"200"}
-                """,
+                new TestPayload("200"),
                 refreshedAt
         );
 
         entityManager.flush();
 
-        CharacterSectionSnapshot stored =
-                port.findByOcid(OCID, CharacterSection.PROFILE)
-                        .orElseThrow();
+        CharacterSectionSnapshot<TestPayload> stored =
+                port.findByOcid(
+                        OCID,
+                        CharacterSection.PROFILE,
+                        TestPayload.class
+                ).orElseThrow();
 
-        assertThat(stored.payload()).contains("200");
+        assertThat(stored.payload().value()).isEqualTo("200");
         assertThat(stored.fetchedAt()).isEqualTo(refreshedAt);
 
         Integer rows = jdbcTemplate.queryForObject(
@@ -149,7 +158,7 @@ class CharacterSectionSnapshotPersistenceTest {
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.PROFILE,
-                "{}",
+                new TestPayload("value"),
                 FETCHED_AT
         );
 
@@ -157,13 +166,17 @@ class CharacterSectionSnapshotPersistenceTest {
                 OCID,
                 "새이름",
                 CharacterSection.PROFILE,
-                "{}",
+                new TestPayload("value"),
                 FETCHED_AT.plusSeconds(60)
         );
 
         entityManager.flush();
 
-        assertThat(port.findByOcid(OCID, CharacterSection.PROFILE))
+        assertThat(port.findByOcid(
+                OCID,
+                CharacterSection.PROFILE,
+                TestPayload.class
+        ))
                 .get()
                 .extracting(snapshot -> snapshot.characterName())
                 .isEqualTo("새이름");
@@ -175,18 +188,17 @@ class CharacterSectionSnapshotPersistenceTest {
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.SKILL,
-                """
-                {"hexa":{}}
-                """,
+                new TestPayload("hexa"),
                 FETCHED_AT
         );
 
         entityManager.flush();
 
-        Optional<CharacterSectionSnapshot> found =
+        Optional<CharacterSectionSnapshot<TestPayload>> found =
                 port.findByCharacterName(
                         CHARACTER_NAME,
-                        CharacterSection.SKILL
+                        CharacterSection.SKILL,
+                        TestPayload.class
                 );
 
         assertThat(found)
@@ -196,12 +208,33 @@ class CharacterSectionSnapshotPersistenceTest {
     }
 
     @Test
+    void 읽지못하는저장본은없는것으로본다() {
+        // 응답 계약이 바뀌어 예전 저장본을 더 이상 읽지 못하는 상황이다.
+        jdbcTemplate.update(
+                """
+                INSERT INTO p_character_section_snapshot
+                    (ocid, character_name, section, payload, fetched_at)
+                VALUES (?, ?, 'PROFILE', '[1,2,3]'::jsonb, now())
+                """,
+                OCID,
+                CHARACTER_NAME
+        );
+
+        // 조회 전체를 실패시키지 않고 없는 것으로 봐서 다시 수집하게 한다.
+        assertThat(port.findByOcid(
+                OCID,
+                CharacterSection.PROFILE,
+                TestPayload.class
+        )).isEmpty();
+    }
+
+    @Test
     void 같은ocid와구간을두번만들지못한다() {
         port.save(
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.PROFILE,
-                "{}",
+                new TestPayload("value"),
                 FETCHED_AT
         );
 
@@ -232,12 +265,12 @@ class CharacterSectionSnapshotPersistenceTest {
     }
 
     @Test
-    void 빈조회결과는저장하지못한다() {
+    void 조회결과가없으면저장하지못한다() {
         assertThatThrownBy(() -> port.save(
                 OCID,
                 CHARACTER_NAME,
                 CharacterSection.PROFILE,
-                "  ",
+                null,
                 FETCHED_AT
         )).isInstanceOf(IllegalArgumentException.class);
     }
