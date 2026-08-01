@@ -147,6 +147,37 @@ class OverallRankingBackfillRunnerTest {
     }
 
     @Test
+    void 회수하나가실패해도남은기준일처리를막지않는다() {
+        BackfillDate failing = date(FIRST_DATE, 1);
+        BackfillDate remaining = date(FIRST_DATE.plusDays(1), 1);
+
+        given(backfillStateService.findStaleClaims(
+                org.mockito.ArgumentMatchers.eq(JOB_ID),
+                any()
+        )).willReturn(List.of(failing, remaining));
+        org.mockito.BDDMockito.willThrow(new IllegalStateException("회수 실패"))
+                .given(backfillStateService)
+                .failDate(
+                        org.mockito.ArgumentMatchers.eq(failing.id()),
+                        any(),
+                        org.mockito.ArgumentMatchers.anyBoolean()
+                );
+
+        givenClaims(date(FIRST_DATE.plusDays(2), 1));
+        givenCollected();
+
+        assertThat(runner.run(JOB_ID)).isEqualTo(1);
+
+        // 실패한 항목에서 끊지 않고 남은 회수와 수집을 모두 진행한다.
+        verify(backfillStateService).failDate(
+                org.mockito.ArgumentMatchers.eq(remaining.id()),
+                org.mockito.ArgumentMatchers.eq(BackfillErrorType.UNKNOWN),
+                org.mockito.ArgumentMatchers.eq(true)
+        );
+        verify(backfillStateService).succeedDate(any());
+    }
+
+    @Test
     void 회수임계시각은설정값만큼과거다() {
         given(backfillStateService.findStaleClaims(
                 org.mockito.ArgumentMatchers.eq(JOB_ID),
