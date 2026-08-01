@@ -27,6 +27,20 @@ public interface OverallRankingBackfillStatePort {
     List<BackfillDate> findDates(UUID backfillJobId);
 
     /**
+     * 오래 점유된 채 남은 기준일을 찾는다.
+     *
+     * 실행기가 강제 종료되면 기준일이 RUNNING으로 남는다. 점유 조회는 PENDING만 보므로
+     * 그대로 두면 그 기준일은 다시 잡히지 않고 Job도 닫히지 않는다.
+     *
+     * {@code claimedBefore}보다 오래된 점유만 대상이다. 정상 실행 중인 다른 실행기의
+     * 기준일을 뺏지 않도록 호출자가 한 기준일의 수집 소요보다 넉넉한 시각을 넘긴다.
+     */
+    List<BackfillDate> findStaleClaims(
+            UUID backfillJobId,
+            Instant claimedBefore
+    );
+
+    /**
      * 다음 PENDING 기준일을 원자적으로 점유한다.
      *
      * 같은 Job을 동시에 실행해도 두 실행기가 같은 기준일을 잡지 않는다.
