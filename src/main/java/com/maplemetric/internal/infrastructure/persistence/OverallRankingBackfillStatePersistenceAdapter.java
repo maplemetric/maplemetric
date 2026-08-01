@@ -124,10 +124,14 @@ class OverallRankingBackfillStatePersistenceAdapter
 
     @Override
     public void cancelJob(UUID backfillJobId) {
+        // 잠금은 기준일 다음 Job 순서로만 잡는다. 다른 경로도 기준일을 먼저 잡으므로
+        // 순서를 뒤집으면 취소와 결과 기록이 서로를 기다려 교착이 난다.
+        List<OverallRankingBackfillDateEntity> dates =
+                dateRepository.findByBackfillJobIdForUpdate(backfillJobId);
+
         OverallRankingBackfillJobEntity job = getJobForUpdate(backfillJobId);
 
-        dateRepository.findByBackfillJobIdForUpdate(backfillJobId)
-                .forEach(date -> date.cancel());
+        dates.forEach(date -> date.cancel());
 
         job.cancel();
     }
