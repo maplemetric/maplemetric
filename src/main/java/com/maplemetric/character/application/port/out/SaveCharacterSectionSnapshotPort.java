@@ -9,6 +9,9 @@ import java.util.Optional;
  * 같은 ocid·구간은 덮어쓴다. 이 저장본은 "마지막으로 가져온 결과"이며 이력이 아니다.
  * 일자별 이력이 필요해지면 별도 저장소를 두고 여기를 바꾸지 않는다.
  *
+ * 저장 형식은 이 계약의 관심사가 아니다. 호출자는 Result 객체를 그대로 넘기고 그대로
+ * 돌려받으며, 직렬화는 Adapter가 담당한다.
+ *
  * 구간은 화면 탭 경계와 같다. 탭을 열지 않은 구간은 저장본이 없을 수 있으므로
  * 호출자가 구간별로 존재 여부를 확인한다.
  */
@@ -18,25 +21,27 @@ public interface SaveCharacterSectionSnapshotPort {
             String ocid,
             String characterName,
             CharacterSection section,
-            String payload,
+            Object payload,
             Instant fetchedAt
     );
 
-    Optional<CharacterSectionSnapshot> findByOcid(
+    <T> Optional<CharacterSectionSnapshot<T>> findByOcid(
             String ocid,
-            CharacterSection section
+            CharacterSection section,
+            Class<T> payloadType
     );
 
-    Optional<CharacterSectionSnapshot> findByCharacterName(
+    <T> Optional<CharacterSectionSnapshot<T>> findByCharacterName(
             String characterName,
-            CharacterSection section
+            CharacterSection section,
+            Class<T> payloadType
     );
 
-    record CharacterSectionSnapshot(
+    record CharacterSectionSnapshot<T>(
             String ocid,
             String characterName,
             CharacterSection section,
-            String payload,
+            T payload,
             Instant fetchedAt
     ) {
     }
