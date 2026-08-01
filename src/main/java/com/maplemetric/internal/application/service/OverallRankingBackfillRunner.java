@@ -136,6 +136,10 @@ public class OverallRankingBackfillRunner {
      *
      * 회수는 실패 기록과 같은 경로를 쓴다. 그래야 시도 한도 규칙이 그대로 적용돼
      * 매번 죽는 기준일이 무한히 회수되지 않는다.
+     *
+     * 회수 실패는 한 기준일에서 끊는다. 여기서 예외를 올리면 이번 실행이 남은
+     * PENDING 기준일까지 시작하지 못하고, 같은 항목이 계속 실패하면 정상 처리가
+     * 매 실행마다 막힌다.
      */
     private void reclaimStaleClaims(UUID backfillJobId) {
         Instant claimedBefore =
@@ -157,11 +161,19 @@ public class OverallRankingBackfillRunner {
                 staleClaims.size()
         );
 
-        staleClaims.forEach(date -> recordFailure(
-                date,
-                BackfillErrorType.UNKNOWN,
-                true
-        ));
+        staleClaims.forEach(date -> reclaim(date));
+    }
+
+    private void reclaim(BackfillDate date) {
+        try {
+            recordFailure(date, BackfillErrorType.UNKNOWN, true);
+        } catch (RuntimeException exception) {
+            log.error(
+                    "중단된 점유 회수에 실패했습니다. 기준일={}",
+                    date.snapshotDate(),
+                    exception
+            );
+        }
     }
 
     private void processDate(BackfillDate date) {

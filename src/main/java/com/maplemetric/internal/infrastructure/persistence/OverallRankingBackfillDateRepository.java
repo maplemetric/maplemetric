@@ -39,6 +39,23 @@ interface OverallRankingBackfillDateRepository
     );
 
     /**
+     * 결과를 기록하기 전에 기준일 행을 잠근 채로 읽는다.
+     *
+     * 잠그지 않으면 두 실행기가 같은 RUNNING 행을 각자 읽어 둘 다 상태 검사를
+     * 통과하고, Job 집계가 중복으로 올라간다. 회수 경로는 잠금 없이 조회한 목록을
+     * 별도 Transaction에서 처리하므로 그 사이에 다른 실행기가 상태를 바꿀 수 있다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select date
+              from OverallRankingBackfillDateEntity date
+             where date.id = :backfillDateId
+            """)
+    Optional<OverallRankingBackfillDateEntity> findByIdForUpdate(
+            @Param("backfillDateId") UUID backfillDateId
+    );
+
+    /**
      * 취소처럼 여러 기준일을 한 번에 바꿀 때 행을 잠근 채로 읽는다.
      *
      * 잠그지 않으면 다른 실행기가 같은 기준일을 동시에 점유해 취소가 유실된다.
