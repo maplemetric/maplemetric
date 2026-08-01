@@ -143,7 +143,7 @@ class CharacterSummaryStoreBehaviorTest {
     }
 
     @Test
-    void 저장본이없으면수집하고저장한다() {
+    void 저장본이없으면수집경로로간다() {
         given(characterSnapshotStoreService
                 .findByCharacterName(CHARACTER_NAME))
                 .willReturn(Optional.empty());
@@ -153,6 +153,40 @@ class CharacterSummaryStoreBehaviorTest {
         assertThatEntersCollectPath();
 
         verify(loadCharacterBasicPort).resolveOcid(CHARACTER_NAME);
+    }
+
+    @Test
+    void 갱신수집이실패하면저장본을돌려준다() {
+        Instant fetchedAt = NOW.minus(Duration.ofHours(1));
+
+        givenStored(fetchedAt);
+
+        given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
+                .willThrow(new IllegalStateException("수집 실패"));
+
+        GetCharacterSummaryResult result =
+                service.getCharacterSummary(CHARACTER_NAME, true);
+
+        // 갱신에 실패했다고 이미 가지고 있던 데이터까지 잃지 않는다.
+        assertThat(result.basic().characterName())
+                .isEqualTo(CHARACTER_NAME);
+        assertThat(result.dataUpdatedAt())
+                .isEqualTo(fetchedAt.toString());
+    }
+
+    @Test
+    void 저장본이없는데수집이실패하면예외를올린다() {
+        given(characterSnapshotStoreService
+                .findByCharacterName(CHARACTER_NAME))
+                .willReturn(Optional.empty());
+        given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
+                .willThrow(new IllegalStateException("수집 실패"));
+
+        org.assertj.core.api.Assertions
+                .assertThatThrownBy(() ->
+                        service.getCharacterSummary(CHARACTER_NAME))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("수집 실패");
     }
 
     @Test
@@ -172,7 +206,10 @@ class CharacterSummaryStoreBehaviorTest {
         given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
                 .willThrow(new IllegalStateException("수집 경로 진입"));
 
-        assertThatEntersCollectPath(true);
+        service.getCharacterSummary(CHARACTER_NAME, true);
+
+        // 수집을 시도했다. 실패해서 저장본으로 되돌아온 것은 별도 테스트가 다룬다.
+        verify(loadCharacterBasicPort).resolveOcid(CHARACTER_NAME);
     }
 
     private void givenStored(Instant fetchedAt) {
@@ -192,15 +229,9 @@ class CharacterSummaryStoreBehaviorTest {
      * 저장본을 쓰지 않고 수집으로 갔음을 확인한다.
      */
     private void assertThatEntersCollectPath() {
-        assertThatEntersCollectPath(false);
-    }
-
-    private void assertThatEntersCollectPath(boolean refresh) {
         org.assertj.core.api.Assertions
-                .assertThatThrownBy(() -> service.getCharacterSummary(
-                        CHARACTER_NAME,
-                        refresh
-                ))
+                .assertThatThrownBy(() ->
+                        service.getCharacterSummary(CHARACTER_NAME))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("수집 경로 진입");
     }

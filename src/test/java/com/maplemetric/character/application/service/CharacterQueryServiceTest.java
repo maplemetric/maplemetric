@@ -3,7 +3,10 @@ package com.maplemetric.character.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -163,13 +166,13 @@ class CharacterQueryServiceTest {
 
     @Test
     void 저장에실패해도이미수집한결과를돌려준다() {
-        org.mockito.Mockito
-                .doThrow(new IllegalStateException("저장 실패"))
+
+        doThrow(new IllegalStateException("저장 실패"))
                 .when(characterSnapshotStoreService)
                 .store(
-                        org.mockito.ArgumentMatchers.any(),
-                        org.mockito.ArgumentMatchers.any(),
-                        org.mockito.ArgumentMatchers.any()
+                        any(),
+                        any(),
+                        any()
                 );
 
         given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
@@ -197,6 +200,32 @@ class CharacterQueryServiceTest {
                         .basic()
                         .characterName()
         ).isEqualTo(CHARACTER_NAME);
+    }
+
+    @Test
+    void 수집한결과를저장한다() {
+        given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
+                .willReturn(OCID);
+        given(loadCharacterBasicPort.loadCharacterBasic(OCID))
+                .willReturn(createBasic());
+        given(loadCharacterStatPort.loadCharacterStat(OCID))
+                .willReturn(createStatResponse(List.of(
+                        new FinalStat("전투력", "116871666")
+                )));
+        givenRankingResponse();
+        given(loadCharacterUnionPort.loadCharacterUnion(OCID))
+                .willReturn(createUnionResponse());
+        given(loadCharacterSymbolPort.loadCharacterSymbol(OCID))
+                .willReturn(createSymbolResponse());
+        givenExtendedSummaryResponses();
+        given(loadCharacterEquipmentPort.loadCharacterEquipment(OCID))
+                .willReturn(createEquipmentResponse(List.of()));
+
+        characterQueryService.getCharacterSummary(CHARACTER_NAME);
+
+        // 저장해야 다음 조회에서 Nexon 21회를 다시 쓰지 않는다.
+        verify(characterSnapshotStoreService)
+                .store(eq(OCID), any(), any());
     }
 
     @Test
