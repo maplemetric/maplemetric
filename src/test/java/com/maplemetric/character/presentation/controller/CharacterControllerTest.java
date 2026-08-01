@@ -43,7 +43,7 @@ class CharacterControllerTest {
 
     @Test
     void 캐릭터검색에성공하면유니온과심볼정보를반환한다() throws Exception {
-        given(characterQueryService.getCharacterSummary("감점"))
+        given(characterQueryService.getCharacterSummary("감점", false))
                 .willReturn(createSummaryResult());
 
         mockMvc.perform(
@@ -299,7 +299,7 @@ class CharacterControllerTest {
                 );
 
         verify(characterQueryService)
-                .getCharacterSummary("감점");
+                .getCharacterSummary("감점", false);
     }
 
     @Test
