@@ -20,6 +20,7 @@ import com.maplemetric.ranking.api.OverallRankingCollectionException;
 import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionStatus;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -47,6 +48,9 @@ class OverallRankingBackfillRunnerTest {
     private static final int MAX_PAGES = 10;
 
     private static final int MAX_ATTEMPTS = 3;
+
+    private static final Duration STALE_CLAIM_TIMEOUT =
+            Duration.ofMinutes(10);
 
     @Mock
     private OverallRankingBackfillStateService backfillStateService;
@@ -98,6 +102,75 @@ class OverallRankingBackfillRunnerTest {
         assertThat(sleeper.sleeps).containsExactly(Duration.ofSeconds(2));
 
         verify(backfillStateService, times(2)).succeedDate(any());
+    }
+
+    @Test
+    void 실행을시작할때중단된점유를회수한다() {
+        BackfillDate stale = date(FIRST_DATE, 1);
+
+        given(backfillStateService.findStaleClaims(
+                org.mockito.ArgumentMatchers.eq(JOB_ID),
+                any()
+        )).willReturn(List.of(stale));
+        given(backfillStateService.claimNextPendingDate(JOB_ID))
+                .willReturn(Optional.empty());
+
+        runner.run(JOB_ID);
+
+        // 회수는 재시도 가능한 실패로 기록해 다시 점유되게 한다.
+        verify(backfillStateService).failDate(
+                org.mockito.ArgumentMatchers.eq(stale.id()),
+                org.mockito.ArgumentMatchers.eq(BackfillErrorType.UNKNOWN),
+                org.mockito.ArgumentMatchers.eq(true)
+        );
+    }
+
+    @Test
+    void 회수도시도한도를넘으면최종실패로닫는다() {
+        BackfillDate stale = date(FIRST_DATE, MAX_ATTEMPTS);
+
+        given(backfillStateService.findStaleClaims(
+                org.mockito.ArgumentMatchers.eq(JOB_ID),
+                any()
+        )).willReturn(List.of(stale));
+        given(backfillStateService.claimNextPendingDate(JOB_ID))
+                .willReturn(Optional.empty());
+
+        runner.run(JOB_ID);
+
+        // 매번 죽는 기준일이 무한히 회수되지 않는다.
+        verify(backfillStateService).failDate(
+                org.mockito.ArgumentMatchers.eq(stale.id()),
+                org.mockito.ArgumentMatchers.eq(BackfillErrorType.UNKNOWN),
+                org.mockito.ArgumentMatchers.eq(false)
+        );
+    }
+
+    @Test
+    void 회수임계시각은설정값만큼과거다() {
+        given(backfillStateService.findStaleClaims(
+                org.mockito.ArgumentMatchers.eq(JOB_ID),
+                any()
+        )).willReturn(List.of());
+        given(backfillStateService.claimNextPendingDate(JOB_ID))
+                .willReturn(Optional.empty());
+
+        Instant before = Instant.now().minus(STALE_CLAIM_TIMEOUT);
+
+        runner.run(JOB_ID);
+
+        ArgumentCaptor<Instant> claimedBeforeCaptor =
+                ArgumentCaptor.forClass(Instant.class);
+
+        verify(backfillStateService).findStaleClaims(
+                org.mockito.ArgumentMatchers.eq(JOB_ID),
+                claimedBeforeCaptor.capture()
+        );
+
+        Instant after = Instant.now().minus(STALE_CLAIM_TIMEOUT);
+
+        assertThat(claimedBeforeCaptor.getValue())
+                .isBetween(before, after);
     }
 
     @Test
@@ -302,7 +375,8 @@ class OverallRankingBackfillRunnerTest {
                         MAX_PAGES,
                         MAX_ATTEMPTS,
                         maxDatesPerRun,
-                        Duration.ofSeconds(2)
+                        Duration.ofSeconds(2),
+                        STALE_CLAIM_TIMEOUT
                 ),
                 sleeper
         );
