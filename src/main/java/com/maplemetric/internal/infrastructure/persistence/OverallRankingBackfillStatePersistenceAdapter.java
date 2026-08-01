@@ -58,6 +58,18 @@ class OverallRankingBackfillStatePersistenceAdapter
     }
 
     @Override
+    public List<BackfillDate> findStaleClaims(
+            UUID backfillJobId,
+            Instant claimedBefore
+    ) {
+        return dateRepository
+                .findStaleClaims(backfillJobId, claimedBefore)
+                .stream()
+                .map(date -> toBackfillDate(date))
+                .toList();
+    }
+
+    @Override
     public Optional<BackfillDate> claimNextPendingDate(UUID backfillJobId) {
         Optional<OverallRankingBackfillDateEntity> claimed =
                 dateRepository.lockNextPending(backfillJobId);
@@ -179,8 +191,14 @@ class OverallRankingBackfillStatePersistenceAdapter
                 ));
     }
 
+    /**
+     * 결과를 기록할 기준일을 잠근 채로 읽는다.
+     *
+     * 잠금 순서는 기준일 다음 Job이다. 결과 기록도 취소도 같은 순서를 지켜야 서로를
+     * 기다리며 교착에 빠지지 않는다.
+     */
     private OverallRankingBackfillDateEntity getDate(UUID backfillDateId) {
-        return dateRepository.findById(backfillDateId)
+        return dateRepository.findByIdForUpdate(backfillDateId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Backfill 기준일 항목을 찾을 수 없습니다."
                 ));

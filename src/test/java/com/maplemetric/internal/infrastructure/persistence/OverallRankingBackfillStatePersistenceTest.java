@@ -10,6 +10,7 @@ import com.maplemetric.internal.application.port.out.OverallRankingBackfillState
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillStatus;
 import com.maplemetric.internal.application.service.OverallRankingBackfillStateService;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -280,6 +281,68 @@ class OverallRankingBackfillStatePersistenceTest {
         assertThat(finished.failedDateCount()).isZero();
         assertThat(onlyDate(job.id()).status())
                 .isEqualTo(BackfillStatus.SUCCEEDED);
+    }
+
+    @Test
+    void 임계시각보다오래된점유만회수대상이다() {
+        BackfillJob job = service.createJob(FROM, TO);
+
+        BackfillDate claimed = claim(job.id());
+        entityManager.flush();
+
+        // 방금 점유한 기준일은 정상 실행 중일 수 있어 건드리지 않는다.
+        assertThat(service.findStaleClaims(
+                job.id(),
+                Instant.now().minusSeconds(600)
+        )).isEmpty();
+
+        // 임계 시각이 점유 시각보다 뒤면 회수 대상이다.
+        assertThat(service.findStaleClaims(
+                job.id(),
+                Instant.now().plusSeconds(600)
+        ))
+                .extracting(date -> date.id())
+                .containsExactly(claimed.id());
+    }
+
+    @Test
+    void 회수한기준일은다시점유된다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        BackfillDate claimed = claim(job.id());
+        entityManager.flush();
+
+        // 실행기가 강제 종료돼 RUNNING으로 남은 상황이다.
+        assertThat(service.claimNextPendingDate(job.id())).isEmpty();
+
+        BackfillDate stale = service.findStaleClaims(
+                job.id(),
+                Instant.now().plusSeconds(600)
+        ).get(0);
+
+        service.failDate(
+                stale.id(),
+                BackfillErrorType.UNKNOWN,
+                true
+        );
+
+        BackfillDate reclaimed = claim(job.id());
+
+        assertThat(reclaimed.id()).isEqualTo(claimed.id());
+        assertThat(reclaimed.attemptCount()).isEqualTo(2);
+    }
+
+    @Test
+    void 끝난기준일은회수대상이아니다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        service.succeedDate(claim(job.id()).id());
+        entityManager.flush();
+
+        assertThat(service.findStaleClaims(
+                job.id(),
+                Instant.now().plusSeconds(600)
+        )).isEmpty();
     }
 
     @Test

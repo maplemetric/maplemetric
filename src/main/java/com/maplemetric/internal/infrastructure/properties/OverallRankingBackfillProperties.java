@@ -15,6 +15,9 @@ import org.springframework.validation.annotation.Validated;
  *
  * {@code maxDatesPerRun}은 한 번의 실행이 끝없이 도는 것을 막는다. 남은 기준일은 다음
  * 실행에서 이어서 처리한다.
+ *
+ * {@code staleClaimTimeout}은 강제 종료로 점유된 채 남은 기준일을 회수하는 기준이다.
+ * 한 기준일의 정상 수집 소요보다 넉넉해야 정상 실행 중인 기준일을 뺏지 않는다.
  */
 @Validated
 @ConfigurationProperties(
@@ -24,13 +27,22 @@ public record OverallRankingBackfillProperties(
         @Min(1) @Max(100) int maxPages,
         @Min(1) @Max(10) int maxAttemptsPerDate,
         @Min(1) @Max(365) int maxDatesPerRun,
-        Duration requestInterval
+        Duration requestInterval,
+        Duration staleClaimTimeout
 ) {
 
     public OverallRankingBackfillProperties {
         if (requestInterval == null || requestInterval.isNegative()) {
             throw new IllegalArgumentException(
                     "Backfill 호출 간격은 0 이상이어야 합니다."
+            );
+        }
+
+        if (staleClaimTimeout == null
+                || staleClaimTimeout.isZero()
+                || staleClaimTimeout.isNegative()) {
+            throw new IllegalArgumentException(
+                    "Backfill 점유 회수 임계 시간은 0보다 커야 합니다."
             );
         }
     }
