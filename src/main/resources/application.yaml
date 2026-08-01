@@ -73,3 +73,12 @@ maplemetric:
           enabled: ${RANKING_COLLECTION_SCHEDULER_ENABLED:false}
           cron: "${RANKING_COLLECTION_SCHEDULER_CRON:0 40 9 * * *}"
           zone: ${RANKING_COLLECTION_SCHEDULER_ZONE:Asia/Seoul}
+
+      # 과거 Snapshot Backfill 한도다.
+      # request-interval은 Nexon 공식 Rate Limit 수치가 아니라 과거 데이터를 몰아
+      # 받지 않기 위한 보수적인 기본값이다.
+      overall-ranking-backfill:
+        max-pages: ${RANKING_BACKFILL_MAX_PAGES:10}
+        max-attempts-per-date: ${RANKING_BACKFILL_MAX_ATTEMPTS_PER_DATE:3}
+        max-dates-per-run: ${RANKING_BACKFILL_MAX_DATES_PER_RUN:7}
+        request-interval: ${RANKING_BACKFILL_REQUEST_INTERVAL:2s}
