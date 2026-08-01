@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,6 +40,7 @@ public class OverallRankingBackfillRunner {
     private final OverallRankingBackfillProperties properties;
     private final Sleeper sleeper;
 
+    @Autowired
     public OverallRankingBackfillRunner(
             OverallRankingBackfillStateService backfillStateService,
             CollectOverallRankingSnapshotUseCase collectUseCase,
