@@ -25,21 +25,36 @@ class CharacterSectionSnapshotPersistenceAdapter
             String payload,
             Instant fetchedAt
     ) {
-        Optional<CharacterSectionSnapshotEntity> stored =
-                repository.findByOcidAndSection(ocid, section);
-
-        if (stored.isPresent()) {
-            stored.get().refresh(characterName, payload, fetchedAt);
-            return;
+        if (section == null) {
+            throw new IllegalArgumentException(
+                    "저장 구간은 비어 있을 수 없습니다."
+            );
         }
 
-        repository.save(CharacterSectionSnapshotEntity.create(
-                ocid,
-                characterName,
-                section,
-                payload,
+        if (fetchedAt == null) {
+            throw new IllegalArgumentException(
+                    "조회 시각은 비어 있을 수 없습니다."
+            );
+        }
+
+        repository.upsert(
+                requireText(ocid, "ocid는 비어 있을 수 없습니다."),
+                requireText(characterName, "캐릭터명은 비어 있을 수 없습니다."),
+                section.name(),
+                requireText(payload, "저장할 조회 결과는 비어 있을 수 없습니다."),
                 fetchedAt
-        ));
+        );
+    }
+
+    private String requireText(
+            String value,
+            String message
+    ) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+
+        return value;
     }
 
     @Override

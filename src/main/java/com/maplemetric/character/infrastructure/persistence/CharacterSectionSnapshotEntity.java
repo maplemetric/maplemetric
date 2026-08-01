@@ -5,11 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
@@ -18,6 +14,14 @@ import lombok.Getter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * 캐릭터 조회 결과 저장본이다.
+ *
+ * 쓰기는 Adapter의 ON CONFLICT Upsert가 담당한다. 같은 캐릭터를 동시에 검색할 때
+ * 읽고 나서 넣는 방식이 유일 제약을 위반하기 때문이다. 그래서 이 Entity에는 생성·수정
+ * 경로를 두지 않고 읽기 매핑만 남긴다. {@code created_at}·{@code updated_at}은 DB
+ * 기본값과 Upsert가 채운다.
+ */
 @Getter
 @Entity
 @Table(
@@ -32,7 +36,6 @@ import org.hibernate.type.SqlTypes;
 public class CharacterSectionSnapshotEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(
             name = "character_section_snapshot_id",
             nullable = false,
@@ -64,105 +67,5 @@ public class CharacterSectionSnapshotEntity {
     private Instant updatedAt;
 
     protected CharacterSectionSnapshotEntity() {
-    }
-
-    private CharacterSectionSnapshotEntity(
-            String ocid,
-            String characterName,
-            CharacterSection section,
-            String payload,
-            Instant fetchedAt
-    ) {
-        this.ocid = requireText(ocid, "ocid는 비어 있을 수 없습니다.");
-        this.characterName = requireText(
-                characterName,
-                "캐릭터명은 비어 있을 수 없습니다."
-        );
-
-        if (section == null) {
-            throw new IllegalArgumentException(
-                    "저장 구간은 비어 있을 수 없습니다."
-            );
-        }
-
-        this.section = section;
-        this.payload = requireText(
-                payload,
-                "저장할 조회 결과는 비어 있을 수 없습니다."
-        );
-
-        if (fetchedAt == null) {
-            throw new IllegalArgumentException(
-                    "조회 시각은 비어 있을 수 없습니다."
-            );
-        }
-
-        this.fetchedAt = fetchedAt;
-    }
-
-    public static CharacterSectionSnapshotEntity create(
-            String ocid,
-            String characterName,
-            CharacterSection section,
-            String payload,
-            Instant fetchedAt
-    ) {
-        return new CharacterSectionSnapshotEntity(
-                ocid,
-                characterName,
-                section,
-                payload,
-                fetchedAt
-        );
-    }
-
-    /**
-     * 새로 가져온 결과로 덮어쓴다.
-     *
-     * 캐릭터명은 바뀔 수 있어 함께 갱신한다. ocid와 구간은 식별자라 바꾸지 않는다.
-     */
-    public void refresh(
-            String characterName,
-            String payload,
-            Instant fetchedAt
-    ) {
-        this.characterName = requireText(
-                characterName,
-                "캐릭터명은 비어 있을 수 없습니다."
-        );
-        this.payload = requireText(
-                payload,
-                "저장할 조회 결과는 비어 있을 수 없습니다."
-        );
-
-        if (fetchedAt == null) {
-            throw new IllegalArgumentException(
-                    "조회 시각은 비어 있을 수 없습니다."
-            );
-        }
-
-        this.fetchedAt = fetchedAt;
-    }
-
-    @PrePersist
-    private void prePersist() {
-        createdAt = Instant.now();
-        updatedAt = createdAt;
-    }
-
-    @PreUpdate
-    private void preUpdate() {
-        updatedAt = Instant.now();
-    }
-
-    private static String requireText(
-            String value,
-            String message
-    ) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(message);
-        }
-
-        return value;
     }
 }
