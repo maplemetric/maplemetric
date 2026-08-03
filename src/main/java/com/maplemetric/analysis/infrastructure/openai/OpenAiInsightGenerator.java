@@ -44,7 +44,8 @@ class OpenAiInsightGenerator implements InsightGenerator {
     @Override
     public InsightResult generate(InsightFacts facts) {
         if (facts == null) {
-            return fallbackGenerator.generate(null);
+            // 통계 Overload가 생겨 리터럴 null은 어느 쪽인지 정해지지 않는다.
+            return fallbackGenerator.generate(facts);
         }
 
         if (!isAvailable()) {
