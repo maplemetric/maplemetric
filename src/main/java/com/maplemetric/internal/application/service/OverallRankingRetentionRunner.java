@@ -77,9 +77,7 @@ public class OverallRankingRetentionRunner {
      */
     public OverallRankingRetentionPlan expire() {
         if (!properties.enabled()) {
-            throw new IllegalStateException(
-                    "Overall Ranking 보존 만료가 비활성 상태입니다."
-            );
+            throw new OverallRankingRetentionDisabledException();
         }
 
         return expireUseCase.expire(createRequest());

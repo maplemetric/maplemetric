@@ -43,6 +43,18 @@ public enum InternalErrorCode implements ErrorCode {
             HttpStatus.BAD_GATEWAY,
             "INTERNAL_006",
             "넥슨 랭킹 API 응답 데이터가 올바르지 않습니다."
+    ),
+
+    OVERALL_RANKING_BACKFILL_JOB_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "INTERNAL_007",
+            "종합 랭킹 Backfill Job을 찾을 수 없습니다."
+    ),
+
+    OVERALL_RANKING_RETENTION_DISABLED(
+            HttpStatus.CONFLICT,
+            "INTERNAL_008",
+            "종합 랭킹 수집 결과 만료가 비활성 상태입니다."
     );
 
     private final HttpStatus httpStatus;
