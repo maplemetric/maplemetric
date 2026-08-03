@@ -66,7 +66,7 @@ class OverallRankingRetentionRunnerTest {
     @Test
     void 만료가꺼져있으면삭제하지않는다() {
         assertThatThrownBy(() -> createRunner(false).expire())
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(OverallRankingRetentionDisabledException.class);
 
         verifyNoInteractions(expireUseCase);
     }
