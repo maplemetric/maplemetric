@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import com.maplemetric.analysis.application.result.InsightResult;
 import com.maplemetric.analysis.domain.model.InsightFacts;
 import com.maplemetric.analysis.domain.model.InsightSentiment;
+import com.maplemetric.analysis.domain.model.StatisticsInsightFacts;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +69,17 @@ class TemplateInsightGeneratorTest {
     void Fact가null이면생성할수없다() {
         assertThatIllegalArgumentException()
                 .isThrownBy(
-                        () -> insightGenerator.generate(null)
+                        () -> insightGenerator.generate((InsightFacts) null)
+                );
+    }
+
+    @Test
+    void 통계Fact가null이면생성할수없다() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(
+                        () -> insightGenerator.generate(
+                                (StatisticsInsightFacts) null
+                        )
                 );
     }
 
