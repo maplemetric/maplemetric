@@ -3,6 +3,7 @@ package com.maplemetric.statistics.application.result;
 import com.maplemetric.ranking.api.CanonicalJob;
 import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;

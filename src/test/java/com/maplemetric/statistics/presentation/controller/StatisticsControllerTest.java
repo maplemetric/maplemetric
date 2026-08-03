@@ -30,11 +30,11 @@ import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResu
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobComparisonResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
-import com.maplemetric.statistics.application.result.StatisticsTrend;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
-import com.maplemetric.statistics.application.result.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsDataAvailability;
 import com.maplemetric.statistics.application.service.JobStatisticsDetailQueryService;
 import com.maplemetric.statistics.application.service.StatisticsQueryService;
 import java.math.BigDecimal;

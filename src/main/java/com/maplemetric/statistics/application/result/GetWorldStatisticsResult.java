@@ -2,6 +2,7 @@ package com.maplemetric.statistics.application.result;
 
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.world.api.CanonicalWorld;
 import java.math.BigDecimal;
 import java.math.MathContext;

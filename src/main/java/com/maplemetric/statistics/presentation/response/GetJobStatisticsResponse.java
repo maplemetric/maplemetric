@@ -2,7 +2,7 @@ package com.maplemetric.statistics.presentation.response;
 
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobComparisonResult;
-import com.maplemetric.statistics.application.result.StatisticsTrend;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

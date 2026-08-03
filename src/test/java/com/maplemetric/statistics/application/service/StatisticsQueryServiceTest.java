@@ -23,7 +23,7 @@ import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.JobStatisticsFailure;
 import com.maplemetric.statistics.application.exception.WorldStatisticsException;
 import com.maplemetric.statistics.application.exception.WorldStatisticsFailure;
-import com.maplemetric.statistics.application.result.StatisticsTrend;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;
