@@ -119,7 +119,10 @@ class OverallRankingRetentionTransactionTest {
     }
 
     /**
-     * Transaction 없이 부르면 Snapshot만 지워지고 Collection이 남는다.
+     * Transaction 밖 호출은 아무것도 지우기 전에 막는다.
+     *
+     * 통과시키면 Snapshot 삭제와 Collection 삭제가 각자 커밋돼, 뒤가 실패했을 때
+     * Snapshot만 사라지고 Collection이 남는다.
      */
     @Test
     void Transaction없는삭제호출은거부한다() {
