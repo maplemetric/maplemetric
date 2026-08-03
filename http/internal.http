@@ -1,0 +1,116 @@
+### 내부 운영 API
+#
+# 모든 요청에 X-Internal-API-Key가 필요하다. 키는 .env의
+# MAPLEMETRIC_INTERNAL_API_KEY에서 읽으며 이 파일에 적지 않는다.
+# 키가 비어 있으면 전부 401로 막힌다.
+#
+# 이 요청들은 실제 Nexon을 호출한다. 개발 단계 한도는 하루 1000회이고
+# 수집 한 번이 기준일당 10회를 쓴다.
+
+@baseUrl = http://localhost:8080
+@internalApiKey = {{$dotenv MAPLEMETRIC_INTERNAL_API_KEY}}
+
+### 오늘 종합 랭킹 수집 (10회)
+POST {{baseUrl}}/internal/v1/collections/rankings/overall
+X-Internal-API-Key: {{internalApiKey}}
+Content-Type: application/json
+
+{}
+
+### 특정 기준일 수집 (10회)
+POST {{baseUrl}}/internal/v1/collections/rankings/overall
+X-Internal-API-Key: {{internalApiKey}}
+Content-Type: application/json
+
+{
+  "rankingDate": "2026-07-26",
+  "maxPages": 10
+}
+
+
+### Backfill 1단계 — 하루만 시험 (10회)
+#
+# 넥슨이 과거 기준일을 실제로 돌려주는지 먼저 확인한다. 응답 기준일 상태가
+# SUCCEEDED면 그 뒤 구간을 이어서 채우고, FAILED면 lastErrorType을 보고
+# 계획을 다시 세운다.
+POST {{baseUrl}}/internal/v1/backfills/rankings/overall
+X-Internal-API-Key: {{internalApiKey}}
+Content-Type: application/json
+
+{
+  "from": "2026-07-26",
+  "to": "2026-07-26"
+}
+
+> {%
+    client.global.set(
+        "backfillJobId",
+        response.body.data.backfillJobId
+    );
+%}
+
+### Backfill 2단계 — 한 배치 실행
+#
+# 한 번에 max-dates-per-run(기본 7일)까지만 처리하고 돌아온다.
+# processedDateCount가 상한과 같으면 남은 기준일이 있다는 뜻이라 다시 호출한다.
+# 0이면 끝났다.
+POST {{baseUrl}}/internal/v1/backfills/rankings/overall/{{backfillJobId}}/runs
+X-Internal-API-Key: {{internalApiKey}}
+
+### Backfill 3단계 — 상태와 기준일 확인
+GET {{baseUrl}}/internal/v1/backfills/rankings/overall/{{backfillJobId}}
+X-Internal-API-Key: {{internalApiKey}}
+
+
+### Backfill — 끊긴 구간 메우기 (7일, 70회)
+#
+# 시험이 성공한 뒤에 돌린다. 실행은 위 2단계를 processedDateCount가 0이 될
+# 때까지 반복한다.
+POST {{baseUrl}}/internal/v1/backfills/rankings/overall
+X-Internal-API-Key: {{internalApiKey}}
+Content-Type: application/json
+
+{
+  "from": "2026-07-27",
+  "to": "2026-08-02"
+}
+
+> {%
+    client.global.set(
+        "backfillJobId",
+        response.body.data.backfillJobId
+    );
+%}
+
+### Backfill — 30일 확보 (22일, 220회)
+#
+# 30D 프리셋이 의미를 갖는 최소선이다. 위 구간 메우기가 끝난 뒤에 돌린다.
+POST {{baseUrl}}/internal/v1/backfills/rankings/overall
+X-Internal-API-Key: {{internalApiKey}}
+Content-Type: application/json
+
+{
+  "from": "2026-07-04",
+  "to": "2026-07-25"
+}
+
+> {%
+    client.global.set(
+        "backfillJobId",
+        response.body.data.backfillJobId
+    );
+%}
+
+
+### 보존 만료 대상 산정 (Dry Run)
+#
+# 아무것도 지우지 않는다. 만료가 꺼져 있어도 조회된다.
+GET {{baseUrl}}/internal/v1/retentions/rankings/overall/plan
+X-Internal-API-Key: {{internalApiKey}}
+
+### 보존 만료 실행 — 되돌릴 수 없다
+#
+# RANKING_RETENTION_ENABLED=true일 때만 동작하고, 꺼져 있으면 409로 거부한다.
+# 위 산정 결과를 먼저 확인한다.
+POST {{baseUrl}}/internal/v1/retentions/rankings/overall/expirations
+X-Internal-API-Key: {{internalApiKey}}
