@@ -16,6 +16,12 @@ public record OverallRankingRetentionPlan(
         LocalDate retainedLatestDate
 ) {
 
+    public OverallRankingRetentionPlan {
+        snapshotDates = snapshotDates == null
+                ? List.of()
+                : List.copyOf(snapshotDates);
+    }
+
     public static OverallRankingRetentionPlan empty(
             LocalDate retainedLatestDate
     ) {
