@@ -4,8 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.maplemetric.analysis.application.result.InsightResult;
 import com.maplemetric.analysis.application.service.InsightGenerator;
+import com.maplemetric.analysis.domain.model.InsightEvidence;
 import com.maplemetric.analysis.domain.model.InsightFacts;
 import com.maplemetric.analysis.domain.model.InsightSentiment;
+import com.maplemetric.analysis.domain.model.StatisticsInsightFact;
+import com.maplemetric.analysis.domain.model.StatisticsInsightFactType;
+import com.maplemetric.analysis.domain.model.StatisticsInsightFacts;
+import com.maplemetric.analysis.domain.model.StatisticsInsightUnit;
 import com.maplemetric.ranking.api.CanonicalJob;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
@@ -68,6 +73,10 @@ class ModulithStructureTest {
     private static final String OPENAI_INSIGHT_GENERATOR =
             "com.maplemetric.analysis.infrastructure.openai."
                     + "OpenAiInsightGenerator";
+
+    private static final String STATISTICS_INSIGHT_FACTS_ASSEMBLER =
+            "com.maplemetric.analysis.application.service."
+                    + "StatisticsInsightFactsAssembler";
 
     private static final String STATISTICS_JOB_DETAIL_RESPONSE =
             "com.maplemetric.statistics.presentation.response."
@@ -323,6 +332,22 @@ class ModulithStructureTest {
                         .map(type -> analysisModule.isExposed(type))
                         .orElseThrow()
         ).isFalse();
+
+        // 통계 Insight 모델도 계약이 아니다. 소비자는 아직 Analysis 안에만 있다.
+        for (String statisticsInsightType : new String[]{
+                StatisticsInsightFacts.class.getName(),
+                StatisticsInsightFact.class.getName(),
+                StatisticsInsightFactType.class.getName(),
+                StatisticsInsightUnit.class.getName(),
+                InsightEvidence.class.getName(),
+                STATISTICS_INSIGHT_FACTS_ASSEMBLER
+        }) {
+            assertThat(
+                    analysisModule.getType(statisticsInsightType)
+                            .map(type -> analysisModule.isExposed(type))
+                            .orElseThrow()
+            ).isFalse();
+        }
     }
 
     @Test
