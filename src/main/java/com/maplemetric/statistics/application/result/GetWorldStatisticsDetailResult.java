@@ -1,6 +1,8 @@
 package com.maplemetric.statistics.application.result;
 
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
+import com.maplemetric.statistics.api.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;

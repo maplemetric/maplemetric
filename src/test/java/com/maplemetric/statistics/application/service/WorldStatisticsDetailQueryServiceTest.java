@@ -21,8 +21,8 @@ import com.maplemetric.statistics.application.exception.WorldStatisticsException
 import com.maplemetric.statistics.application.exception.WorldStatisticsFailure;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsDetailResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsHistoryResult;
-import com.maplemetric.statistics.application.result.StatisticsDataAvailability;
-import com.maplemetric.statistics.application.result.StatisticsTrend;
+import com.maplemetric.statistics.api.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.world.api.CanonicalWorld;
 import com.maplemetric.world.api.WorldCatalogQuery;
 import java.math.BigDecimal;

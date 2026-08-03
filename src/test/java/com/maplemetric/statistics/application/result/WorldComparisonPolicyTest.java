@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot.WorldCount;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;

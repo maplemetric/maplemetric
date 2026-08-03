@@ -1,8 +1,8 @@
 package com.maplemetric.statistics.presentation.response;
 
 import com.maplemetric.statistics.application.result.GetWorldStatisticsDetailResult;
-import com.maplemetric.statistics.application.result.StatisticsDataAvailability;
-import com.maplemetric.statistics.application.result.StatisticsTrend;
+import com.maplemetric.statistics.api.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.world.api.CanonicalWorld;
 import java.math.BigDecimal;
 import java.time.Instant;
