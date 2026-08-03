@@ -6,6 +6,7 @@ import com.maplemetric.ranking.api.CanonicalJob;
 import com.maplemetric.ranking.api.OverallRankingStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot;
 import com.maplemetric.ranking.api.OverallRankingStatisticsSnapshot.JobCount;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobComparisonResult;
 import com.maplemetric.statistics.application.result.GetJobStatisticsResult.JobStatisticsResult;
 import java.math.BigDecimal;

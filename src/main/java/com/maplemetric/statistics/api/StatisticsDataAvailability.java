@@ -1,4 +1,4 @@
-package com.maplemetric.statistics.application.result;
+package com.maplemetric.statistics.api;
 
 public enum StatisticsDataAvailability {
     AVAILABLE,

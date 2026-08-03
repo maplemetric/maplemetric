@@ -2,6 +2,7 @@ package com.maplemetric.statistics.application.result;
 
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
+import com.maplemetric.statistics.api.StatisticsDataAvailability;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;

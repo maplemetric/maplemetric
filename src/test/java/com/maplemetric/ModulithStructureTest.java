@@ -42,6 +42,13 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryFailure;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
 import com.maplemetric.world.api.CanonicalWorld;
+import com.maplemetric.statistics.api.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsDetailFact;
+import com.maplemetric.statistics.api.StatisticsFactQuery;
+import com.maplemetric.statistics.api.StatisticsHistoryFact;
+import com.maplemetric.statistics.api.StatisticsSubject;
+import com.maplemetric.statistics.api.StatisticsSubjectType;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.world.api.WorldAliasMatchingQuery;
 import com.maplemetric.world.api.WorldCatalogQuery;
 import org.junit.jupiter.api.Test;
@@ -61,6 +68,18 @@ class ModulithStructureTest {
     private static final String OPENAI_INSIGHT_GENERATOR =
             "com.maplemetric.analysis.infrastructure.openai."
                     + "OpenAiInsightGenerator";
+
+    private static final String STATISTICS_JOB_DETAIL_RESPONSE =
+            "com.maplemetric.statistics.presentation.response."
+                    + "GetJobStatisticsDetailResponse";
+
+    private static final String STATISTICS_JOB_DETAIL_RESULT =
+            "com.maplemetric.statistics.application.result."
+                    + "GetJobStatisticsDetailResult";
+
+    private static final String STATISTICS_FACT_QUERY_SERVICE =
+            "com.maplemetric.statistics.application.service."
+                    + "StatisticsFactQueryService";
 
     private static final String WORLD_ENTITY =
             "com.maplemetric.world.infrastructure.persistence."
@@ -409,5 +428,47 @@ class ModulithStructureTest {
         assertThat(
                 modules.getModuleByName("internal")
         ).isPresent();
+    }
+
+    @Test
+    void Statistics모듈은Fact계약만공개하고응답과조회구현은내부에둔다() {
+        ApplicationModule statisticsModule =
+                modules.getModuleByName("statistics")
+                        .orElseThrow();
+
+        assertThat(
+                statisticsModule.getNamedInterfaces()
+                        .getByName("api")
+                        .orElseThrow()
+                        .asJavaClasses()
+                        .map(type -> type.getName())
+        ).containsExactlyInAnyOrder(
+                StatisticsFactQuery.class.getName(),
+                StatisticsSubject.class.getName(),
+                StatisticsSubjectType.class.getName(),
+                StatisticsDataAvailability.class.getName(),
+                StatisticsTrend.class.getName(),
+                StatisticsDetailFact.class.getName(),
+                StatisticsDetailFact.LatestFact.class.getName(),
+                StatisticsDetailFact.ComparisonFact.class.getName(),
+                StatisticsDetailFact.SourceMetaFact.class.getName(),
+                StatisticsHistoryFact.class.getName(),
+                StatisticsHistoryFact.RangeFact.class.getName(),
+                StatisticsHistoryFact.RangeComparisonFact.class.getName(),
+                StatisticsHistoryFact.PointFact.class.getName()
+        );
+
+        // 응답 DTO와 조회 구현이 공개되면 소비자가 HTTP 형식 변경에 함께 깨진다.
+        for (String internalType : new String[]{
+                STATISTICS_JOB_DETAIL_RESPONSE,
+                STATISTICS_JOB_DETAIL_RESULT,
+                STATISTICS_FACT_QUERY_SERVICE
+        }) {
+            assertThat(
+                    statisticsModule.getType(internalType)
+                            .map(type -> statisticsModule.isExposed(type))
+                            .orElseThrow()
+            ).isFalse();
+        }
     }
 }
