@@ -53,7 +53,7 @@ public class OverallRankingBackfillController {
 
         return ApiResponse.ok(
                 InternalSuccessCode.OVERALL_RANKING_BACKFILL_JOB_CREATED,
-                toResponse(job.id())
+                toResponse(job)
         );
     }
 
@@ -88,9 +88,15 @@ public class OverallRankingBackfillController {
     private OverallRankingBackfillJobHttpResponse toResponse(
             UUID backfillJobId
     ) {
+        return toResponse(requireJob(backfillJobId));
+    }
+
+    private OverallRankingBackfillJobHttpResponse toResponse(
+            BackfillJob job
+    ) {
         return OverallRankingBackfillJobHttpResponse.from(
-                requireJob(backfillJobId),
-                backfillStateService.findDates(backfillJobId)
+                job,
+                backfillStateService.findDates(job.id())
         );
     }
 

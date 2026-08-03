@@ -1,5 +1,6 @@
 package com.maplemetric.internal.presentation.request;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
@@ -20,7 +21,7 @@ public record CreateOverallRankingBackfillHttpRequest(
         LocalDate to
 ) {
 
-    @jakarta.validation.constraints.AssertTrue(
+    @AssertTrue(
             message = "시작 기준일은 종료 기준일보다 뒤일 수 없습니다."
     )
     public boolean isRangeOrdered() {
