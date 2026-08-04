@@ -27,6 +27,21 @@ class PrimaryAliasBackfillMigrationTest {
 
     private static final int EXPECTED_WORLD_COUNT = 14;
 
+    /**
+     * 단언은 PRIMARY Alias로 한정한다.
+     *
+     * Alias 테이블은 처음부터 `NEXON`·`HISTORICAL`·`MANUAL`을 허용한다. 전체 행을
+     * 세면 Nexon 표기를 흡수하는 Alias가 하나 늘 때마다 이 테스트가 깨지는데,
+     * 이 테스트가 검증하는 것은 V10의 PRIMARY Backfill이다.
+     */
+    private static final String PRIMARY_JOB_ALIAS_COUNT = """
+            SELECT COUNT(*) FROM p_job_alias WHERE alias_type = 'PRIMARY'
+            """;
+
+    private static final String PRIMARY_WORLD_ALIAS_COUNT = """
+            SELECT COUNT(*) FROM p_world_alias WHERE alias_type = 'PRIMARY'
+            """;
+
     @Container
     private final PostgreSQLContainer<?> postgres =
             new PostgreSQLContainer<>(POSTGRES_IMAGE);
@@ -37,33 +52,24 @@ class PrimaryAliasBackfillMigrationTest {
 
         try (Connection connection = connect();
                 Statement statement = connection.createStatement()) {
-            assertThat(count(statement, "SELECT COUNT(*) FROM p_job_alias"))
+            assertThat(count(statement, PRIMARY_JOB_ALIAS_COUNT))
                     .isEqualTo(EXPECTED_JOB_COUNT);
-            assertThat(count(statement, "SELECT COUNT(*) FROM p_world_alias"))
+            assertThat(count(statement, PRIMARY_WORLD_ALIAS_COUNT))
                     .isEqualTo(EXPECTED_WORLD_COUNT);
 
             assertThat(count(
                     statement,
                     """
-                    SELECT COUNT(*) FROM p_job_alias
-                    WHERE alias_type <> 'PRIMARY'
+                    SELECT COUNT(DISTINCT job_id) FROM p_job_alias
+                    WHERE alias_type = 'PRIMARY'
                     """
-            )).isZero();
-            assertThat(count(
-                    statement,
-                    """
-                    SELECT COUNT(*) FROM p_world_alias
-                    WHERE alias_type <> 'PRIMARY'
-                    """
-            )).isZero();
-
-            assertThat(count(
-                    statement,
-                    "SELECT COUNT(DISTINCT job_id) FROM p_job_alias"
             )).isEqualTo(EXPECTED_JOB_COUNT);
             assertThat(count(
                     statement,
-                    "SELECT COUNT(DISTINCT world_id) FROM p_world_alias"
+                    """
+                    SELECT COUNT(DISTINCT world_id) FROM p_world_alias
+                    WHERE alias_type = 'PRIMARY'
+                    """
             )).isEqualTo(EXPECTED_WORLD_COUNT);
 
             assertThat(count(
@@ -151,9 +157,9 @@ class PrimaryAliasBackfillMigrationTest {
 
         try (Connection connection = connect();
                 Statement statement = connection.createStatement()) {
-            assertThat(count(statement, "SELECT COUNT(*) FROM p_job_alias"))
+            assertThat(count(statement, PRIMARY_JOB_ALIAS_COUNT))
                     .isEqualTo(EXPECTED_JOB_COUNT - 1);
-            assertThat(count(statement, "SELECT COUNT(*) FROM p_world_alias"))
+            assertThat(count(statement, PRIMARY_WORLD_ALIAS_COUNT))
                     .isEqualTo(EXPECTED_WORLD_COUNT - 1);
 
             assertThat(count(
@@ -179,7 +185,8 @@ class PrimaryAliasBackfillMigrationTest {
                     SELECT COUNT(*)
                     FROM p_job_alias a
                     JOIN p_job j ON j.job_id = a.job_id
-                    WHERE a.alias_name <> j.job_name
+                    WHERE a.alias_type = 'PRIMARY'
+                      AND a.alias_name <> j.job_name
                     """
             )).isZero();
 
@@ -189,7 +196,8 @@ class PrimaryAliasBackfillMigrationTest {
                     SELECT COUNT(*)
                     FROM p_world_alias a
                     JOIN p_world w ON w.world_id = a.world_id
-                    WHERE a.alias_name <> w.world_name
+                    WHERE a.alias_type = 'PRIMARY'
+                      AND a.alias_name <> w.world_name
                     """
             )).isZero();
         }
