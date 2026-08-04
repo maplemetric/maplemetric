@@ -342,6 +342,24 @@ class JobWorldAliasPersistenceTest {
         )).isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    /**
+     * Nexon 종합 랭킹은 4차 전직명 `캐논마스터`를 돌려주는데 시드 Canonical 이름은
+     * `캐논슈터`다.
+     *
+     * 이 Alias가 없으면 D7에 따라 해당 캐릭터가 어느 직업 통계에도 잡히지 않고
+     * 버려진다. 예외도 나지 않아 응답만 보면 누락을 알 수 없다.
+     */
+    @Test
+    void 넥슨표기캐논마스터를캐논슈터로매칭한다() {
+        assertThat(
+                jobAliasRepository
+                        .findActiveByNormalizedAliasName("캐논마스터")
+        ).isPresent()
+                .get()
+                .extracting(alias -> alias.getJob().getJobName())
+                .isEqualTo("캐논슈터");
+    }
+
     @Test
     void 정규화된이름으로활성Job_Alias를조회한다() {
         JobEntity job = createJob("테스트직업10");
