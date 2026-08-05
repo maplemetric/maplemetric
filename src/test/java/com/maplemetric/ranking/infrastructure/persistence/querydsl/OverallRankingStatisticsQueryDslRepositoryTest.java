@@ -541,6 +541,78 @@ class OverallRankingStatisticsQueryDslRepositoryTest {
     }
 
     @Test
+    void 전체기간조회는보존된모든전체조건Collection을오름차순으로반환한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2025, 1, 2),
+                new Row[] {row(1, "히어로", null, 200)}
+        );
+
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 20),
+                new Row[] {row(1, "히어로", null, 205)}
+        );
+
+        assertThat(repository.findAllConditionCollections())
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(
+                        LocalDate.of(2025, 1, 2),
+                        LocalDate.of(2026, 7, 20),
+                        LocalDate.of(2026, 7, 24)
+                );
+    }
+
+    /**
+     * 필터가 걸린 Collection이 섞이면 전체 기간 집계가 오염된다.
+     */
+    @Test
+    void 월드직업필터가적용된Collection은전체기간조회대상에서제외한다() {
+        saveAllConditionCollection(
+                LocalDate.of(2026, 7, 24),
+                new Row[] {row(1, "히어로", null, 210)}
+        );
+
+        OverallRankingCollectionEntity filtered =
+                OverallRankingCollectionEntity.create(
+                        LocalDate.of(2026, 7, 23),
+                        "루나",
+                        0,
+                        "팬텀",
+                        "NEXON_OPEN_API",
+                        1,
+                        100,
+                        false,
+                        1,
+                        COLLECTED_AT
+                );
+
+        filtered.addSnapshot(
+                OverallRankingSnapshotEntity.create(
+                        filtered,
+                        1,
+                        "감점",
+                        "루나",
+                        "팬텀",
+                        null,
+                        200,
+                        0L,
+                        0,
+                        null
+                )
+        );
+
+        collectionRepository.saveAndFlush(filtered);
+
+        assertThat(repository.findAllConditionCollections())
+                .extracting(collection -> collection.getSnapshotDate())
+                .containsExactly(LocalDate.of(2026, 7, 24));
+    }
+
+    @Test
     void 수집누락일이있으면존재하는Collection만반환한다() {
         saveAllConditionCollection(
                 LocalDate.of(2026, 7, 20),

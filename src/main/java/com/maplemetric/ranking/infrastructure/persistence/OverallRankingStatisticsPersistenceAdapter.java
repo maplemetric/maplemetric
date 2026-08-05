@@ -48,6 +48,15 @@ class OverallRankingStatisticsPersistenceAdapter
                 .toList();
     }
 
+    @Override
+    public List<LatestCollection> loadAllConditionCollections() {
+        return queryDslRepository
+                .findAllConditionCollections()
+                .stream()
+                .map(collection -> toLatestCollection(collection))
+                .toList();
+    }
+
     private LatestCollection toLatestCollection(
             OverallRankingCollectionEntity collection
     ) {

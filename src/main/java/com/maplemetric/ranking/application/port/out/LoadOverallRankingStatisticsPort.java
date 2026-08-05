@@ -20,6 +20,14 @@ public interface LoadOverallRankingStatisticsPort {
             LocalDate to
     );
 
+    /**
+     * 보존된 전체 조건 Collection을 기준일 오름차순으로 모두 읽는다.
+     *
+     * 시작점은 DB에 남아 있는 최초 성공 Collection이다. Nexon이 제공하는 기간이나
+     * 이론상 전체 기간을 뜻하지 않는다.
+     */
+    List<LatestCollection> loadAllConditionCollections();
+
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
 
     List<ClassNameAggregateByCollection> aggregateByClassName(

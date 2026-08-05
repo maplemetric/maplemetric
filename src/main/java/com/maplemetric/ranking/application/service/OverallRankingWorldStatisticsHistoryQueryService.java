@@ -43,9 +43,30 @@ public class OverallRankingWorldStatisticsHistoryQueryService
     ) {
         requireValidRange(from, to);
 
-        List<LatestCollection> collections = loadOverallRankingStatisticsPort
-                .loadAllConditionCollectionsBetween(from, to);
+        return toSnapshots(
+                loadOverallRankingStatisticsPort
+                        .loadAllConditionCollectionsBetween(from, to)
+        );
+    }
 
+    /**
+     * 보존된 전체 기간을 조회한다.
+     *
+     * 기간 제한을 두지 않는 것 말고는 365일 조회와 같은 경로다. 시작점은 DB에 남아
+     * 있는 최초 성공 Collection이며 호출자가 기간을 계산하지 않는다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<OverallRankingWorldStatisticsSnapshot>
+            getWorldStatisticsAllHistory() {
+        return toSnapshots(
+                loadOverallRankingStatisticsPort.loadAllConditionCollections()
+        );
+    }
+
+    private List<OverallRankingWorldStatisticsSnapshot> toSnapshots(
+            List<LatestCollection> collections
+    ) {
         if (collections.isEmpty()) {
             return List.of();
         }

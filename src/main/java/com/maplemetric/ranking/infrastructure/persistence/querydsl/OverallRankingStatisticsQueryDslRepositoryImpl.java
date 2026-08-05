@@ -86,6 +86,18 @@ class OverallRankingStatisticsQueryDslRepositoryImpl
                 .fetch();
     }
 
+    @Override
+    public List<OverallRankingCollectionEntity> findAllConditionCollections() {
+        QOverallRankingCollectionEntity collection =
+                QOverallRankingCollectionEntity.overallRankingCollectionEntity;
+
+        return queryFactory
+                .selectFrom(collection)
+                .where(allCondition(collection))
+                .orderBy(collection.snapshotDate.asc())
+                .fetch();
+    }
+
     private BooleanExpression allCondition(
             QOverallRankingCollectionEntity collection
     ) {
