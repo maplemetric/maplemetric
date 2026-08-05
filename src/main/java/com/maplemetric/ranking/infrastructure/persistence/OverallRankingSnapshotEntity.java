@@ -15,16 +15,23 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 
+/**
+ * 종합 랭킹 한 행이다.
+ *
+ * 순위는 유일하지 않다. Nexon이 같은 순위를 두 행으로 돌려주는 기준일이 실제로
+ * 있어서, 식별은 순위가 아니라 캐릭터(이름과 월드)로 한다.
+ */
 @Getter
 @Entity
 @Table(
         name = "p_overall_ranking_snapshot",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_p_overall_ranking_snapshot_collection_rank",
+                        name = "uk_p_overall_ranking_snapshot_collection_character",
                         columnNames = {
                                 "overall_ranking_collection_id",
-                                "ranking"
+                                "character_name",
+                                "world_name"
                         }
                 )
         }

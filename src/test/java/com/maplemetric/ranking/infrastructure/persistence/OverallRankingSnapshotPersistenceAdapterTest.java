@@ -2,6 +2,7 @@ package com.maplemetric.ranking.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPort.OverallRankingCollection;
 import com.maplemetric.ranking.application.port.out.SaveOverallRankingSnapshotPort.RankingRow;
@@ -223,6 +224,67 @@ class OverallRankingSnapshotPersistenceAdapterTest {
         ).isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    /**
+     * Nexon이 같은 순위를 두 행으로 돌려주는 기준일이 있다.
+     *
+     * `2025-12-22` 1306위가 그렇다. 이름·레벨·경험치가 같고 월드만 다르다. 순위를
+     * 유일하다고 가정하면 그 기준일 전체가 영구히 수집되지 않는다.
+     */
+    @Test
+    void 같은순위가두번와도저장한다() {
+        adapter.saveOverallRankingSnapshot(
+                createCollection(
+                        null,
+                        null,
+                        null,
+                        List.of(
+                                createRow(1306, "권리", "베라"),
+                                createRow(1306, "권리", "오로라")
+                        )
+                )
+        );
+
+        entityManager.flush();
+        entityManager.clear();
+
+        OverallRankingCollectionEntity collection =
+                collectionRepository.findAll().get(0);
+
+        assertThat(
+                snapshotRepository.findByCollectionIdOrderByRankingAsc(
+                        collection.getId()
+                )
+        )
+                .extracting(
+                        row -> row.getRanking(),
+                        row -> row.getWorldName()
+                )
+                .containsExactlyInAnyOrder(
+                        tuple(1306, "베라"),
+                        tuple(1306, "오로라")
+                );
+    }
+
+    /**
+     * 같은 캐릭터가 한 Collection에 두 번 들어오는 것은 실제 오류다.
+     */
+    @Test
+    void 같은Collection에같은캐릭터가두번이면저장에실패한다() {
+        assertThatThrownBy(
+                () -> adapter.saveOverallRankingSnapshot(
+                        createCollection(
+                                null,
+                                null,
+                                null,
+                                List.of(
+                                        createRow(10, "감점", "루나"),
+                                        createRow(11, "감점", "루나")
+                                )
+                        )
+                )
+        ).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
     private OverallRankingCollection createCollection(
             String worldName,
             Integer worldType,
@@ -247,10 +309,18 @@ class OverallRankingSnapshotPersistenceAdapterTest {
             int ranking,
             String characterName
     ) {
+        return createRow(ranking, characterName, "루나");
+    }
+
+    private RankingRow createRow(
+            int ranking,
+            String characterName,
+            String worldName
+    ) {
         return new RankingRow(
                 ranking,
                 characterName,
-                "루나",
+                worldName,
                 "팬텀",
                 null,
                 200,
