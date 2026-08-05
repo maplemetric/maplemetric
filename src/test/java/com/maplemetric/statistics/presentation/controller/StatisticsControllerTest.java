@@ -902,7 +902,7 @@ class StatisticsControllerTest {
     void 잘못된History기간요청이면400을반환한다() throws Exception {
         given(jobStatisticsDetailQueryService.getJobStatisticsHistory(
                 "hero",
-                "ALL",
+                "5D",
                 null,
                 null
         )).willThrow(new JobStatisticsException(
@@ -910,7 +910,7 @@ class StatisticsControllerTest {
         ));
 
         mockMvc.perform(get("/api/v1/statistics/jobs/hero/history")
-                        .param("range", "ALL"))
+                        .param("range", "5D"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("STATISTICS_006"));
@@ -1123,7 +1123,7 @@ class StatisticsControllerTest {
     void 잘못된월드History기간요청이면400을반환한다() throws Exception {
         given(worldStatisticsDetailQueryService.getWorldStatisticsHistory(
                 "luna",
-                "ALL",
+                "5D",
                 null,
                 null
         )).willThrow(new WorldStatisticsException(
@@ -1131,7 +1131,7 @@ class StatisticsControllerTest {
         ));
 
         mockMvc.perform(get("/api/v1/statistics/worlds/luna/history")
-                        .param("range", "ALL"))
+                        .param("range", "5D"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("STATISTICS_008"));

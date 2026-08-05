@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -327,11 +328,65 @@ class WorldStatisticsDetailQueryServiceTest {
         assertThat(result.range().missingDateCount()).isEqualTo(365);
     }
 
+    /**
+     * `ALL`은 길이가 정해진 기간이 아니라 보존된 전부다.
+     */
+    @Test
+    void 전체기간요청은기간을환산하지않고전체조회를호출한다() {
+        givenAvailableWorldAndLatestSnapshot();
+        given(overallRankingWorldStatisticsHistoryQuery
+                .getWorldStatisticsAllHistory())
+                .willReturn(List.of(
+                        snapshot(
+                                LocalDate.of(2025, 8, 4),
+                                100,
+                                worldCount("루나", 10L, "200")
+                        ),
+                        snapshot(
+                                LATEST_AS_OF,
+                                100,
+                                worldCount("루나", 12L, "205")
+                        )
+                ));
+        given(worldCatalogQuery.resolveAliases(any()))
+                .willReturn(Map.of());
+
+        GetWorldStatisticsHistoryResult result =
+                service.getWorldStatisticsHistory("luna", "ALL", null, null);
+
+        assertThat(result.range().preset()).isEqualTo("ALL");
+        assertThat(result.range().requestedFrom())
+                .isEqualTo(LocalDate.of(2025, 8, 4));
+        assertThat(result.range().requestedTo()).isEqualTo(LATEST_AS_OF);
+        assertThat(result.points()).hasSize(2);
+        assertThat(result.limitations()).isNotEmpty();
+
+        verify(overallRankingWorldStatisticsHistoryQuery, never())
+                .getWorldStatisticsHistory(any(), any());
+    }
+
+    @Test
+    void 전체기간에보존된수집이없으면빈결과다() {
+        givenAvailableWorldAndLatestSnapshot();
+        given(overallRankingWorldStatisticsHistoryQuery
+                .getWorldStatisticsAllHistory())
+                .willReturn(List.of());
+        given(worldCatalogQuery.resolveAliases(any()))
+                .willReturn(Map.of());
+
+        GetWorldStatisticsHistoryResult result =
+                service.getWorldStatisticsHistory("luna", "ALL", null, null);
+
+        assertThat(result.points()).isEmpty();
+        assertThat(result.range().requestedFrom()).isNull();
+        assertThat(result.range().missingDateCount()).isZero();
+    }
+
     static Stream<Arguments> invalidHistoryRequests() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         return Stream.of(
-                Arguments.of("ALL", null, null),
+                Arguments.of("5D", null, null),
                 Arguments.of("", null, null),
                 Arguments.of(
                         "7D",
