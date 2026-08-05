@@ -3,10 +3,13 @@ package com.maplemetric.event.presentation.controller;
 import com.maplemetric.common.ApiResponse;
 import com.maplemetric.event.application.exception.EventException;
 import com.maplemetric.event.presentation.code.EventErrorCode;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = EventController.class)
 public class EventExceptionHandler {
 

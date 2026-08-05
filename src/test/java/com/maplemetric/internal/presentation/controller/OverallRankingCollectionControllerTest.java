@@ -1,5 +1,6 @@
 package com.maplemetric.internal.presentation.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -190,6 +191,54 @@ class OverallRankingCollectionControllerTest {
                 .andExpect(
                         jsonPath("$.data.truncated").value(nullValue())
                 );
+    }
+
+    /**
+     * 본문 JSON이 깨진 요청이다.
+     *
+     * 서버 오류로 돌려주면 보낸 쪽이 자기 요청을 의심하지 않는다.
+     */
+    @Test
+    void 본문JSON이깨지면400과계약형식으로응답한다() throws Exception {
+        mockMvc.perform(
+                        post(COLLECTION_PATH)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"rankingDate\":")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("GLOBAL_001"));
+    }
+
+    /**
+     * 예상하지 못한 예외도 계약 형식을 지켜야 한다.
+     *
+     * 처리하지 않으면 Spring 기본 바디가 나가 {@code success} 필드조차 없다.
+     * 그리고 예외 메시지에는 제약 이름·SQL이 섞여 들어오므로 응답에 싣지 않는다.
+     */
+    @Test
+    void 예상못한예외는500과계약형식으로응답하고내부정보를숨긴다() throws Exception {
+        given(properties.maxPages()).willReturn(CONFIGURED_MAX_PAGES);
+        given(collectOverallRankingSnapshotUseCase.collect(any()))
+                .willThrow(new IllegalStateException(
+                        "uk_p_overall_ranking_snapshot_collection_rank 제약 위반"
+                ));
+
+        String body = mockMvc.perform(
+                        post(COLLECTION_PATH)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}")
+                )
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("GLOBAL_002"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertThat(body)
+                .doesNotContain("uk_p_overall_ranking_snapshot")
+                .doesNotContain("IllegalStateException");
     }
 
     @Test

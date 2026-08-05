@@ -5,10 +5,13 @@ import com.maplemetric.ranking.api.OverallRankingWorldStatisticsQueryException;
 import com.maplemetric.statistics.application.exception.JobStatisticsException;
 import com.maplemetric.statistics.application.exception.WorldStatisticsException;
 import com.maplemetric.statistics.presentation.code.StatisticsErrorCode;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = StatisticsController.class)
 public class StatisticsExceptionHandler {
 
