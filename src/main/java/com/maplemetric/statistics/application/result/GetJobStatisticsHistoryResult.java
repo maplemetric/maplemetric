@@ -46,9 +46,12 @@ public record GetJobStatisticsHistoryResult(
                 ? null
                 : points.get(points.size() - 1).asOf();
 
-        int requestedDateCount = Math.toIntExact(
-                ChronoUnit.DAYS.between(requestedFrom, requestedTo) + 1
-        );
+        // 보존된 수집이 하나도 없는 전체 기간 요청은 범위 자체가 비어 있다.
+        int requestedDateCount = requestedFrom == null || requestedTo == null
+                ? 0
+                : Math.toIntExact(
+                        ChronoUnit.DAYS.between(requestedFrom, requestedTo) + 1
+                );
 
         return new GetJobStatisticsHistoryResult(
                 JobResult.from(canonicalJob),
@@ -68,7 +71,7 @@ public record GetJobStatisticsHistoryResult(
                         canonicalJobsByClassName
                 ),
                 points,
-                List.of()
+                StatisticsLimitations.HISTORY
         );
     }
 
@@ -102,7 +105,7 @@ public record GetJobStatisticsHistoryResult(
                 ),
                 null,
                 List.of(),
-                List.of()
+                StatisticsLimitations.HISTORY
         );
     }
 
