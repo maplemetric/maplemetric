@@ -6,10 +6,13 @@ import com.maplemetric.internal.application.service.OverallRankingRetentionDisab
 import com.maplemetric.internal.presentation.code.InternalErrorCode;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
 import com.maplemetric.ranking.api.OverallRankingCollectionException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = {
         OverallRankingCollectionController.class,
         OverallRankingBackfillController.class,
