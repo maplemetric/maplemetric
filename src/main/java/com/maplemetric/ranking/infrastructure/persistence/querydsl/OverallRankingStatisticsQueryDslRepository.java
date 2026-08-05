@@ -20,6 +20,14 @@ public interface OverallRankingStatisticsQueryDslRepository {
             LocalDate to
     );
 
+    /**
+     * 보존된 전체 조건 Collection을 기준일 오름차순으로 모두 가져온다.
+     *
+     * 날짜 범위를 받지 않는다. 시작점은 DB에 남아 있는 최초 성공 Collection이며,
+     * 호출자가 기간을 계산해 넘길 필요가 없다.
+     */
+    List<OverallRankingCollectionEntity> findAllConditionCollections();
+
     List<ClassNameAggregate> aggregateByClassName(UUID collectionId);
 
     List<ClassNameAggregateByCollection> aggregateByClassName(

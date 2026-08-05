@@ -3,6 +3,7 @@ package com.maplemetric.ranking.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -289,6 +290,60 @@ class OverallRankingWorldStatisticsHistoryQueryServiceTest {
 
         assertThat(transactional).isNotNull();
         assertThat(transactional.readOnly()).isTrue();
+    }
+
+    @Test
+    void 전체기간조회는보존된모든Collection을돌려준다() {
+        OverallRankingWorldStatisticsHistoryQueryService service =
+                createService();
+
+        given(loadOverallRankingStatisticsPort.loadAllConditionCollections())
+                .willReturn(List.of(
+                        collection(
+                                LATEST_COLLECTION_ID,
+                                LATEST_SNAPSHOT_DATE,
+                                1
+                        ),
+                        collection(
+                                PREVIOUS_COLLECTION_ID,
+                                PREVIOUS_SNAPSHOT_DATE,
+                                1
+                        )
+                ));
+        given(loadOverallRankingStatisticsPort.aggregateByWorldName(
+                List.of(LATEST_COLLECTION_ID, PREVIOUS_COLLECTION_ID)
+        )).willReturn(List.of(
+                worldNameAggregate(LATEST_COLLECTION_ID, "스카니아", 1L, 200),
+                worldNameAggregate(PREVIOUS_COLLECTION_ID, "스카니아", 1L, 190)
+        ));
+
+        assertThat(service.getWorldStatisticsAllHistory())
+                .extracting(snapshot -> snapshot.asOf())
+                .containsExactly(PREVIOUS_SNAPSHOT_DATE, LATEST_SNAPSHOT_DATE);
+
+        // 기간을 계산해 넘기지 않는다. 시작점은 DB에 남아 있는 최초 Collection이다.
+        verify(loadOverallRankingStatisticsPort, never())
+                .loadAllConditionCollectionsBetween(any(), any());
+
+        // 기준일이 늘어도 Query 수는 2회로 고정이다.
+        verify(loadOverallRankingStatisticsPort, times(1))
+                .aggregateByWorldName(anyList());
+        verify(loadOverallRankingStatisticsPort, never())
+                .aggregateByWorldName(any(UUID.class));
+    }
+
+    @Test
+    void 보존된Collection이없으면빈목록을반환하고집계하지않는다() {
+        OverallRankingWorldStatisticsHistoryQueryService service =
+                createService();
+
+        given(loadOverallRankingStatisticsPort.loadAllConditionCollections())
+                .willReturn(List.of());
+
+        assertThat(service.getWorldStatisticsAllHistory()).isEmpty();
+
+        verify(loadOverallRankingStatisticsPort, never())
+                .aggregateByWorldName(anyList());
     }
 
     @Test
