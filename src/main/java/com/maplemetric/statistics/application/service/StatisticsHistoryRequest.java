@@ -67,9 +67,25 @@ record StatisticsHistoryRequest(
         }
     }
 
+    /**
+     * 보존된 전체 기간을 요청했는지 본다.
+     *
+     * {@code ALL}은 길이가 정해진 기간이 아니라 "DB에 남아 있는 전부"다. 그래서
+     * {@link #resolve}로 시작·종료일을 계산하지 않고 전체 조회 경로를 쓴다.
+     */
+    boolean isAll() {
+        return preset == HistoryPreset.ALL;
+    }
+
     HistoryPeriod resolve(LocalDate latestAsOf) {
         if (preset == null) {
             return new HistoryPeriod(from, to);
+        }
+
+        if (isAll()) {
+            throw new IllegalStateException(
+                    "전체 기간은 시작·종료일로 환산하지 않습니다."
+            );
         }
 
         return new HistoryPeriod(
@@ -92,7 +108,14 @@ record StatisticsHistoryRequest(
         SEVEN_DAYS("7D", 7),
         THIRTY_DAYS("30D", 30),
         NINETY_DAYS("90D", 90),
-        ONE_YEAR("1Y", 365);
+        ONE_YEAR("1Y", 365),
+
+        /**
+         * 보존된 전체 기간이다.
+         *
+         * 일수가 정해져 있지 않으므로 {@code days}를 쓰지 않는다.
+         */
+        ALL("ALL", 0);
 
         private final String code;
         private final int days;

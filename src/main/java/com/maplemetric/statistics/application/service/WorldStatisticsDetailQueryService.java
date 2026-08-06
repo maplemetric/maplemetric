@@ -118,19 +118,26 @@ public class WorldStatisticsDetailQueryService {
             throw dataInvalid(exception);
         }
 
-        StatisticsHistoryRequest.HistoryPeriod historyPeriod =
-                historyRequest.resolve(
+        List<OverallRankingWorldStatisticsSnapshot> snapshots;
+        StatisticsHistoryRequest.HistoryPeriod historyPeriod;
+
+        try {
+            if (historyRequest.isAll()) {
+                snapshots = overallRankingWorldStatisticsHistoryQuery
+                        .getWorldStatisticsAllHistory();
+
+                historyPeriod = availablePeriod(snapshots);
+            } else {
+                historyPeriod = historyRequest.resolve(
                         latestComparison.latest().asOf()
                 );
 
-        List<OverallRankingWorldStatisticsSnapshot> snapshots;
-
-        try {
-            snapshots = overallRankingWorldStatisticsHistoryQuery
-                    .getWorldStatisticsHistory(
-                            historyPeriod.from(),
-                            historyPeriod.to()
-                    );
+                snapshots = overallRankingWorldStatisticsHistoryQuery
+                        .getWorldStatisticsHistory(
+                                historyPeriod.from(),
+                                historyPeriod.to()
+                        );
+            }
         } catch (OverallRankingWorldStatisticsHistoryQueryException exception) {
             throw dataInvalid(exception);
         }
@@ -147,6 +154,25 @@ public class WorldStatisticsDetailQueryService {
                 historyPeriod.to(),
                 snapshots,
                 canonicalWorldsByWorldName
+        );
+    }
+
+    /**
+     * 전체 기간의 요청 범위는 실제 보존된 범위와 같다.
+     *
+     * 요청한 기간이 따로 없으므로 첫·마지막 성공 기준일을 그대로 쓴다. 그래야
+     * 응답의 누락 일수가 "보존 범위 안의 구멍"을 뜻하게 된다.
+     */
+    private StatisticsHistoryRequest.HistoryPeriod availablePeriod(
+            List<OverallRankingWorldStatisticsSnapshot> snapshots
+    ) {
+        if (snapshots.isEmpty()) {
+            return new StatisticsHistoryRequest.HistoryPeriod(null, null);
+        }
+
+        return new StatisticsHistoryRequest.HistoryPeriod(
+                snapshots.get(0).asOf(),
+                snapshots.get(snapshots.size() - 1).asOf()
         );
     }
 

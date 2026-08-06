@@ -22,17 +22,6 @@ public record GetWorldStatisticsHistoryResult(
         List<String> limitations
 ) {
 
-    /**
-     * 표본 성격과 누락 처리 방식을 응답에 함께 적는다.
-     *
-     * 수집한 종합 랭킹 상위 표본이지 전체 이용자 모집단이 아니며, 수집이 없는 날짜는
-     * Point를 만들지 않는다. 소비 측이 이를 모른 채 전체 통계로 읽지 않도록 명시한다.
-     */
-    private static final List<String> LIMITATIONS = List.of(
-            "전체 이용자 모집단이 아니라 수집한 종합 랭킹 표본입니다.",
-            "누락 날짜는 0으로 보간하지 않았습니다."
-    );
-
     public static GetWorldStatisticsHistoryResult available(
             CanonicalWorld canonicalWorld,
             String preset,
@@ -57,9 +46,12 @@ public record GetWorldStatisticsHistoryResult(
                 ? null
                 : points.get(points.size() - 1).asOf();
 
-        int requestedDateCount = Math.toIntExact(
-                ChronoUnit.DAYS.between(requestedFrom, requestedTo) + 1
-        );
+        // 보존된 수집이 하나도 없는 전체 기간 요청은 범위 자체가 비어 있다.
+        int requestedDateCount = requestedFrom == null || requestedTo == null
+                ? 0
+                : Math.toIntExact(
+                        ChronoUnit.DAYS.between(requestedFrom, requestedTo) + 1
+                );
 
         return new GetWorldStatisticsHistoryResult(
                 WorldResult.from(canonicalWorld),
@@ -79,7 +71,7 @@ public record GetWorldStatisticsHistoryResult(
                         canonicalWorldsByWorldName
                 ),
                 points,
-                LIMITATIONS
+                StatisticsLimitations.HISTORY
         );
     }
 
@@ -113,7 +105,7 @@ public record GetWorldStatisticsHistoryResult(
                 ),
                 null,
                 List.of(),
-                LIMITATIONS
+                StatisticsLimitations.HISTORY
         );
     }
 
