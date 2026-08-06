@@ -257,7 +257,8 @@ class StatisticsFactQueryServiceTest {
                                 new BigDecimal("10.00"),
                                 new BigDecimal("12.34"),
                                 new BigDecimal("23.40"),
-                                new BigDecimal("2.34")
+                                new BigDecimal("2.34"),
+                                StatisticsTrend.UP
                         ),
                         List.of(
                                 point(PREVIOUS_AS_OF, 200L, "10.00"),
@@ -297,6 +298,10 @@ class StatisticsFactQueryServiceTest {
 
         assertThat(fact.rangeComparison().percentagePointChange())
                 .isEqualByComparingTo("2.34");
+
+        // 방향을 옮기지 않으면 소비자가 부호를 보고 지어내야 한다.
+        assertThat(fact.rangeComparison().trend())
+                .isEqualTo(StatisticsTrend.UP);
         assertThat(fact.limitations())
                 .containsExactly("표본이 절단되었습니다.");
     }

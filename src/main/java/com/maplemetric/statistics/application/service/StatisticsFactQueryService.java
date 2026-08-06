@@ -316,7 +316,8 @@ public class StatisticsFactQueryService implements StatisticsFactQuery {
                 comparison.previousPercentage(),
                 comparison.currentPercentage(),
                 comparison.percentageChangeRate(),
-                comparison.percentagePointChange()
+                comparison.percentagePointChange(),
+                comparison.trend()
         );
     }
 
@@ -337,7 +338,8 @@ public class StatisticsFactQueryService implements StatisticsFactQuery {
                 comparison.previousPercentage(),
                 comparison.currentPercentage(),
                 comparison.percentageChangeRate(),
-                comparison.percentagePointChange()
+                comparison.percentagePointChange(),
+                comparison.trend()
         );
     }
 

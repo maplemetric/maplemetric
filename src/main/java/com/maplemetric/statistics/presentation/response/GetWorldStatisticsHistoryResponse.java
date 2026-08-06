@@ -2,6 +2,7 @@ package com.maplemetric.statistics.presentation.response;
 
 import com.maplemetric.statistics.application.result.GetWorldStatisticsHistoryResult;
 import com.maplemetric.statistics.api.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,7 +65,8 @@ public record GetWorldStatisticsHistoryResponse(
                                 result.rangeComparison()
                                         .percentageChangeRate(),
                                 result.rangeComparison()
-                                        .percentagePointChange()
+                                        .percentagePointChange(),
+                                result.rangeComparison().trend()
                         ),
                 points,
                 result.limitations()
@@ -98,7 +100,8 @@ public record GetWorldStatisticsHistoryResponse(
             BigDecimal previousPercentage,
             BigDecimal currentPercentage,
             BigDecimal percentageChangeRate,
-            BigDecimal percentagePointChange
+            BigDecimal percentagePointChange,
+            StatisticsTrend trend
     ) {
     }
 

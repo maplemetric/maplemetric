@@ -788,7 +788,8 @@ class StatisticsControllerTest {
                         new BigDecimal("10.80"),
                         new BigDecimal("12.40"),
                         new BigDecimal("14.81"),
-                        new BigDecimal("1.60")
+                        new BigDecimal("1.60"),
+                        StatisticsTrend.UP
                 ),
                 List.of(new PointResult(
                         LocalDate.of(2026, 7, 18),
@@ -1063,7 +1064,8 @@ class StatisticsControllerTest {
                         new BigDecimal("11.65"),
                         new BigDecimal("12.40"),
                         new BigDecimal("6.44"),
-                        new BigDecimal("0.75")
+                        new BigDecimal("0.75"),
+                        StatisticsTrend.UP
                 ),
                 List.of(
                         new GetWorldStatisticsHistoryResult.PointResult(

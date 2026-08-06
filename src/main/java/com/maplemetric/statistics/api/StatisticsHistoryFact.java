@@ -47,6 +47,12 @@ public record StatisticsHistoryFact(
      * 요청 기간이 아니라 실제 수집이 있던 첫 날과 마지막 날을 쓴다. 빈 날을 포함해
      * 비교하면 없는 날의 변화까지 말하게 된다.
      */
+    /**
+     * {@code trend}는 Statistics가 판정한 구간의 방향이다.
+     *
+     * 소비자가 부호를 보고 방향을 지어내지 않게 판정된 값을 함께 넘긴다. 이 값이
+     * 없으면 설명이 방향을 말할 근거를 잃고 데이터가 부족하다고만 말하게 된다.
+     */
     public record RangeComparisonFact(
             LocalDate fromAsOf,
             LocalDate toAsOf,
@@ -57,7 +63,8 @@ public record StatisticsHistoryFact(
             BigDecimal previousPercentage,
             BigDecimal currentPercentage,
             BigDecimal percentageChangeRate,
-            BigDecimal percentagePointChange
+            BigDecimal percentagePointChange,
+            StatisticsTrend trend
     ) {
     }
 
