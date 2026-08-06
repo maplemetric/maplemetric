@@ -51,6 +51,11 @@ class OpenAiStatisticsInsightGeneratorTest {
             "전체 이용자 모집단이 아니라 수집한 종합 랭킹 표본입니다.";
     private static final String EVIDENCE_LINE = "비중 변화: 2.34";
 
+    /**
+     * 지시문과 입력이 공유하는 항목 이름이다. 어긋나면 지시가 무의미해진다.
+     */
+    private static final String ALREADY_SHOWN_LABEL = "already_shown";
+
     @Mock
     private OpenAiResponsesClient responsesClient;
 
@@ -224,6 +229,24 @@ class OpenAiStatisticsInsightGeneratorTest {
                 OpenAiResponsesRequest.fromStatistics(facts, MODEL);
 
         assertThat(request.input()).contains(EVIDENCE_LINE);
+    }
+
+    /**
+     * 반복하지 말라고 지시한 항목이 입력에도 같은 이름으로 있어야 한다.
+     *
+     * 한쪽 이름만 바뀌면 지시가 가리킬 대상이 사라지고, 아무 오류 없이 그냥
+     * 무시된다. evidence를 요청에 담지 않아 연동이 조용히 죽었던 것과 같다.
+     */
+    @Test
+    void 반복하지말라고지시한항목을입력에담는다() {
+        OpenAiResponsesRequest request = OpenAiResponsesRequest.fromStatistics(
+                createFacts(StatisticsTrend.UP),
+                MODEL
+        );
+
+        assertThat(request.instructions()).contains(ALREADY_SHOWN_LABEL);
+        assertThat(request.input())
+                .contains(ALREADY_SHOWN_LABEL + ":\n" + LIMITATION);
     }
 
     @Test
