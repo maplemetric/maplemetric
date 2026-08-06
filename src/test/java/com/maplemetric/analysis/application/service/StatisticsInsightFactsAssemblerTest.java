@@ -148,23 +148,29 @@ class StatisticsInsightFactsAssemblerTest {
                 .containsExactly(StatisticsInsightFactType.INSUFFICIENT_DATA);
     }
 
-    static Stream<Arguments> 수집비율정책표() {
+    static Stream<Arguments> 관측점정책표() {
         return Stream.of(
-                // 수집된 날, 빈 날, 변화를 말할 수 있는가
-                Arguments.of(10, 0, true),
-                Arguments.of(6, 4, true),
-                Arguments.of(5, 5, true),
-                Arguments.of(4, 6, false),
-                Arguments.of(1, 29, false)
+                // 관측점 수, 빈 날, 변화를 말할 수 있는가
+                Arguments.of(2, 0, false),
+                Arguments.of(3, 0, true),
+
+                // 빈 날이 아무리 많아도 관측점으로만 판단한다.
+                // 주 1회 표본 추출이라 90일 창에 13점(빈 날 77)이 정상이다.
+                Arguments.of(13, 77, true),
+                Arguments.of(22, 68, true),
+                Arguments.of(2, 88, false)
         );
     }
 
     /**
-     * 요청 기간의 절반도 수집되지 않았으면 변화를 말하지 않는다.
+     * 관측점이 추세를 말할 만큼 모여야 변화를 만든다.
+     *
+     * 달력일 대비 수집 비율로 판단하지 않는다. 수집이 주 1회 표본 추출이므로
+     * 비율로 막으면 정상 표본이 전부 걸린다.
      */
     @ParameterizedTest
-    @MethodSource("수집비율정책표")
-    void 수집비율이기준에못미치면변화를만들지않는다(
+    @MethodSource("관측점정책표")
+    void 관측점이부족하면변화를만들지않는다(
             int pointCount,
             int missingDateCount,
             boolean expectedChangeFact
