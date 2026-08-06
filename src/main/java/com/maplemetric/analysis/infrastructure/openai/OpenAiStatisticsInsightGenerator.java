@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.analysis.application.result.StatisticsInsightPreview;
 import com.maplemetric.analysis.application.service.StatisticsInsightGenerator;
 import com.maplemetric.analysis.application.service.TemplateInsightGenerator;
-import com.maplemetric.analysis.domain.model.InsightEvidence;
 import com.maplemetric.analysis.domain.model.StatisticsInsightFacts;
 import com.maplemetric.statistics.api.StatisticsTrend;
 import java.util.ArrayList;
@@ -161,23 +160,12 @@ class OpenAiStatisticsInsightGenerator implements StatisticsInsightGenerator {
     ) {
         if (generated == null
                 || generated.trend() != StatisticsInsightTrends.of(facts)
-                || !createEvidence(facts).equals(generated.evidence())
+                || !StatisticsInsightEvidences.lines(facts)
+                        .equals(generated.evidence())
                 || containsDigit(generated.headline())
                 || containsDigit(generated.summary())) {
             throw new OpenAiResponseInvalidException();
         }
-    }
-
-    private List<String> createEvidence(StatisticsInsightFacts facts) {
-        return facts.facts()
-                .stream()
-                .flatMap(fact -> fact.evidence().stream())
-                .map(this::toEvidenceLine)
-                .toList();
-    }
-
-    private String toEvidenceLine(InsightEvidence evidence) {
-        return evidence.label() + ": " + evidence.value();
     }
 
     private boolean containsDigit(String value) {

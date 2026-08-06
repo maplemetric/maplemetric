@@ -78,12 +78,11 @@ record OpenAiResponsesRequest(
                 .collect(Collectors.joining("\n"));
 
         // evidence는 응답에서 그대로 돌려받아 검증하므로 반드시 요청에 담는다.
-        // 보내지 않으면 모델이 다른 값을 지어내고 응답이 전부 거부된다.
-        String evidenceLines = facts.facts()
-                .stream()
-                .flatMap(fact -> fact.evidence().stream())
-                .map(evidence -> evidence.label() + ": " + evidence.value())
-                .collect(Collectors.joining("\n"));
+        // 검증과 같은 생성기를 써야 형식이 어긋나지 않는다.
+        String evidenceLines = String.join(
+                "\n",
+                StatisticsInsightEvidences.lines(facts)
+        );
 
         return """
                 subject: %s (%s)
