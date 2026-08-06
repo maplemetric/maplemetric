@@ -19,20 +19,24 @@ import org.springframework.stereotype.Service;
  * 계산하지 않는다. Statistics가 반올림과 Trend 판정까지 마친 값을 그대로 옮기며,
  * 여기서 다시 계산하면 화면과 설명이 서로 다른 숫자를 말하게 된다.
  *
- * 말할 근거가 없으면 만들지 않는다. 수집이 없거나, 비교할 지점이 없거나, 기간의
- * 절반 넘게 비어 있으면 변화 Fact 대신 데이터 부족 Fact만 남긴다.
+ * 말할 근거가 없으면 만들지 않는다. 수집이 없거나, 비교할 지점이 없거나, 관측점이
+ * 추세를 말할 만큼 모이지 않았으면 변화 Fact 대신 데이터 부족 Fact만 남긴다.
  */
 @Service
 public class StatisticsInsightFactsAssembler {
 
     /**
-     * 구간 변화를 말할 수 있는 최소 수집 비율이다.
+     * 구간 변화를 말할 수 있는 최소 관측점 수다.
      *
-     * 요청 기간의 절반도 수집되지 않았는데 "늘었다"를 말하면 없는 추세를 만든다.
-     * 확정된 정책이 아니라 이 PR에서 제안하는 값이며, Parameterized Test로 고정한다.
+     * 두 점은 "차이"일 뿐 "추세"가 아니다. 중간 관측이 하나라도 있어야 방향이
+     * 우연한 양 끝 값인지 아닌지를 볼 수 있다.
+     *
+     * 달력일 대비 수집 비율로 판단하지 않는다. 수집은 주 1회 표본 추출이라(T10)
+     * 90일 창에 13점(14%)이 정상이며, 비율로 막으면 정상 표본이 전부 걸린다.
+     * 실제로 그 상태가 나왔다. 수집 범위는 {@code Period.missingDateCount}와
+     * limitations로 이미 응답에 나가므로 소비자가 판단할 수 있다.
      */
-    static final BigDecimal MINIMUM_COLLECTED_RATIO =
-            new BigDecimal("0.5");
+    static final int MINIMUM_POINT_COUNT = 3;
 
     public StatisticsInsightFacts assemble(StatisticsDetailFact detail) {
         StatisticsInsightFacts.Subject subject = toSubject(detail);
@@ -90,7 +94,7 @@ public class StatisticsInsightFactsAssembler {
 
         if (history.dataAvailability() != StatisticsDataAvailability.AVAILABLE
                 || history.rangeComparison() == null
-                || !hasEnoughCollectedDates(range)) {
+                || !hasEnoughPoints(range)) {
             return notCollected(subject, period);
         }
 
@@ -120,31 +124,12 @@ public class StatisticsInsightFactsAssembler {
     }
 
     /**
-     * 수집된 날이 요청 기간의 절반에 못 미치는지 본다.
-     *
-     * 요청 기간을 모르면 막지 않는다. 알 수 없는 이유로 지레 정보를 지우지 않는다.
+     * 추세를 말할 만큼 관측점이 있는지 본다.
      */
-    private boolean hasEnoughCollectedDates(
+    private boolean hasEnoughPoints(
             StatisticsHistoryFact.RangeFact range
     ) {
-        if (range == null) {
-            return false;
-        }
-
-        int requestedDateCount = range.pointCount()
-                + range.missingDateCount();
-
-        if (requestedDateCount <= 0) {
-            return true;
-        }
-
-        return BigDecimal.valueOf(range.pointCount())
-                .divide(
-                        BigDecimal.valueOf(requestedDateCount),
-                        4,
-                        java.math.RoundingMode.HALF_UP
-                )
-                .compareTo(MINIMUM_COLLECTED_RATIO) >= 0;
+        return range != null && range.pointCount() >= MINIMUM_POINT_COUNT;
     }
 
     private void addShareAndCount(
