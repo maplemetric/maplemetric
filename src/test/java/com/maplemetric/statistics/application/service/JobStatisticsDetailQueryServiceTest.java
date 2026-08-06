@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -327,11 +328,89 @@ class JobStatisticsDetailQueryServiceTest {
                 .getJobStatisticsHistory(expectedFrom, LATEST_AS_OF);
     }
 
+    /**
+     * `ALL`은 길이가 정해진 기간이 아니다.
+     *
+     * 최신 기준일에서 며칠을 빼는 방식으로 환산하면 보존된 시작점을 넘어서거나
+     * 못 미치게 된다. 전체 조회 경로를 따로 타야 한다.
+     */
+    @Test
+    void 전체기간요청은기간을환산하지않고전체조회를호출한다() {
+        givenAvailableJobAndLatestSnapshot();
+        given(overallRankingStatisticsHistoryQuery
+                .getJobStatisticsAllHistory())
+                .willReturn(List.of(
+                        snapshot(LocalDate.of(2025, 8, 4), 100, jobCount("히어로", 10L, "200")),
+                        snapshot(LATEST_AS_OF, 100, jobCount("히어로", 12L, "205"))
+                ));
+        given(jobCatalogQuery.resolveAliases(any()))
+                .willReturn(Map.of());
+
+        GetJobStatisticsHistoryResult result =
+                service.getJobStatisticsHistory("hero", "ALL", null, null);
+
+        assertThat(result.range().preset()).isEqualTo("ALL");
+
+        // 요청 범위가 곧 보존 범위다.
+        assertThat(result.range().requestedFrom())
+                .isEqualTo(LocalDate.of(2025, 8, 4));
+        assertThat(result.range().requestedTo()).isEqualTo(LATEST_AS_OF);
+        assertThat(result.range().firstAsOf())
+                .isEqualTo(LocalDate.of(2025, 8, 4));
+        assertThat(result.range().lastAsOf()).isEqualTo(LATEST_AS_OF);
+        assertThat(result.points()).hasSize(2);
+
+        verify(overallRankingStatisticsHistoryQuery, never())
+                .getJobStatisticsHistory(any(), any());
+    }
+
+    /**
+     * 보존 범위 안의 구멍을 숨기지 않는다.
+     */
+    @Test
+    void 전체기간의누락일수는보존범위안의구멍을센다() {
+        givenAvailableJobAndLatestSnapshot();
+        given(overallRankingStatisticsHistoryQuery
+                .getJobStatisticsAllHistory())
+                .willReturn(List.of(
+                        snapshot(LocalDate.of(2026, 7, 28), 100, jobCount("히어로", 10L, "200")),
+                        snapshot(LATEST_AS_OF, 100, jobCount("히어로", 12L, "205"))
+                ));
+        given(jobCatalogQuery.resolveAliases(any()))
+                .willReturn(Map.of());
+
+        GetJobStatisticsHistoryResult result =
+                service.getJobStatisticsHistory("hero", "ALL", null, null);
+
+        // 07-28 ~ 07-30 사흘 중 2일만 수집됐다.
+        assertThat(result.range().pointCount()).isEqualTo(2);
+        assertThat(result.range().missingDateCount()).isEqualTo(1);
+        assertThat(result.limitations()).isNotEmpty();
+    }
+
+    @Test
+    void 전체기간에보존된수집이없으면빈결과다() {
+        givenAvailableJobAndLatestSnapshot();
+        given(overallRankingStatisticsHistoryQuery
+                .getJobStatisticsAllHistory())
+                .willReturn(List.of());
+        given(jobCatalogQuery.resolveAliases(any()))
+                .willReturn(Map.of());
+
+        GetJobStatisticsHistoryResult result =
+                service.getJobStatisticsHistory("hero", "ALL", null, null);
+
+        assertThat(result.points()).isEmpty();
+        assertThat(result.rangeComparison()).isNull();
+        assertThat(result.range().requestedFrom()).isNull();
+        assertThat(result.range().requestedTo()).isNull();
+    }
+
     static Stream<Arguments> invalidHistoryRequests() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         return Stream.of(
-                Arguments.of("ALL", null, null),
+                Arguments.of("5D", null, null),
                 Arguments.of("", null, null),
                 Arguments.of(
                         "7D",
