@@ -39,14 +39,54 @@ class StatisticsFactQueryServiceTest {
     @Mock
     private WorldStatisticsDetailQueryService worldQueryService;
 
+    @Mock
+    private com.maplemetric.ranking.api.JobCatalogQuery jobCatalogQuery;
+
+    @Mock
+    private com.maplemetric.world.api.WorldCatalogQuery worldCatalogQuery;
+
     private StatisticsFactQueryService service;
 
     @BeforeEach
     void setUp() {
         service = new StatisticsFactQueryService(
                 jobQueryService,
-                worldQueryService
+                worldQueryService,
+                jobCatalogQuery,
+                worldCatalogQuery
         );
+    }
+
+    /**
+     * 소비자가 직업·월드 Catalog를 각각 알 필요 없이 한 계약으로 순회한다.
+     */
+    @Test
+    void 직업다음월드순서로대상을돌려준다() {
+        given(jobCatalogQuery.findAll()).willReturn(List.of(
+                new CanonicalJob("hero", "히어로", "모험가", "전사", true, 1)
+        ));
+        given(worldCatalogQuery.findAll()).willReturn(List.of(
+                new com.maplemetric.world.api.CanonicalWorld(
+                        "scania",
+                        "스카니아",
+                        com.maplemetric.world.api.CanonicalWorld.Status.ACTIVE,
+                        1
+                )
+        ));
+
+        assertThat(service.listSubjects())
+                .extracting(
+                        subject -> subject.type(),
+                        subject -> subject.slug()
+                )
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple(
+                                StatisticsSubjectType.JOB, "hero"
+                        ),
+                        org.assertj.core.api.Assertions.tuple(
+                                StatisticsSubjectType.WORLD, "scania"
+                        )
+                );
     }
 
     @Test

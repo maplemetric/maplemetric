@@ -62,6 +62,14 @@ maplemetric:
     connect-timeout: ${OPENAI_CONNECT_TIMEOUT:3s}
     read-timeout: ${OPENAI_READ_TIMEOUT:10s}
 
+  analysis:
+    # 통계 설명 생성 한도다.
+    # 유료 호출이므로 잘못된 실행 한 번이 예산을 소진하지 않아야 한다.
+    # range-preset 기본이 90D인 이유는 하루·일주일 변화가 노이즈이기 때문이다.
+    statistics-insight:
+      max-per-run: ${STATISTICS_INSIGHT_MAX_PER_RUN:70}
+      range-preset: ${STATISTICS_INSIGHT_RANGE_PRESET:90D}
+
   character:
     snapshot:
       # 갱신 한 번이 Nexon을 21회 호출한다. 연타로 그만큼씩 소비하지 않게 한다.

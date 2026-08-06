@@ -1,5 +1,6 @@
 package com.maplemetric.statistics.application.service;
 
+import com.maplemetric.ranking.api.JobCatalogQuery;
 import com.maplemetric.statistics.api.StatisticsDetailFact;
 import com.maplemetric.statistics.api.StatisticsFactQuery;
 import com.maplemetric.statistics.api.StatisticsHistoryFact;
@@ -9,7 +10,9 @@ import com.maplemetric.statistics.application.result.GetJobStatisticsDetailResul
 import com.maplemetric.statistics.application.result.GetJobStatisticsHistoryResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsDetailResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsHistoryResult;
+import com.maplemetric.world.api.WorldCatalogQuery;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +29,42 @@ public class StatisticsFactQueryService implements StatisticsFactQuery {
 
     private final JobStatisticsDetailQueryService jobQueryService;
     private final WorldStatisticsDetailQueryService worldQueryService;
+    private final JobCatalogQuery jobCatalogQuery;
+    private final WorldCatalogQuery worldCatalogQuery;
 
     public StatisticsFactQueryService(
             JobStatisticsDetailQueryService jobQueryService,
-            WorldStatisticsDetailQueryService worldQueryService
+            WorldStatisticsDetailQueryService worldQueryService,
+            JobCatalogQuery jobCatalogQuery,
+            WorldCatalogQuery worldCatalogQuery
     ) {
         this.jobQueryService = jobQueryService;
         this.worldQueryService = worldQueryService;
+        this.jobCatalogQuery = jobCatalogQuery;
+        this.worldCatalogQuery = worldCatalogQuery;
+    }
+
+    @Override
+    public List<StatisticsSubject> listSubjects() {
+        List<StatisticsSubject> subjects = new ArrayList<>();
+
+        jobCatalogQuery.findAll().forEach(job -> subjects.add(
+                new StatisticsSubject(
+                        StatisticsSubjectType.JOB,
+                        job.jobSlug(),
+                        job.jobName()
+                )
+        ));
+
+        worldCatalogQuery.findAll().forEach(world -> subjects.add(
+                new StatisticsSubject(
+                        StatisticsSubjectType.WORLD,
+                        world.worldSlug(),
+                        world.worldName()
+                )
+        ));
+
+        return List.copyOf(subjects);
     }
 
     @Override
