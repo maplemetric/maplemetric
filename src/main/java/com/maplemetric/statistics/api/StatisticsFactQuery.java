@@ -13,6 +13,14 @@ import java.time.LocalDate;
  */
 public interface StatisticsFactQuery {
 
+    /**
+     * 통계를 낼 수 있는 대상을 모두 돌려준다.
+     *
+     * 소비자가 직업·월드 Catalog를 각각 알 필요 없이 이 계약 하나로 순회할 수 있다.
+     * 순서는 직업 다음 월드이며 각 그룹 안에서는 Catalog 순서를 따른다.
+     */
+    java.util.List<StatisticsSubject> listSubjects();
+
     StatisticsDetailFact getJobDetailFact(String jobSlug);
 
     StatisticsDetailFact getWorldDetailFact(String worldSlug);

@@ -39,6 +39,11 @@ public enum InternalSuccessCode implements SuccessCode {
     OVERALL_RANKING_RETENTION_EXPIRED(
             "OVERALL_RANKING_RETENTION_EXPIRED",
             "종합 랭킹 수집 결과를 만료시켰습니다."
+    ),
+
+    STATISTICS_INSIGHT_GENERATED(
+            "STATISTICS_INSIGHT_GENERATED",
+            "통계 인사이트를 생성했습니다."
     );
 
     private final String code;
