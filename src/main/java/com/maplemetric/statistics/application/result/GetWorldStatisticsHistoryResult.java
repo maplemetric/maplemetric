@@ -3,6 +3,7 @@ package com.maplemetric.statistics.application.result;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsComparisonSnapshot;
 import com.maplemetric.ranking.api.OverallRankingWorldStatisticsSnapshot;
 import com.maplemetric.statistics.api.StatisticsDataAvailability;
+import com.maplemetric.statistics.api.StatisticsTrend;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldComparisonResult;
 import com.maplemetric.statistics.application.result.GetWorldStatisticsResult.WorldStatisticsResult;
 import com.maplemetric.world.api.CanonicalWorld;
@@ -176,7 +177,8 @@ public record GetWorldStatisticsHistoryResult(
                 comparison.previousPercentage(),
                 current.percentage(),
                 comparison.percentageChangeRate(),
-                comparison.percentagePointChange()
+                comparison.percentagePointChange(),
+                comparison.trend()
         );
     }
 
@@ -216,6 +218,12 @@ public record GetWorldStatisticsHistoryResult(
     ) {
     }
 
+    /**
+     * {@code trend}는 구간 시작과 끝을 비교한 방향이다.
+     *
+     * Detail 비교와 같은 규칙으로 판정한다. 두 값은 같은 계산을 거치므로 화면과
+     * 설명이 서로 다른 방향을 말하지 않는다.
+     */
     public record RangeComparisonResult(
             LocalDate fromAsOf,
             LocalDate toAsOf,
@@ -226,7 +234,8 @@ public record GetWorldStatisticsHistoryResult(
             BigDecimal previousPercentage,
             BigDecimal currentPercentage,
             BigDecimal percentageChangeRate,
-            BigDecimal percentagePointChange
+            BigDecimal percentagePointChange,
+            StatisticsTrend trend
     ) {
     }
 

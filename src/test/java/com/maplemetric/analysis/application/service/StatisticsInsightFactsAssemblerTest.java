@@ -148,6 +148,26 @@ class StatisticsInsightFactsAssemblerTest {
                 .containsExactly(StatisticsInsightFactType.INSUFFICIENT_DATA);
     }
 
+    /**
+     * 구간 방향도 Statistics가 판정한 값을 그대로 옮긴다.
+     *
+     * 옮기지 않으면 설명이 방향을 말할 근거를 잃고, 관측점이 충분한데도 데이터가
+     * 부족하다고만 말하게 된다.
+     */
+    @Test
+    void 구간비교가판정한Trend를옮긴다() {
+        StatisticsInsightFacts facts = assembler.assemble(
+                history(13, 77, rangeComparison(StatisticsTrend.DOWN))
+        );
+
+        assertThat(facts.facts())
+                .filteredOn(fact ->
+                        fact.type() == StatisticsInsightFactType.SHARE_CHANGE)
+                .singleElement()
+                .extracting(fact -> fact.trend())
+                .isEqualTo(StatisticsTrend.DOWN);
+    }
+
     static Stream<Arguments> 관측점정책표() {
         return Stream.of(
                 // 관측점 수, 빈 날, 변화를 말할 수 있는가
@@ -257,6 +277,12 @@ class StatisticsInsightFactsAssemblerTest {
     }
 
     private StatisticsHistoryFact.RangeComparisonFact rangeComparison() {
+        return rangeComparison(StatisticsTrend.UP);
+    }
+
+    private StatisticsHistoryFact.RangeComparisonFact rangeComparison(
+            StatisticsTrend trend
+    ) {
         return new StatisticsHistoryFact.RangeComparisonFact(
                 PREVIOUS_AS_OF,
                 AS_OF,
@@ -267,7 +293,8 @@ class StatisticsInsightFactsAssemblerTest {
                 new BigDecimal("10.00"),
                 new BigDecimal("12.34"),
                 new BigDecimal("23.40"),
-                new BigDecimal("2.34")
+                new BigDecimal("2.34"),
+                trend
         );
     }
 
