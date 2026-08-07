@@ -61,7 +61,8 @@ public class TemplateInsightGenerator
 
         return new StatisticsInsightPreview(
                 facts.subject().name() + " 요약",
-                lines
+                lines,
+                StatisticsInsightPreview.TEMPLATE_MODEL
         );
     }
 

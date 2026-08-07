@@ -402,6 +402,7 @@ class OpenAiInsightGeneratorTest {
     ) {
         return new OpenAiResponsesResponse(
                 status,
+                MODEL,
                 List.of(output)
         );
     }
