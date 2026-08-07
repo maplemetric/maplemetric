@@ -107,7 +107,11 @@ class OpenAiStatisticsInsightGenerator implements StatisticsInsightGenerator {
         lines.add(generated.summary());
         lines.addAll(facts.limitations());
 
-        return new StatisticsInsightPreview(generated.headline(), lines);
+        return new StatisticsInsightPreview(
+                generated.headline(),
+                lines,
+                properties.model()
+        );
     }
 
     private void validateResponse(OpenAiResponsesResponse response) {

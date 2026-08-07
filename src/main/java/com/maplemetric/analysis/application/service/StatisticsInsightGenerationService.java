@@ -124,7 +124,7 @@ public class StatisticsInsightGenerationService
                 preview.headline(),
                 String.join("\n", preview.lines()),
                 facts,
-                null
+                preview.model()
         );
 
         return true;

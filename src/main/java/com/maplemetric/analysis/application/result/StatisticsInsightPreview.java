@@ -11,13 +11,29 @@ import java.util.List;
  */
 public record StatisticsInsightPreview(
         String headline,
-        List<String> lines
+        List<String> lines,
+        String model
 ) {
+
+    /**
+     * 템플릿이 만든 문장임을 나타내는 값이다.
+     *
+     * 외부 호출이 실패하면 템플릿이 대신 문장을 만드는데, 그 사실이 어디에도
+     * 남지 않으면 연동이 죽어도 정상 생성과 구분되지 않는다. 실제로 API Key가
+     * 만료된 채 62건이 생성됐고 로그를 뒤지기 전까지 알 수 없었다.
+     */
+    public static final String TEMPLATE_MODEL = "TEMPLATE";
 
     public StatisticsInsightPreview {
         if (headline == null || headline.isBlank()) {
             throw new IllegalArgumentException(
                     "통계 인사이트 제목은 비어 있을 수 없습니다."
+            );
+        }
+
+        if (model == null || model.isBlank()) {
+            throw new IllegalArgumentException(
+                    "통계 인사이트 생성 출처는 비어 있을 수 없습니다."
             );
         }
 

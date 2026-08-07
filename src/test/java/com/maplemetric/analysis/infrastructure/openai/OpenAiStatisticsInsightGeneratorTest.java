@@ -92,6 +92,9 @@ class OpenAiStatisticsInsightGeneratorTest {
                 "만렙 상위권에서 비중이 완만하게 올랐습니다.",
                 LIMITATION
         );
+
+        // 어떤 모델이 만든 문장인지 남아야 나중에 추적할 수 있다.
+        assertThat(preview.model()).isEqualTo(MODEL);
     }
 
     static Stream<String> 버려야하는응답() {
@@ -130,6 +133,10 @@ class OpenAiStatisticsInsightGeneratorTest {
 
         // 템플릿은 Fact를 그대로 펼치므로 지어낸 문장이 화면에 남지 않는다.
         assertThat(preview.headline()).isEqualTo(SUBJECT_NAME + " 요약");
+
+        // 대체됐다는 사실이 남아야 연동이 죽은 것을 데이터만 보고 알 수 있다.
+        assertThat(preview.model())
+                .isEqualTo(StatisticsInsightPreview.TEMPLATE_MODEL);
     }
 
     @Test
