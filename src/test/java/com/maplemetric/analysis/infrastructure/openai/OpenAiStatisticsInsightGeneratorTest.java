@@ -46,6 +46,12 @@ class OpenAiStatisticsInsightGeneratorTest {
 
     private static final String API_KEY = "test-openai-secret-key";
     private static final String MODEL = "test-model";
+
+    /**
+     * 설정에 적은 이름은 별칭일 수 있고, 응답은 해석된 스냅샷을 알려준다.
+     * 저장해야 할 것은 실제로 문장을 만든 쪽이다.
+     */
+    private static final String RESPONSE_MODEL = "test-model-2026-08-07";
     private static final String SUBJECT_NAME = "히어로";
     private static final String LIMITATION =
             "전체 이용자 모집단이 아니라 수집한 종합 랭킹 표본입니다.";
@@ -93,7 +99,35 @@ class OpenAiStatisticsInsightGeneratorTest {
                 LIMITATION
         );
 
-        // 어떤 모델이 만든 문장인지 남아야 나중에 추적할 수 있다.
+        // 설정값이 아니라 실제로 응답한 모델이 남아야 변화를 추적할 수 있다.
+        assertThat(preview.model())
+                .isEqualTo(RESPONSE_MODEL)
+                .isNotEqualTo(MODEL);
+    }
+
+    /**
+     * 출처 하나 때문에 멀쩡한 문장을 버리지 않는다.
+     *
+     * 응답이 모델을 알려주지 않아도 문장 자체는 검증을 통과한 값이다. 버리고
+     * 템플릿으로 내려가면 화면이 더 나빠지므로 요청값으로 되돌아간다.
+     */
+    @Test
+    void 응답에모델이없으면요청한모델을남긴다() {
+        given(responsesClient.create(any()))
+                .willReturn(createResponseWithModel(
+                        "completed",
+                        null,
+                        createOutputText(createJson(
+                                "UP",
+                                "히어로 비중이 늘었습니다",
+                                "만렙 상위권에서 비중이 완만하게 올랐습니다."
+                        ))
+                ));
+
+        StatisticsInsightPreview preview =
+                insightGenerator.generate(createFacts(StatisticsTrend.UP));
+
+        assertThat(preview.headline()).isEqualTo("히어로 비중이 늘었습니다");
         assertThat(preview.model()).isEqualTo(MODEL);
     }
 
@@ -326,7 +360,15 @@ class OpenAiStatisticsInsightGeneratorTest {
             String status,
             OpenAiResponsesResponse.Output... output
     ) {
-        return new OpenAiResponsesResponse(status, List.of(output));
+        return createResponseWithModel(status, RESPONSE_MODEL, output);
+    }
+
+    private static OpenAiResponsesResponse createResponseWithModel(
+            String status,
+            String model,
+            OpenAiResponsesResponse.Output... output
+    ) {
+        return new OpenAiResponsesResponse(status, model, List.of(output));
     }
 
     private static OpenAiResponsesResponse.Output createOutputText(

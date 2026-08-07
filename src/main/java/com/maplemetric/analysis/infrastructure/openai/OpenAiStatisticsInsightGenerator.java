@@ -110,8 +110,23 @@ class OpenAiStatisticsInsightGenerator implements StatisticsInsightGenerator {
         return new StatisticsInsightPreview(
                 generated.headline(),
                 lines,
-                properties.model()
+                toModel(response)
         );
+    }
+
+    /**
+     * 실제로 응답한 모델을 생성 출처로 쓴다.
+     *
+     * 요청한 이름은 별칭일 수 있고 그때는 응답이 해석된 스냅샷을 알려준다. 나중에
+     * 문장이 달라진 이유를 찾을 때 필요한 것은 해석된 쪽이다.
+     *
+     * 응답에 없으면 요청값으로 되돌아간다. 문장 자체는 멀쩡하므로 출처 하나 때문에
+     * 버리고 템플릿으로 내려가면 화면이 더 나빠진다.
+     */
+    private String toModel(OpenAiResponsesResponse response) {
+        return StringUtils.hasText(response.model())
+                ? response.model()
+                : properties.model();
     }
 
     private void validateResponse(OpenAiResponsesResponse response) {
