@@ -32,6 +32,7 @@ class StatisticsInsightGenerationServiceTest {
 
     private static final String PRESET = "90D";
     private static final LocalDate AS_OF = LocalDate.of(2026, 8, 3);
+    private static final String MODEL = "test-model";
 
     @Mock
     private StatisticsFactQuery statisticsFactQuery;
@@ -73,6 +74,31 @@ class StatisticsInsightGenerationServiceTest {
         verify(insightGenerator, times(1)).generate(any());
         verify(saveStatisticsInsightPort, times(1))
                 .save(eq(PRESET), eq(AS_OF), any(), any(), any(), any());
+    }
+
+    /**
+     * 어떤 생성기가 만든 문장인지 함께 저장한다.
+     *
+     * 남기지 않으면 외부 호출이 실패해 템플릿으로 대체된 문장과 정상 생성된
+     * 문장이 데이터상 같아 보인다. 실제로 Key가 만료된 채 전량이 템플릿으로
+     * 저장됐고 로그를 뒤지기 전까지 알 수 없었다.
+     */
+    @Test
+    void 생성출처를함께저장한다() {
+        givenSubjects(job("hero"));
+        givenHistory("hero", AS_OF);
+        givenPreview();
+
+        service.generate();
+
+        verify(saveStatisticsInsightPort).save(
+                eq(PRESET),
+                eq(AS_OF),
+                any(),
+                any(),
+                any(),
+                eq(MODEL)
+        );
     }
 
     /**
@@ -163,7 +189,8 @@ class StatisticsInsightGenerationServiceTest {
         given(insightGenerator.generate(any()))
                 .willReturn(new StatisticsInsightPreview(
                         "제목",
-                        List.of("요약")
+                        List.of("요약"),
+                        MODEL
                 ));
     }
 
