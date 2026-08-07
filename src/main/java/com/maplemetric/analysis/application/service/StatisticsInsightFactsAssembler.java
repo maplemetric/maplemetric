@@ -206,7 +206,7 @@ public class StatisticsInsightFactsAssembler {
                     StatisticsInsightFactType.SHARE_CHANGE,
                     comparison.percentagePointChange(),
                     StatisticsInsightUnit.PERCENTAGE_POINT,
-                    null,
+                    comparison.trend(),
                     List.of(
                             evidence(
                                     "구간 시작 비중",
