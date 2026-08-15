@@ -40,7 +40,7 @@ import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.result.GetCharacterSymbolResult;
 import com.maplemetric.character.application.result.GetCharacterUnionResult;
 import com.maplemetric.character.application.service.CharacterSnapshotStoreService.StoredSummary;
-import com.maplemetric.character.infrastructure.properties.CharacterSnapshotProperties;
+import com.maplemetric.character.application.properties.CharacterSnapshotProperties;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.ranking.api.CharacterRanking;

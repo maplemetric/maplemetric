@@ -26,7 +26,7 @@ import com.maplemetric.character.application.port.out.LoadCharacterUnionPort;
 import com.maplemetric.character.application.result.GetCharacterBasicResult;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.service.CharacterSnapshotStoreService.StoredSummary;
-import com.maplemetric.character.infrastructure.properties.CharacterSnapshotProperties;
+import com.maplemetric.character.application.properties.CharacterSnapshotProperties;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import java.time.Clock;
 import java.time.Duration;

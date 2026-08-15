@@ -63,7 +63,7 @@ import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import java.math.BigDecimal;
-import com.maplemetric.character.infrastructure.properties.CharacterSnapshotProperties;
+import com.maplemetric.character.application.properties.CharacterSnapshotProperties;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
