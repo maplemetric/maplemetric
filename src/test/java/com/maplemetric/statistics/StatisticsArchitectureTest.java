@@ -8,6 +8,12 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+/**
+ * statistics 모듈의 고유 규칙만 둔다.
+ *
+ * 계층 방향은 ModuleLayerBaselineTest가 모든 모듈에 같은 기준으로 검사한다.
+ * 여기 남는 것은 statistics가 ranking·world를 어떻게 소비하는가다.
+ */
 class StatisticsArchitectureTest {
 
     private static JavaClasses classes;
@@ -25,24 +31,14 @@ class StatisticsArchitectureTest {
                 );
     }
 
+    /**
+     * ranking은 api로만 소비한다.
+     *
+     * 이전에는 application과 infrastructure만 막아 domain과 presentation이
+     * 열려 있었다. api 이외 전부를 막는다.
+     */
     @Test
-    void Application은Infrastructure와Presentation을참조하지않는다() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "..statistics.application.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
-                        "..statistics.infrastructure..",
-                        "..statistics.presentation.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void statistics는ranking의api를제외한내부패키지를참조하지않는다() {
+    void statistics는ranking의api만참조한다() {
         noClasses()
                 .that()
                 .resideInAPackage(
@@ -52,13 +48,18 @@ class StatisticsArchitectureTest {
                 .dependOnClassesThat()
                 .resideInAnyPackage(
                         "..ranking.application..",
-                        "..ranking.infrastructure.."
+                        "..ranking.domain..",
+                        "..ranking.infrastructure..",
+                        "..ranking.presentation.."
                 )
                 .check(classes);
     }
 
+    /**
+     * world도 api로만 소비한다.
+     */
     @Test
-    void statistics는world의api를제외한내부패키지를참조하지않는다() {
+    void statistics는world의api만참조한다() {
         noClasses()
                 .that()
                 .resideInAPackage(
@@ -68,7 +69,9 @@ class StatisticsArchitectureTest {
                 .dependOnClassesThat()
                 .resideInAnyPackage(
                         "..world.application..",
-                        "..world.infrastructure.."
+                        "..world.domain..",
+                        "..world.infrastructure..",
+                        "..world.presentation.."
                 )
                 .check(classes);
     }
