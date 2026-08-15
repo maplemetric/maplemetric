@@ -1,6 +1,6 @@
 package com.maplemetric.internal.infrastructure.scheduler;
 
-import com.maplemetric.internal.infrastructure.properties.OverallRankingCollectionProperties;
+import com.maplemetric.internal.application.properties.OverallRankingCollectionProperties;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
