@@ -1,8 +1,8 @@
-package com.maplemetric.internal.infrastructure.filter;
+package com.maplemetric.internal.presentation.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.ApiResponse;
-import com.maplemetric.internal.infrastructure.properties.InternalApiProperties;
+import com.maplemetric.internal.application.properties.InternalApiProperties;
 import com.maplemetric.internal.presentation.code.InternalErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
