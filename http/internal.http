@@ -114,3 +114,51 @@ X-Internal-API-Key: {{internalApiKey}}
 # 위 산정 결과를 먼저 확인한다.
 POST {{baseUrl}}/internal/v1/retentions/rankings/overall/expirations
 X-Internal-API-Key: {{internalApiKey}}
+
+
+### 통계 인사이트 생성 — 유료 호출
+#
+# OPENAI_ENABLED=true이면 실제 OpenAI를 호출한다. Scheduler가 없으므로
+# 사람이 직접 실행하는 유일한 경로다.
+#
+# 한 번의 실행은 STATISTICS_INSIGHT_MAX_PER_RUN까지만 만든다.
+# generated가 그 한도와 같으면 남은 대상이 있다는 뜻이므로 다시 호출한다.
+POST {{baseUrl}}/internal/v1/insights/statistics
+X-Internal-API-Key: {{internalApiKey}}
+
+> {%
+    const data = (response.body || {}).data || {};
+
+    client.test("인사이트 생성 응답 계약을 지킨다", function () {
+        client.assert(
+            response.status === 200,
+            "응답 상태가 200이 아닙니다. 실제 상태: "
+            + response.status
+        );
+
+        client.assert(
+            response.body.code === "STATISTICS_INSIGHT_GENERATED",
+            "성공 코드가 올바르지 않습니다. 실제 코드: "
+            + response.body.code
+        );
+
+        client.assert(
+            "generated" in data
+            && "skipped" in data
+            && "failed" in data,
+            "generated / skipped / failed 필드가 모두 있지 않습니다."
+        );
+    });
+
+    client.log(
+        "생성 " + data.generated
+        + " / 건너뜀 " + data.skipped
+        + " / 실패 " + data.failed
+    );
+
+    if (data.failed > 0) {
+        client.log(
+            "실패한 대상이 있습니다. 서버 WARN 로그에서 원인을 확인한다."
+        );
+    }
+%}
