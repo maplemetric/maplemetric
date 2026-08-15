@@ -35,6 +35,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(CharacterController.class)
 class CharacterControllerTest {
 
+    private static final String SYMBOL =
+            "$.data.symbols.arcaneSymbols[0]";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -302,6 +305,76 @@ class CharacterControllerTest {
                 .getCharacterSummary("감점", false);
     }
 
+    /**
+     * 심볼 공개 응답의 필드 이름을 계약으로 고정한다.
+     *
+     * 내부 계층은 int가 Java 예약어라 symbolIntelligence를 쓴다. 그 이름이
+     * 공개 JSON까지 새어 나가면 소비자가 계약대로 읽을 수 없으므로 여기서 막는다.
+     */
+    @Test
+    void 심볼공개응답은승인된계약필드이름을사용한다() throws Exception {
+        given(characterQueryService.getCharacterSummary("감점", false))
+                .willReturn(createSummaryResult());
+
+        mockMvc.perform(
+                        get("/api/v1/characters/search")
+                                .param("characterName", "감점")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolName")
+                                .value("아케인심볼 : 소멸의 여로")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolIcon")
+                                .value("arcane-icon")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolDescription")
+                                .value("테스트 설명")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolForce")
+                                .value("530")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolLevel")
+                                .value(20)
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolStr")
+                                .value("2200")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolDex")
+                                .value("2100")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolInt")
+                                .value("2000")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolLuk")
+                                .value("1900")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolHp")
+                                .value("1800")
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolGrowthCount")
+                                .value(2678)
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolRequireGrowthCount")
+                                .value(4000)
+                )
+                .andExpect(
+                        jsonPath(SYMBOL + ".symbolIntelligence")
+                                .doesNotExist()
+                );
+    }
+
     @Test
     void 캐릭터명이공백이면400응답을반환한다() throws Exception {
         mockMvc.perform(
@@ -515,6 +588,8 @@ class CharacterControllerTest {
             Integer symbolLevel,
             String symbolIcon
     ) {
+        // 스탯 값을 서로 다르게 둔다. 공개 응답의 필드 순서가 어긋나면
+        // 값이 옆 필드로 새는 것을 테스트가 잡아야 한다.
         return new GetCharacterSymbolResult.SymbolResult(
                 symbolName,
                 symbolLevel,
@@ -523,10 +598,10 @@ class CharacterControllerTest {
                 "테스트 추가 효과",
                 "530",
                 "2200",
-                "0",
-                "0",
-                "0",
-                "0",
+                "2100",
+                "2000",
+                "1900",
+                "1800",
                 "1",
                 "2",
                 "3",
