@@ -30,6 +30,10 @@ import org.hibernate.type.SqlTypes;
                 @UniqueConstraint(
                         name = "uk_p_character_section_snapshot_ocid_section",
                         columnNames = {"ocid", "section"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_p_character_section_snapshot_name_section",
+                        columnNames = {"character_name", "section"}
                 )
         }
 )
