@@ -232,6 +232,7 @@ class OverallRankingCollectionControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("GLOBAL_002"))
+                .andExpect(jsonPath("$.data").doesNotExist())
                 .andReturn()
                 .getResponse()
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
