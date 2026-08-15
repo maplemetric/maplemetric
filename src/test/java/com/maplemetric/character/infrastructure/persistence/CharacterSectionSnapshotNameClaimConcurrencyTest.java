@@ -1,9 +1,11 @@
 package com.maplemetric.character.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.maplemetric.character.application.port.out.SaveCharacterSectionSnapshotPort;
 import com.maplemetric.character.application.port.out.SaveCharacterSectionSnapshotPort.CharacterSection;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -109,10 +111,11 @@ class CharacterSectionSnapshotNameClaimConcurrencyTest {
     @Test
     void 회수와저장사이에끼어든오래된수집은이름을빼앗지못한다() throws Exception {
         CountDownLatch newerReleased = new CountDownLatch(1);
-        CountDownLatch olderFinished = new CountDownLatch(1);
+        CountDownLatch olderEnteringSave = new CountDownLatch(1);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
+        Future<?> older;
         try {
             Future<?> newer = executor.submit(() -> inNewTransaction(() -> {
                 repository.lockCharacterName(lockKey());
@@ -125,9 +128,10 @@ class CharacterSectionSnapshotNameClaimConcurrencyTest {
 
                 newerReleased.countDown();
 
-                // 잠금이 있으면 오래된 쪽은 여기서 진입하지 못해 신호가 오지 않는다.
-                // 신호를 기다리지 않고 넘어가는 것이 정상이다.
-                awaitAtMost(olderFinished);
+                // 오래된 쪽이 저장 경로에 실제로 진입한 것을 확인하고 넘어간다.
+                // 기다리지 않으면 상대가 시작조차 못한 채 이 테스트가 통과할 수 있다.
+                await(olderEnteringSave, "오래된 수집이 저장 경로에 진입하지 않았습니다.");
+                sleepUntilOlderBlocks();
 
                 repository.upsert(
                         NEWER_OCID,
@@ -138,24 +142,29 @@ class CharacterSectionSnapshotNameClaimConcurrencyTest {
                 );
             }));
 
-            Future<?> older = executor.submit(() -> {
-                try {
-                    await(newerReleased);
-                    inNewTransaction(() -> save(OLDER_OCID, OLDER_FETCHED_AT));
-                } finally {
-                    olderFinished.countDown();
-                }
-            });
+            older = executor.submit(() -> inNewTransaction(() -> {
+                await(newerReleased, "최신 수집이 회수를 마치지 않았습니다.");
 
-            // 오래된 쪽은 유일 제약에 걸려 실패할 수 있다. 실패 자체는 정상이며
-            // 호출부가 삼킨다. 여기서 확인할 것은 남은 소유자다.
+                olderEnteringSave.countDown();
+
+                save(OLDER_OCID, OLDER_FETCHED_AT);
+            }));
+
             newer.get(60, TimeUnit.SECONDS);
-            awaitQuietly(older);
         } finally {
             executor.shutdownNow();
         }
 
         assertThat(ownerOf(CHARACTER_NAME)).isEqualTo(NEWER_OCID);
+
+        // 오래된 쪽은 유일 제약에 걸려 끝나야 한다. 다른 이유로 끝났다면 이 테스트가
+        // 의도한 순서를 재현하지 못한 것이다.
+        assertThatThrownBy(() -> older.get(60, TimeUnit.SECONDS))
+                .hasRootCauseInstanceOf(SQLException.class)
+                .rootCause()
+                .hasMessageContaining(
+                        "uk_p_character_section_snapshot_name_section"
+                );
     }
 
     private String lockKey() {
@@ -229,10 +238,10 @@ class CharacterSectionSnapshotNameClaimConcurrencyTest {
         template.executeWithoutResult(status -> work.run());
     }
 
-    private void await(CountDownLatch latch) {
+    private void await(CountDownLatch latch, String message) {
         try {
             if (!latch.await(30, TimeUnit.SECONDS)) {
-                throw new IllegalStateException("상대 Transaction이 시작되지 않았습니다.");
+                throw new IllegalStateException(message);
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -241,25 +250,18 @@ class CharacterSectionSnapshotNameClaimConcurrencyTest {
     }
 
     /**
-     * 상대가 끼어들 기회를 주되 끝까지 기다리지는 않는다.
+     * 상대가 잠금 대기에 들어갈 시간을 준다.
      *
-     * 잠금이 동작하면 상대는 진입하지 못하므로 신호가 오지 않는다. 그때는 시간이 지나면
-     * 그대로 진행해야 한다.
+     * 신호는 저장 경로 진입 직전에 오므로 그 자체로는 아직 잠금을 잡으러 가기 전이다.
+     * 이 대기가 짧아 상대가 아직 도달하지 못했더라도 결과는 같다. 잠금이 있으면
+     * 어차피 기다리게 되고, 없으면 이 테스트가 실패해야 하기 때문이다.
      */
-    private void awaitAtMost(CountDownLatch latch) {
+    private void sleepUntilOlderBlocks() {
         try {
-            latch.await(2, TimeUnit.SECONDS);
+            Thread.sleep(500);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(exception);
-        }
-    }
-
-    private void awaitQuietly(Future<?> future) {
-        try {
-            future.get(30, TimeUnit.SECONDS);
-        } catch (Exception exception) {
-            // 유일 제약 위반으로 끝나는 것이 정상 경로다.
         }
     }
 }
