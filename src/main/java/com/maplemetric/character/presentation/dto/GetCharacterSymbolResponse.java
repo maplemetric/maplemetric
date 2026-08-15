@@ -38,7 +38,11 @@ public record GetCharacterSymbolResponse(
             String symbolForce,
             String symbolStr,
             String symbolDex,
-            String symbolIntelligence,
+
+            // 공개 계약의 이름은 symbolInt다. 내부 계층이 symbolIntelligence를
+            // 쓰는 것은 int가 Java 예약어라서이며 공개 경계까지 나가지 않는다.
+            String symbolInt,
+
             String symbolLuk,
             String symbolHp,
             String symbolDropRate,

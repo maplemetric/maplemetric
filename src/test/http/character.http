@@ -149,6 +149,15 @@ Accept: application/json
                 ),
                 "symbolIcon 필드가 없는 심볼이 있습니다."
             );
+
+            client.assert(
+                symbols.every(symbol =>
+                    symbol !== null
+                    && "symbolInt" in symbol
+                    && !("symbolIntelligence" in symbol)
+                ),
+                "심볼 INT 필드 이름이 symbolInt가 아닙니다."
+            );
         });
 
         client.test("스킬 응답 구조가 올바르다", function () {
