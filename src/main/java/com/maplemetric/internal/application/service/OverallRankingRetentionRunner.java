@@ -1,6 +1,6 @@
 package com.maplemetric.internal.application.service;
 
-import com.maplemetric.internal.infrastructure.properties.OverallRankingRetentionProperties;
+import com.maplemetric.internal.application.properties.OverallRankingRetentionProperties;
 import com.maplemetric.ranking.api.ExpireOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingRetentionPlan;
 import com.maplemetric.ranking.api.OverallRankingRetentionRequest;

@@ -1,4 +1,4 @@
-package com.maplemetric.character.infrastructure.properties;
+package com.maplemetric.character.application.properties;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

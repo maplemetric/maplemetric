@@ -5,7 +5,7 @@ import com.maplemetric.analysis.api.GenerateStatisticsInsightUseCase;
 import com.maplemetric.analysis.application.port.out.SaveStatisticsInsightPort;
 import com.maplemetric.analysis.application.result.StatisticsInsightPreview;
 import com.maplemetric.analysis.domain.model.StatisticsInsightFacts;
-import com.maplemetric.analysis.infrastructure.properties.StatisticsInsightProperties;
+import com.maplemetric.analysis.application.properties.StatisticsInsightProperties;
 import com.maplemetric.statistics.api.StatisticsFactQuery;
 import com.maplemetric.statistics.api.StatisticsHistoryFact;
 import com.maplemetric.statistics.api.StatisticsSubject;

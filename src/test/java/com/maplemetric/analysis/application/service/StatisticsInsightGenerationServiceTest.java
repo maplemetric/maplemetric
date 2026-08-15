@@ -13,7 +13,7 @@ import static org.mockito.Mockito.verify;
 import com.maplemetric.analysis.api.GenerateStatisticsInsightOutcome;
 import com.maplemetric.analysis.application.port.out.SaveStatisticsInsightPort;
 import com.maplemetric.analysis.application.result.StatisticsInsightPreview;
-import com.maplemetric.analysis.infrastructure.properties.StatisticsInsightProperties;
+import com.maplemetric.analysis.application.properties.StatisticsInsightProperties;
 import com.maplemetric.statistics.api.StatisticsDataAvailability;
 import com.maplemetric.statistics.api.StatisticsFactQuery;
 import com.maplemetric.statistics.api.StatisticsHistoryFact;
