@@ -2,6 +2,7 @@ package com.maplemetric.internal.infrastructure.properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.maplemetric.internal.application.properties.OverallRankingCollectionProperties;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
