@@ -50,6 +50,27 @@ interface CharacterSectionSnapshotRepository
     );
 
     /**
+     * 같은 이름을 노리는 저장을 직렬화한다.
+     *
+     * 회수와 저장이 두 문장이라 둘 다 상대의 행을 보지 못한 채 진행할 수 있다. 그러면
+     * 회수 조건의 시각 비교가 아무것도 비교하지 못한 채 먼저 넣은 쪽이 이름을 차지하고,
+     * 늦게 넣은 최신 데이터가 유일 제약에 걸려 버려진다.
+     *
+     * 이름과 구간으로 잠가 두면 뒤 Transaction이 앞의 결과를 보고 판단한다.
+     * Transaction이 끝나면 함께 풀린다.
+     */
+    @Query(
+            value = """
+                    SELECT 1
+                      FROM (SELECT pg_advisory_xact_lock(
+                                       CAST(hashtext(:lockKey) AS BIGINT)
+                                   )) AS locked
+                    """,
+            nativeQuery = true
+    )
+    Integer lockCharacterName(@Param("lockKey") String lockKey);
+
+    /**
      * 다른 캐릭터가 들고 있던 이름을 회수한다.
      *
      * 캐릭터명에 유일 제약이 있으므로 이름을 이어받기 전에 이전 소유자의 저장본을

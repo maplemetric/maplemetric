@@ -54,22 +54,36 @@ class CharacterSectionSnapshotNameUniqueMigrationTest {
     }
 
     /**
-     * 수집 시각이 같으면 남길 행을 시각만으로 정할 수 없다.
+     * 수집 시각과 수정 시각이 모두 같으면 식별자가 남길 행을 정한다.
      *
-     * 기준이 결정적이지 않으면 실행할 때마다 다른 행이 남는다. 남는 행이 무엇인지보다
-     * 정확히 하나만 남고 Migration이 성공하는 것이 중요하다.
+     * 기준이 결정적이지 않으면 실행 환경에 따라 다른 행이 남는다. 여기서는 두 시각을
+     * 같게 고정해 식별자 비교만 남긴다. 가장 큰 식별자가 남아야 한다.
      */
     @Test
-    void V19는_수집_시각이_같아도_하나만_남긴다() throws SQLException {
+    void V19는_시각이_모두_같으면_식별자로_남길_행을_정한다() throws SQLException {
         migrateToVersion(BEFORE_NAME_UNIQUE_VERSION);
 
-        insertSnapshot("ocid-a", NAME, "2026-08-01T00:00:00Z");
-        insertSnapshot("ocid-b", NAME, "2026-08-01T00:00:00Z");
-        insertSnapshot("ocid-c", NAME, "2026-08-01T00:00:00Z");
+        String sameTime = "2026-08-01T00:00:00Z";
+
+        insertSnapshotWithId(
+                "00000000-0000-0000-0000-000000000001",
+                "ocid-a",
+                sameTime
+        );
+        insertSnapshotWithId(
+                "00000000-0000-0000-0000-000000000003",
+                "ocid-c",
+                sameTime
+        );
+        insertSnapshotWithId(
+                "00000000-0000-0000-0000-000000000002",
+                "ocid-b",
+                sameTime
+        );
 
         migrateToVersion(NAME_UNIQUE_VERSION);
 
-        assertThat(fetchOcids(NAME)).hasSize(1);
+        assertThat(fetchOcids(NAME)).containsExactly("ocid-c");
     }
 
     /**
@@ -170,6 +184,28 @@ class CharacterSectionSnapshotNameUniqueMigrationTest {
                         (ocid, character_name, section, payload, fetched_at)
                     VALUES ('%s', '%s', '%s', '{}'::jsonb, '%s')
                     """.formatted(ocid, characterName, section, fetchedAt)
+            );
+        }
+    }
+
+    /**
+     * 식별자와 수정 시각까지 고정해 타이브레이커만 남긴다.
+     */
+    private void insertSnapshotWithId(
+            String id,
+            String ocid,
+            String fetchedAt
+    ) throws SQLException {
+        try (Connection connection = connect();
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                    """
+                    INSERT INTO p_character_section_snapshot
+                        (character_section_snapshot_id, ocid, character_name,
+                         section, payload, fetched_at, created_at, updated_at)
+                    VALUES ('%s', '%s', '%s', 'PROFILE', '{}'::jsonb,
+                            '%s', '%s', '%s')
+                    """.formatted(id, ocid, NAME, fetchedAt, fetchedAt, fetchedAt)
             );
         }
     }
