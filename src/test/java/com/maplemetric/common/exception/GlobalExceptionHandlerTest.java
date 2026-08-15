@@ -1,5 +1,7 @@
 package com.maplemetric.common.exception;
 
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -71,7 +73,10 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("FIXTURE_001"))
                 .andExpect(jsonPath("$.message").value("고정 오류입니다."))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                // doesNotExist()는 키 없음과 null을 구분하지 못한다.
+                // 키가 있고 값이 null이라는 두 조건을 따로 확인한다.
+                .andExpect(jsonPath("$").value(hasKey("data")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @RestController

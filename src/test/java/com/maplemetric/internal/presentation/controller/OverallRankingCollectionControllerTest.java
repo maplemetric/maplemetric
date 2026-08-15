@@ -1,6 +1,7 @@
 package com.maplemetric.internal.presentation.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -232,7 +233,9 @@ class OverallRankingCollectionControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("GLOBAL_002"))
-                .andExpect(jsonPath("$.data").doesNotExist())
+                // doesNotExist()는 키 없음과 null을 구분하지 못한다.
+                .andExpect(jsonPath("$").value(hasKey("data")))
+                .andExpect(jsonPath("$.data").value(nullValue()))
                 .andReturn()
                 .getResponse()
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
