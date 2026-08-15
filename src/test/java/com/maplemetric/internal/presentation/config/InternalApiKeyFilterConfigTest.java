@@ -1,10 +1,10 @@
-package com.maplemetric.internal.infrastructure.config;
+package com.maplemetric.internal.presentation.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.internal.infrastructure.filter.InternalApiKeyFilter;
-import com.maplemetric.internal.infrastructure.properties.InternalApiProperties;
+import com.maplemetric.internal.presentation.filter.InternalApiKeyFilter;
+import com.maplemetric.internal.application.properties.InternalApiProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
