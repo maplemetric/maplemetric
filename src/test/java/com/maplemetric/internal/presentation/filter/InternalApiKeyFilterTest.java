@@ -1,4 +1,4 @@
-package com.maplemetric.internal.infrastructure.filter;
+package com.maplemetric.internal.presentation.filter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -9,12 +9,14 @@ import static org.mockito.Mockito.verify;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maplemetric.internal.infrastructure.properties.InternalApiProperties;
+import com.maplemetric.internal.application.properties.InternalApiProperties;
 import jakarta.servlet.FilterChain;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -59,6 +61,41 @@ class InternalApiKeyFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(401);
         verify(filterChain, never()).doFilter(request, response);
+    }
+
+    /**
+     * 인증 실패 응답의 공개 계약을 고정한다.
+     *
+     * 상태 코드만 보면 본문이 공통 형식을 벗어나거나 오류 코드가 바뀌어도
+     * 알 수 없다. 소비자가 code로 분기하므로 값까지 못박는다.
+     */
+    @Test
+    void 인증실패응답은공통오류계약을지킨다() throws Exception {
+        InternalApiKeyFilter filter =
+                createFilter(CONFIGURED_KEY);
+
+        MockHttpServletRequest request =
+                createRequest("/internal/v1/collections/rankings/overall");
+        request.addHeader(API_KEY_HEADER, "wrong-key");
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, mock(FilterChain.class));
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentType())
+                .startsWith(MediaType.APPLICATION_JSON_VALUE);
+        assertThat(response.getCharacterEncoding())
+                .isEqualToIgnoringCase(StandardCharsets.UTF_8.name());
+
+        JsonNode body = objectMapper.readTree(
+                response.getContentAsString(StandardCharsets.UTF_8)
+        );
+
+        assertThat(body.get("success").asBoolean()).isFalse();
+        assertThat(body.get("code").asText()).isEqualTo("INTERNAL_001");
+        assertThat(body.get("message").asText()).isNotBlank();
+        assertThat(body.get("data").isNull()).isTrue();
     }
 
     @Test

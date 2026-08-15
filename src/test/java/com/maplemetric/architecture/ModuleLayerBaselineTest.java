@@ -27,31 +27,6 @@ import org.springframework.modulith.core.ApplicationModules;
  */
 class ModuleLayerBaselineTest {
 
-    private static final String INTERNAL_API_KEY_FILTER =
-            "com.maplemetric.internal.infrastructure.filter."
-                    + "InternalApiKeyFilter";
-
-    private static final String INTERNAL_ERROR_CODE =
-            "com.maplemetric.internal.presentation.code."
-                    + "InternalErrorCode";
-
-    /**
-     * Infrastructure가 Presentation을 참조하는 알려진 예외다.
-     *
-     * ErrorCode를 presentation/code에 두는 것은 다섯 모듈의 공통 관례이고,
-     * Filter를 옮길지 ErrorCode를 옮길지는 그 관례를 바꾸는 결정이다.
-     * 방향 전체를 열지 않고 이 참조 하나만 비켜 간다.
-     */
-    private static final Set<AllowedDependency> INFRASTRUCTURE_EXCEPTIONS =
-            Set.of(
-                    new AllowedDependency(
-                            INTERNAL_API_KEY_FILTER,
-                            INTERNAL_ERROR_CODE,
-                            "인증 실패 응답을 공통 ApiResponse 계약으로 쓰기 위해"
-                                    + " ErrorCode를 읽는다."
-                    )
-            );
-
     private static JavaClasses productionClasses;
 
     @BeforeAll
@@ -124,7 +99,7 @@ class ModuleLayerBaselineTest {
                 module,
                 "infrastructure",
                 List.of("presentation"),
-                INFRASTRUCTURE_EXCEPTIONS
+                Set.of()
         ).check(productionClasses);
     }
 
