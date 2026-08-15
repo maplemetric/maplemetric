@@ -35,14 +35,6 @@ class ModuleLayerBaselineTest {
             "com.maplemetric.internal.presentation.code."
                     + "InternalErrorCode";
 
-    private static final String COLLECTION_CONTROLLER =
-            "com.maplemetric.internal.presentation.controller."
-                    + "OverallRankingCollectionController";
-
-    private static final String COLLECTION_PROPERTIES =
-            "com.maplemetric.internal.infrastructure.properties."
-                    + "OverallRankingCollectionProperties";
-
     /**
      * Infrastructure가 Presentation을 참조하는 알려진 예외다.
      *
@@ -57,21 +49,6 @@ class ModuleLayerBaselineTest {
                             INTERNAL_ERROR_CODE,
                             "인증 실패 응답을 공통 ApiResponse 계약으로 쓰기 위해"
                                     + " ErrorCode를 읽는다."
-                    )
-            );
-
-    /**
-     * Presentation이 Infrastructure를 참조하는 알려진 예외다.
-     *
-     * Controller가 수집 한도 설정을 직접 읽는다. #211에서 한 것처럼 이 설정을
-     * application으로 옮기면 예외 없이 해소되지만 이번 범위가 아니다.
-     */
-    private static final Set<AllowedDependency> PRESENTATION_EXCEPTIONS =
-            Set.of(
-                    new AllowedDependency(
-                            COLLECTION_CONTROLLER,
-                            COLLECTION_PROPERTIES,
-                            "수집 한도 설정을 응답에 함께 담기 위해 읽는다."
                     )
             );
 
@@ -136,7 +113,7 @@ class ModuleLayerBaselineTest {
                 module,
                 "presentation",
                 List.of("infrastructure"),
-                PRESENTATION_EXCEPTIONS
+                Set.of()
         ).check(productionClasses);
     }
 

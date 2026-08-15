@@ -1,7 +1,7 @@
 package com.maplemetric.internal.presentation.controller;
 
 import com.maplemetric.common.ApiResponse;
-import com.maplemetric.internal.infrastructure.properties.OverallRankingCollectionProperties;
+import com.maplemetric.internal.application.properties.OverallRankingCollectionProperties;
 import com.maplemetric.internal.presentation.code.InternalSuccessCode;
 import com.maplemetric.internal.presentation.request.CollectOverallRankingSnapshotHttpRequest;
 import com.maplemetric.internal.presentation.response.CollectOverallRankingSnapshotHttpResponse;
