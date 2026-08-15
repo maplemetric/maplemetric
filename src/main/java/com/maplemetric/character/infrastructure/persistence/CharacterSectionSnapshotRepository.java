@@ -49,6 +49,34 @@ interface CharacterSectionSnapshotRepository
             @Param("fetchedAt") Instant fetchedAt
     );
 
+    /**
+     * 다른 캐릭터가 들고 있던 이름을 회수한다.
+     *
+     * 캐릭터명에 유일 제약이 있으므로 이름을 이어받기 전에 이전 소유자의 저장본을
+     * 비워야 한다. 저장본은 다시 수집할 수 있는 캐시라 지워도 되살아난다.
+     *
+     * 자기보다 나중에 수집된 행은 지우지 않는다. 늦게 도착한 오래된 수집이 방금 쓰인
+     * 최신 저장본을 밀어내면 안 된다. 지우지 못하면 뒤이은 저장이 유일 제약에 걸려
+     * 거부되는데, 그쪽이 오래된 데이터이므로 그대로 두는 편이 맞다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(
+            value = """
+                    DELETE FROM p_character_section_snapshot
+                     WHERE character_name = :characterName
+                       AND section = :section
+                       AND ocid <> :ocid
+                       AND fetched_at <= :fetchedAt
+                    """,
+            nativeQuery = true
+    )
+    void releaseCharacterName(
+            @Param("characterName") String characterName,
+            @Param("section") String section,
+            @Param("ocid") String ocid,
+            @Param("fetchedAt") Instant fetchedAt
+    );
+
     Optional<CharacterSectionSnapshotEntity> findByOcidAndSection(
             String ocid,
             CharacterSection section

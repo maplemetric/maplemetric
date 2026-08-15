@@ -50,9 +50,23 @@ class CharacterSectionSnapshotPersistenceAdapter
             );
         }
 
+        String requiredOcid =
+                requireText(ocid, "ocid는 비어 있을 수 없습니다.");
+        String requiredName =
+                requireText(characterName, "캐릭터명은 비어 있을 수 없습니다.");
+
+        // 개명으로 빈 이름을 다른 캐릭터가 가져갈 수 있다. 이름은 한 저장본만
+        // 가리키므로 이어받기 전에 이전 소유자의 저장본을 비운다.
+        repository.releaseCharacterName(
+                requiredName,
+                section.name(),
+                requiredOcid,
+                fetchedAt
+        );
+
         repository.upsert(
-                requireText(ocid, "ocid는 비어 있을 수 없습니다."),
-                requireText(characterName, "캐릭터명은 비어 있을 수 없습니다."),
+                requiredOcid,
+                requiredName,
                 section.name(),
                 serialize(payload),
                 fetchedAt
