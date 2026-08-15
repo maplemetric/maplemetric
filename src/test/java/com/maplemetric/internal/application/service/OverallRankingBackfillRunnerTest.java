@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillDate;
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillErrorType;
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillStatus;
-import com.maplemetric.internal.infrastructure.properties.OverallRankingBackfillProperties;
+import com.maplemetric.internal.application.properties.OverallRankingBackfillProperties;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;

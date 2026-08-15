@@ -1,4 +1,4 @@
-package com.maplemetric.internal.infrastructure.properties;
+package com.maplemetric.internal.application.properties;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
