@@ -12,7 +12,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * AGENTS.md 5장의 계층 방향을 규칙으로 만든다.
+ * 모듈 안에서 허용되는 계층 방향을 규칙으로 만든다.
+ *
+ * <pre>
+ * 허용   presentation → application, domain
+ *        application  → domain
+ *        infrastructure → application, domain
+ *
+ * 금지   application → infrastructure, presentation
+ *        presentation → infrastructure
+ *        infrastructure → presentation
+ *        domain → application, infrastructure, presentation
+ * </pre>
  *
  * 규칙을 모듈마다 손으로 옮겨 적으면 빠뜨려도 아무도 모른다. 여기서 한 번만
  * 정의하고 모듈 이름만 바꿔 끼운다.

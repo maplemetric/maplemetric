@@ -17,7 +17,7 @@ import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
 
 /**
- * 모든 모듈에 AGENTS.md 5장의 계층 방향을 같은 기준으로 적용한다.
+ * 모든 모듈에 같은 계층 방향 기준을 적용한다.
  *
  * 검사 대상 모듈을 손으로 적지 않고 ApplicationModules에서 가져온다. 모듈이
  * 새로 생기면 목록을 고치지 않아도 자동으로 검사에 들어온다. 이 Test가 존재하는
