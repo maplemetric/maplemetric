@@ -152,7 +152,8 @@ class CharacterCollectSingleFlightTest {
                         collectWaitTimeout,
                         Duration.ofSeconds(30)
                 ),
-                Clock.fixed(NOW, ZoneId.of("Asia/Seoul"))
+                Clock.fixed(NOW, ZoneId.of("Asia/Seoul")),
+                System::nanoTime
         );
     }
 

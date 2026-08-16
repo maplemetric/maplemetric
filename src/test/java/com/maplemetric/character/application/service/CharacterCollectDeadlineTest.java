@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,8 +49,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Thread가 그만큼 묶이고, 기다리던 요청이 이미 포기한 뒤에도 수집은 계속 Nexon을
  * 부른다.
  *
- * 실제로 기다려 확인하면 느리고 결과가 환경에 따라 달라진다. 시계를 직접 옮기고,
- * 조회 하나가 오래 걸린 상황은 그 조회의 응답에서 시계를 밀어 만든다.
+ * 실제로 기다려 확인하면 느리고 결과가 환경에 따라 달라진다. 시간을 직접 옮기고,
+ * 조회 하나가 오래 걸린 상황은 그 조회의 응답에서 시간을 밀어 만든다.
+ *
+ * 벽시계와 단조 증가값을 따로 옮긴다. 상한을 벽시계로 재는 구현은 둘을 어긋나게
+ * 움직이는 테스트에서 드러난다.
  *
  * 상한은 설정값 10초로 둔다. 30초를 상수로 박은 구현은 여기서 드러난다.
  */
@@ -111,6 +115,9 @@ class CharacterCollectDeadlineTest {
 
     private final MovableClock clock = new MovableClock(NOW);
 
+    /** 직접 옮기는 단조 증가값이다. */
+    private final AtomicLong ticker = new AtomicLong();
+
     private CharacterQueryService service;
 
     /** 직접 옮기는 시계다. */
@@ -171,7 +178,8 @@ class CharacterCollectDeadlineTest {
                         Duration.ofSeconds(30),
                         MAX_COLLECT_DURATION
                 ),
-                clock
+                clock,
+                ticker::get
         );
     }
 
@@ -308,7 +316,7 @@ class CharacterCollectDeadlineTest {
         given(characterSnapshotStoreService
                 .findByCharacterName(invalidName))
                 .willAnswer(invocation -> {
-                    clock.advance(MAX_COLLECT_DURATION.plusSeconds(1));
+                    advance(MAX_COLLECT_DURATION.plusSeconds(1));
 
                     return Optional.empty();
                 });
@@ -318,6 +326,64 @@ class CharacterCollectDeadlineTest {
                 .extracting(exception ->
                         ((CharacterException) exception).getErrorCode())
                 .isEqualTo(CharacterErrorCode.INVALID_CHARACTER_NAME);
+    }
+
+    /**
+     * 벽시계가 앞으로 뛰어도 정상 수집을 자르지 않는다.
+     *
+     * NTP 보정으로 시각이 앞당겨지면 벽시계로 잰 경과가 실제보다 커진다. 그것으로
+     * 상한을 재면 1초 걸린 수집이 한 시간 걸린 것으로 보여 멀쩡한 요청이 504가 된다.
+     */
+    @Test
+    void 벽시계가앞으로뛰어도정상수집을자르지않는다() {
+        givenNoSnapshot();
+        givenOcid();
+
+        given(loadCharacterBasicPort.loadCharacterBasic(OCID))
+                .willAnswer(invocation -> {
+                    // 실제로는 1초 걸렸는데 시각만 한 시간 앞으로 갔다.
+                    clock.advance(Duration.ofHours(1));
+                    ticker.addAndGet(Duration.ofSeconds(1).toNanos());
+
+                    return basic();
+                });
+
+        given(loadCharacterSetEffectPort.loadCharacterSetEffect(OCID))
+                .willThrow(new Reached());
+
+        assertThatThrownBy(() -> service.getCharacterSummary(CHARACTER_NAME))
+                .isInstanceOf(Reached.class);
+    }
+
+    /**
+     * 벽시계가 뒤로 가도 상한을 지킨다.
+     *
+     * 시각이 뒤로 밀리면 벽시계로 잰 경과가 줄거나 음수가 된다. 그것으로 상한을 재면
+     * 이미 상한을 넘긴 수집이 계속 Nexon을 부른다.
+     */
+    @Test
+    void 벽시계가뒤로가도상한을지킨다() {
+        givenNoSnapshot();
+        givenOcid();
+
+        given(loadCharacterBasicPort.loadCharacterBasic(OCID))
+                .willAnswer(invocation -> {
+                    // 실제로는 상한을 넘겼는데 시각은 오히려 뒤로 갔다.
+                    clock.advance(Duration.ofHours(-1));
+                    ticker.addAndGet(
+                            MAX_COLLECT_DURATION.plusSeconds(1).toNanos()
+                    );
+
+                    return basic();
+                });
+
+        assertThatThrownBy(() -> service.getCharacterSummary(CHARACTER_NAME))
+                .isInstanceOf(CharacterException.class)
+                .extracting(exception ->
+                        ((CharacterException) exception).getErrorCode())
+                .isEqualTo(CharacterErrorCode.NEXON_API_TIMEOUT);
+
+        verify(loadCharacterStatPort, never()).loadCharacterStat(any());
     }
 
     private void givenNoSnapshot() {
@@ -335,10 +401,16 @@ class CharacterCollectDeadlineTest {
     private void givenBasicTaking(Duration elapsed) {
         given(loadCharacterBasicPort.loadCharacterBasic(OCID))
                 .willAnswer(invocation -> {
-                    clock.advance(elapsed);
+                    advance(elapsed);
 
                     return basic();
                 });
+    }
+
+    /** 벽시계와 단조 증가값을 함께 옮긴다. 보정이 없는 평소 상태다. */
+    private void advance(Duration elapsed) {
+        clock.advance(elapsed);
+        ticker.addAndGet(elapsed.toNanos());
     }
 
     private CharacterBasic basic() {

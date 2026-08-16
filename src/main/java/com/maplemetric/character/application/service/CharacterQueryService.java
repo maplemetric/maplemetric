@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,6 +92,9 @@ public class CharacterQueryService {
     private final CharacterSnapshotStoreService characterSnapshotStoreService;
     private final CharacterSnapshotProperties characterSnapshotProperties;
     private final Clock clock;
+
+    /** 수집 상한을 재는 단조 증가값이다. 벽시계와 달리 뒤로 가지 않는다. */
+    private final LongSupplier ticker;
 
     /**
      * 캐릭터명별로 진행 중인 수집이다.
@@ -137,7 +141,8 @@ public class CharacterQueryService {
                 characterRankingQuery,
                 characterSnapshotStoreService,
                 characterSnapshotProperties,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                System::nanoTime
         );
     }
 
@@ -158,7 +163,8 @@ public class CharacterQueryService {
             CharacterRankingQuery characterRankingQuery,
             CharacterSnapshotStoreService characterSnapshotStoreService,
             CharacterSnapshotProperties characterSnapshotProperties,
-            Clock clock
+            Clock clock,
+            LongSupplier ticker
     ) {
         this.loadCharacterAbilityPort = loadCharacterAbilityPort;
         this.loadCharacterBasicPort =
@@ -181,6 +187,7 @@ public class CharacterQueryService {
         this.characterSnapshotStoreService = characterSnapshotStoreService;
         this.characterSnapshotProperties = characterSnapshotProperties;
         this.clock = clock;
+        this.ticker = ticker;
     }
 
     public GetCharacterBasicResult getCharacterBasic(
@@ -231,18 +238,20 @@ public class CharacterQueryService {
             String characterName,
             boolean refresh
     ) {
-        Instant now = Instant.now(clock);
+        CollectStart start =
+                new CollectStart(Instant.now(clock), ticker.getAsLong());
 
         Optional<StoredSummary> stored =
                 characterSnapshotStoreService
                         .findByCharacterName(characterName);
 
-        if (stored.isPresent() && !shouldFetch(stored.get(), refresh, now)) {
+        if (stored.isPresent()
+                && !shouldFetch(stored.get(), refresh, start.at())) {
             return stored.get().summary();
         }
 
         try {
-            return collectOnce(characterName, refresh, now);
+            return collectOnce(characterName, refresh, start);
         } catch (RuntimeException exception) {
             if (stored.isEmpty()) {
                 throw exception;
@@ -271,7 +280,7 @@ public class CharacterQueryService {
     private GetCharacterSummaryResult collectOnce(
             String characterName,
             boolean refresh,
-            Instant now
+            CollectStart start
     ) {
         CompletableFuture<GetCharacterSummaryResult> mine =
                 new CompletableFuture<>();
@@ -285,7 +294,7 @@ public class CharacterQueryService {
 
         try {
             GetCharacterSummaryResult result =
-                    collectAfterRecheck(characterName, refresh, now);
+                    collectAfterRecheck(characterName, refresh, start);
 
             mine.complete(result);
 
@@ -310,17 +319,18 @@ public class CharacterQueryService {
     private GetCharacterSummaryResult collectAfterRecheck(
             String characterName,
             boolean refresh,
-            Instant now
+            CollectStart start
     ) {
         Optional<StoredSummary> stored =
                 characterSnapshotStoreService
                         .findByCharacterName(characterName);
 
-        if (stored.isPresent() && !shouldFetch(stored.get(), refresh, now)) {
+        if (stored.isPresent()
+                && !shouldFetch(stored.get(), refresh, start.at())) {
             return stored.get().summary();
         }
 
-        return collectCharacterSummary(characterName, now);
+        return collectCharacterSummary(characterName, start);
     }
 
     /**
@@ -404,72 +414,72 @@ public class CharacterQueryService {
 
     private GetCharacterSummaryResult collectCharacterSummary(
             String characterName,
-            Instant fetchedAt
+            CollectStart start
     ) {
+        Instant fetchedAt = start.at();
+
         // 이름 검사와 첫 조회는 상한보다 먼저 본다. 상한이 이미 지난 뒤에 여기 닿으면
         // 잘못 입력한 이름이 시간 초과로 보고되어, 고칠 수 있는 잘못을 외부 탓으로
         // 돌리게 된다.
         String ocid = getValidatedOcid(characterName);
 
-        Instant deadline = fetchedAt.plus(
-                characterSnapshotProperties.maxCollectDuration()
-        );
+        long startedTick = start.tick();
 
-        CharacterBasic basic = beforeDeadline(characterName, deadline, () ->
+        CharacterBasic basic = beforeDeadline(characterName, startedTick, () ->
                 loadCharacterBasicPort.loadCharacterBasic(ocid));
 
-        CharacterStat stat = beforeDeadline(characterName, deadline, () ->
+        CharacterStat stat = beforeDeadline(characterName, startedTick, () ->
                 loadCharacterStatPort.loadCharacterStat(ocid));
 
         CharacterRanking characterRanking =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         getCharacterRanking(
                                 ocid,
                                 basic
                         ));
 
-        CharacterDojang dojang = beforeDeadline(characterName, deadline, () ->
+        CharacterDojang dojang = beforeDeadline(characterName, startedTick, () ->
                 loadCharacterDojangPort.loadCharacterDojang(ocid));
 
         CharacterPopularity popularity =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterPopularityPort
                                 .loadCharacterPopularity(ocid));
 
         CharacterHyperStat hyperStat =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterHyperStatPort
                                 .loadCharacterHyperStat(ocid));
 
         CharacterAbility ability =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterAbilityPort
                                 .loadCharacterAbility(ocid));
 
-        CharacterUnion union = beforeDeadline(characterName, deadline, () ->
+        CharacterUnion union = beforeDeadline(characterName, startedTick, () ->
                 loadCharacterUnionPort.loadCharacterUnion(ocid));
 
         CharacterSymbol characterSymbol =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterSymbolPort.loadCharacterSymbol(ocid));
 
         CharacterSkills skills =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterSkillsPort
                                 .loadCharacterSkills(ocid));
 
         CharacterHexa hexa =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterHexaPort
                                 .loadCharacterHexa(ocid));
 
         CharacterEquipment equipment =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterEquipmentPort
                                 .loadCharacterEquipment(ocid));
 
         CharacterSetEffect setEffect =
-                beforeDeadline(characterName, deadline, () ->
+                beforeDeadline(characterName, startedTick, () ->
                         loadCharacterSetEffectPort
                                 .loadCharacterSetEffect(ocid));
 
@@ -542,24 +552,44 @@ public class CharacterQueryService {
      *
      * 중간까지 받은 결과는 버린다. 일부만 담긴 저장본은 다음 조회가 완성본으로
      * 잘못 쓰기 때문이다.
+     *
+     * 경과는 벽시계가 아니라 단조 증가값으로 잰다. 벽시계는 NTP 보정으로 뒤로 갈 수
+     * 있어, 뒤로 가면 상한이 늘어나고 앞으로 가면 멀쩡한 수집이 잘린다.
      */
     private <T> T beforeDeadline(
             String characterName,
-            Instant deadline,
+            long startedTick,
             Supplier<T> load
     ) {
-        if (!Instant.now(clock).isBefore(deadline)) {
+        long limitNanos =
+                characterSnapshotProperties.maxCollectDuration().toNanos();
+
+        // 뺄셈으로 비교해야 단조 증가값이 한 바퀴 돌아도 어긋나지 않는다.
+        long elapsedNanos = ticker.getAsLong() - startedTick;
+
+        if (elapsedNanos >= limitNanos) {
             log.warn(
                     "캐릭터 수집이 상한을 넘겨 남은 조회를 시작하지 않습니다. "
-                            + "characterName={}, deadline={}",
+                            + "characterName={}, elapsedMillis={}, limitMillis={}",
                     characterName,
-                    deadline
+                    elapsedNanos / 1_000_000L,
+                    limitNanos / 1_000_000L
             );
 
             throw new CharacterException(CharacterErrorCode.NEXON_API_TIMEOUT);
         }
 
         return load.get();
+    }
+
+    /**
+     * 수집 시작 시점이다.
+     *
+     * {@code at}은 저장본에 남길 조회 시각이고 {@code tick}은 상한을 재는 기준이다.
+     * 저장본 시각은 사람이 읽는 값이라 벽시계여야 하고, 경과 측정은 뒤로 가지 않는
+     * 값이어야 해서 둘을 함께 들고 다닌다.
+     */
+    private record CollectStart(Instant at, long tick) {
     }
 
     private CharacterRanking getCharacterRanking(

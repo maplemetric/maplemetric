@@ -164,7 +164,8 @@ class CharacterQueryServiceTest {
                                 Duration.ofSeconds(30),
                                 Duration.ofSeconds(30)
                         ),
-                        clock
+                        clock,
+                        System::nanoTime
                 );
     }
 
