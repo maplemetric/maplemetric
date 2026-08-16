@@ -383,22 +383,17 @@ class CharacterCollectSingleFlightTest {
                 submitAll(2, () -> service.getCharacterSummary(CHARACTER_NAME));
 
         // 둘 중 하나는 수집을 맡고 하나는 기다리다 한도를 넘긴다.
+        //
+        // 수집을 맡은 쪽은 걸쇠에 붙들려 있으므로 순서대로 결과를 회수하면 그쪽에서
+        // 멈춘다. 끝난 것부터 찾아 확인하고, 그 뒤에 걸쇠를 푼다.
+        Future<GetCharacterSummaryResult> finished = awaitAnyDone(callers);
+
         Throwable waiterFailure = null;
 
-        for (Future<GetCharacterSummaryResult> caller : callers) {
-            try {
-                caller.get(30, TimeUnit.SECONDS);
-            } catch (Exception exception) {
-                Throwable cause = rootCauseOf(exception);
-
-                if (cause instanceof CharacterException) {
-                    waiterFailure = cause;
-                }
-            }
-
-            if (waiterFailure != null) {
-                break;
-            }
+        try {
+            finished.get();
+        } catch (Exception exception) {
+            waiterFailure = rootCauseOf(exception);
         }
 
         releaseLeader.countDown();
@@ -411,6 +406,32 @@ class CharacterCollectSingleFlightTest {
 
         assertThat(CharacterErrorCode.NEXON_API_TIMEOUT.getHttpStatus())
                 .isEqualTo(HttpStatus.GATEWAY_TIMEOUT);
+    }
+
+    /**
+     * 1밀리초 미만 대기 한도도 설정으로 받아들인다.
+     *
+     * 밀리초로 잘라 쓰면 이런 값이 0이 되어 설정한 적 없는 즉시 시간 초과가 된다.
+     * 그 결함을 "1밀리초 미만을 금지한다"로 막으면 설정이 표현하던 범위가 줄어든다.
+     * 값을 그대로 쓰는 쪽을 택했으므로 여기서는 그 범위가 유지되는지 고정한다.
+     *
+     * 나노초 변환 자체는 이 테스트로 판별하지 못한다. 잘림으로 잃는 값이 1밀리초
+     * 미만이라, 동작으로 구별하려면 그만큼의 시간을 재야 하고 그 측정은 불안정하다.
+     */
+    @Test
+    void 일밀리초미만대기한도도설정할수있다() {
+        Duration subMillisecond = Duration.ofNanos(500_000);
+
+        assertThat(subMillisecond.toMillis()).isZero();
+        assertThat(subMillisecond.toNanos()).isPositive();
+
+        CharacterSnapshotProperties properties =
+                new CharacterSnapshotProperties(
+                        Duration.ofMinutes(5),
+                        subMillisecond
+                );
+
+        assertThat(properties.collectWaitTimeout()).isEqualTo(subMillisecond);
     }
 
     /**
@@ -537,6 +558,35 @@ class CharacterCollectSingleFlightTest {
         throw new IllegalStateException(
                 "합류한 요청이 대기 상태가 되지 않았습니다."
         );
+    }
+
+    /**
+     * 먼저 끝난 요청을 찾는다.
+     *
+     * 수집을 맡은 쪽은 걸쇠에 붙들려 있어 결과가 없다. 순서대로 회수하면 그쪽에서
+     * 걸쇠가 풀릴 때까지 멈추므로, 빌드가 순서에 따라 길어진다.
+     */
+    private Future<GetCharacterSummaryResult> awaitAnyDone(
+            List<Future<GetCharacterSummaryResult>> callers
+    ) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+
+        while (System.nanoTime() < deadline) {
+            for (Future<GetCharacterSummaryResult> caller : callers) {
+                if (caller.isDone()) {
+                    return caller;
+                }
+            }
+
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            }
+        }
+
+        throw new IllegalStateException("끝난 요청이 없습니다.");
     }
 
     private Throwable rootCauseOf(Throwable throwable) {

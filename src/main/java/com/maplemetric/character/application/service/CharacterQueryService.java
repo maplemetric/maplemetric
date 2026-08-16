@@ -333,9 +333,11 @@ public class CharacterQueryService {
             String characterName
     ) {
         try {
+            // 밀리초로 자르면 1밀리초 미만 설정이 0이 되어, 설정한 적 없는 즉시
+            // 시간 초과가 된다. 설정한 값을 그대로 쓴다.
             return ongoing.get(
-                    characterSnapshotProperties.collectWaitTimeout().toMillis(),
-                    TimeUnit.MILLISECONDS
+                    characterSnapshotProperties.collectWaitTimeout().toNanos(),
+                    TimeUnit.NANOSECONDS
             );
         } catch (InterruptedException exception) {
             // 중단은 시간 초과가 아니라 서버 쪽 사정이다. 504로 바꾸면 외부가 늦은
