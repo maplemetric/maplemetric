@@ -338,6 +338,8 @@ public class CharacterQueryService {
                     TimeUnit.MILLISECONDS
             );
         } catch (InterruptedException exception) {
+            // 중단은 시간 초과가 아니라 서버 쪽 사정이다. 504로 바꾸면 외부가 늦은
+            // 것처럼 보이므로 처리하지 못한 예외로 남긴다.
             Thread.currentThread().interrupt();
 
             throw new IllegalStateException(
@@ -345,16 +347,15 @@ public class CharacterQueryService {
                     exception
             );
         } catch (TimeoutException exception) {
+            // 수집이 늦어 기다리지 못한 것이므로 시간 초과다. 여기서 일반 예외를
+            // 던지면 이미 504를 쓰기로 한 시간 초과가 이 경로에서만 500이 된다.
             log.warn(
                     "진행 중인 캐릭터 수집을 기다리다 한도를 넘겼습니다. "
                             + "characterName={}",
                     characterName
             );
 
-            throw new IllegalStateException(
-                    "캐릭터 수집이 한도 안에 끝나지 않았습니다.",
-                    exception
-            );
+            throw new CharacterException(CharacterErrorCode.NEXON_API_TIMEOUT);
         } catch (ExecutionException exception) {
             throw rethrow(exception.getCause());
         }

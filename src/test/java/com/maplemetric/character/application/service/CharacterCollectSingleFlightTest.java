@@ -22,12 +22,16 @@ import com.maplemetric.character.application.port.out.LoadCharacterUnionPort;
 import com.maplemetric.character.application.properties.CharacterSnapshotProperties;
 import com.maplemetric.character.application.result.GetCharacterSummaryResult;
 import com.maplemetric.character.application.service.CharacterSnapshotStoreService.StoredSummary;
+import com.maplemetric.character.domain.exception.CharacterErrorCode;
+import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
+import org.springframework.http.HttpStatus;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -120,6 +124,10 @@ class CharacterCollectSingleFlightTest {
 
     private final AtomicInteger snapshotLookups = new AtomicInteger();
 
+    /** 대기 상태를 확인하려면 요청을 수행하는 Thread를 알아야 한다. */
+    private final List<Thread> callerThreads =
+            Collections.synchronizedList(new ArrayList<>());
+
     private void createService(Duration collectWaitTimeout) {
         service = new CharacterQueryService(
                 loadCharacterAbilityPort,
@@ -199,8 +207,8 @@ class CharacterCollectSingleFlightTest {
                         service.getCharacterSummary(CHARACTER_NAME)
                 );
 
-        // 저장본 조회 지점을 모두 지난 뒤 수집을 풀어준다.
-        Thread.sleep(300);
+        // 수집을 맡은 쪽과 합류한 쪽이 모두 자리를 잡은 뒤에 풀어준다.
+        awaitFollowersWaiting(CALLER_COUNT);
         releaseLeader.countDown();
 
         for (Future<GetCharacterSummaryResult> caller : callers) {
@@ -248,7 +256,7 @@ class CharacterCollectSingleFlightTest {
                         service.getCharacterSummary(CHARACTER_NAME)
                 );
 
-        Thread.sleep(300);
+        awaitFollowersWaiting(CALLER_COUNT);
         releaseLeader.countDown();
 
         // 대기 한도(5초)보다 넉넉히 잡되, 한도에 걸려 끝나면 아래 단정이 실패한다.
@@ -295,7 +303,7 @@ class CharacterCollectSingleFlightTest {
                         service.getCharacterSummary(CHARACTER_NAME)
                 );
 
-        Thread.sleep(300);
+        awaitFollowersWaiting(CALLER_COUNT);
         releaseLeader.countDown();
 
         for (Future<GetCharacterSummaryResult> caller : callers) {
@@ -337,6 +345,72 @@ class CharacterCollectSingleFlightTest {
                 service.getCharacterSummary(CHARACTER_NAME);
 
         assertThat(result).isSameAs(stored.summary());
+    }
+
+    /**
+     * 기다리다 한도를 넘기면 시간 초과 계약으로 알린다.
+     *
+     * 일반 예외를 던지면 전역 처리기가 500으로 바꾼다. 이 저장소는 시간 초과에
+     * 504를 쓰기로 했으므로 이 경로만 다른 상태를 주면 계약이 어긋난다.
+     */
+    @Test
+    void 대기한도를넘기면시간초과로알린다() throws Exception {
+        createService(Duration.ofMillis(200));
+
+        CyclicBarrier allSawEmpty = new CyclicBarrier(2);
+        CountDownLatch releaseLeader = new CountDownLatch(1);
+
+        given(characterSnapshotStoreService.findByCharacterName(CHARACTER_NAME))
+                .willAnswer(invocation -> {
+                    if (snapshotLookups.incrementAndGet() <= 2) {
+                        awaitAll(allSawEmpty);
+                    }
+
+                    return Optional.empty();
+                });
+
+        given(loadCharacterBasicPort.resolveOcid(CHARACTER_NAME))
+                .willAnswer(invocation -> {
+                    collectAttempts.incrementAndGet();
+
+                    // 기다리는 쪽이 한도를 넘기도록 충분히 붙든다.
+                    releaseLeader.await(30, TimeUnit.SECONDS);
+
+                    throw new CollectMarker();
+                });
+
+        List<Future<GetCharacterSummaryResult>> callers =
+                submitAll(2, () -> service.getCharacterSummary(CHARACTER_NAME));
+
+        // 둘 중 하나는 수집을 맡고 하나는 기다리다 한도를 넘긴다.
+        Throwable waiterFailure = null;
+
+        for (Future<GetCharacterSummaryResult> caller : callers) {
+            try {
+                caller.get(30, TimeUnit.SECONDS);
+            } catch (Exception exception) {
+                Throwable cause = rootCauseOf(exception);
+
+                if (cause instanceof CharacterException) {
+                    waiterFailure = cause;
+                }
+            }
+
+            if (waiterFailure != null) {
+                break;
+            }
+        }
+
+        releaseLeader.countDown();
+
+        assertThat(waiterFailure)
+                .isInstanceOf(CharacterException.class);
+
+        assertThat(((CharacterException) waiterFailure).getErrorCode())
+                .isEqualTo(CharacterErrorCode.NEXON_API_TIMEOUT);
+
+        assertThat(CharacterErrorCode.NEXON_API_TIMEOUT.getHttpStatus())
+                .isEqualTo(HttpStatus.GATEWAY_TIMEOUT);
     }
 
     /**
@@ -415,7 +489,11 @@ class CharacterCollectSingleFlightTest {
             int count,
             Callable<GetCharacterSummaryResult> work
     ) {
-        executor = Executors.newFixedThreadPool(count);
+        executor = Executors.newFixedThreadPool(count, runnable -> {
+            Thread thread = new Thread(runnable);
+            callerThreads.add(thread);
+            return thread;
+        });
 
         List<Future<GetCharacterSummaryResult>> callers = new ArrayList<>();
 
@@ -424,6 +502,51 @@ class CharacterCollectSingleFlightTest {
         }
 
         return callers;
+    }
+
+    /**
+     * 합류한 요청이 모두 결과를 기다리는 상태가 될 때까지 둔다.
+     *
+     * 정해진 시간만 쉬고 넘어가면 느린 환경에서 후속 요청이 아직 합류하지 못한 채
+     * 수집이 끝나고, 그 요청이 새로 수집을 맡아 구현이 옳아도 실패한다.
+     * 시간이 아니라 실제 상태를 기다린다.
+     */
+    private void awaitFollowersWaiting(int expected) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+
+        while (System.nanoTime() < deadline) {
+            long waiting = callerThreads.stream()
+                    .filter(thread -> thread != Thread.currentThread())
+                    .map(Thread::getState)
+                    .filter(state -> state == Thread.State.WAITING
+                            || state == Thread.State.TIMED_WAITING)
+                    .count();
+
+            if (waiting >= expected) {
+                return;
+            }
+
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            }
+        }
+
+        throw new IllegalStateException(
+                "합류한 요청이 대기 상태가 되지 않았습니다."
+        );
+    }
+
+    private Throwable rootCauseOf(Throwable throwable) {
+        Throwable cause = throwable;
+
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+
+        return cause;
     }
 
     private void awaitAll(CyclicBarrier barrier) {
