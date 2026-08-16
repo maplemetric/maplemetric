@@ -49,6 +49,12 @@ import com.maplemetric.ranking.api.CharacterRankingQueryException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +90,15 @@ public class CharacterQueryService {
     private final CharacterSnapshotStoreService characterSnapshotStoreService;
     private final CharacterSnapshotProperties characterSnapshotProperties;
     private final Clock clock;
+
+    /**
+     * 캐릭터명별로 진행 중인 수집이다.
+     *
+     * 수집이 끝나면 성공·실패와 무관하게 지운다. 남아 있으면 그 캐릭터는 다시
+     * 수집되지 않는다.
+     */
+    private final ConcurrentMap<String, CompletableFuture<GetCharacterSummaryResult>>
+            collecting = new ConcurrentHashMap<>();
 
     @Autowired
     public CharacterQueryService(
@@ -226,7 +241,7 @@ public class CharacterQueryService {
         }
 
         try {
-            return collectCharacterSummary(characterName, now);
+            return collectOnce(characterName, refresh, now);
         } catch (RuntimeException exception) {
             if (stored.isEmpty()) {
                 throw exception;
@@ -242,6 +257,124 @@ public class CharacterQueryService {
 
             return stored.get().summary();
         }
+    }
+
+    /**
+     * 같은 캐릭터를 동시에 조회해도 한 번만 수집한다.
+     *
+     * 저장본은 수집이 끝난 뒤에 생긴다. 그래서 수집 중에 도착한 요청은 저장본을 보지
+     * 못하고 각자 21회를 쓴다. 같은 캐릭터를 셋이 동시에 열면 63회다.
+     *
+     * 먼저 도착한 요청이 수집하고 나머지는 그 결과를 함께 쓴다.
+     */
+    private GetCharacterSummaryResult collectOnce(
+            String characterName,
+            boolean refresh,
+            Instant now
+    ) {
+        CompletableFuture<GetCharacterSummaryResult> mine =
+                new CompletableFuture<>();
+
+        CompletableFuture<GetCharacterSummaryResult> ongoing =
+                collecting.putIfAbsent(characterName, mine);
+
+        if (ongoing != null) {
+            return awaitCollected(ongoing, characterName);
+        }
+
+        try {
+            GetCharacterSummaryResult result =
+                    collectAfterRecheck(characterName, refresh, now);
+
+            mine.complete(result);
+
+            return result;
+        } catch (RuntimeException | Error throwable) {
+            // Error까지 잡지 않으면 기다리던 요청이 끝나지 않는 약속을 붙들고
+            // 영원히 멈춘다. 잡은 뒤 그대로 다시 던진다.
+            mine.completeExceptionally(throwable);
+
+            throw throwable;
+        } finally {
+            collecting.remove(characterName, mine);
+        }
+    }
+
+    /**
+     * 수집을 시작하기 직전에 저장본을 다시 확인한다.
+     *
+     * 저장본 확인과 수집 시작 사이에는 틈이 있다. 그 사이에 앞선 수집이 끝났다면
+     * 이 요청은 이미 있는 저장본을 못 본 채 21회를 다시 쓰게 된다.
+     */
+    private GetCharacterSummaryResult collectAfterRecheck(
+            String characterName,
+            boolean refresh,
+            Instant now
+    ) {
+        Optional<StoredSummary> stored =
+                characterSnapshotStoreService
+                        .findByCharacterName(characterName);
+
+        if (stored.isPresent() && !shouldFetch(stored.get(), refresh, now)) {
+            return stored.get().summary();
+        }
+
+        return collectCharacterSummary(characterName, now);
+    }
+
+    /**
+     * 진행 중인 수집의 결과를 기다린다.
+     *
+     * 기다리는 쪽이 한도를 넘겨도 진행 중인 수집 자체는 건드리지 않는다. 공유하는
+     * 약속에 한도를 걸면 한 요청 때문에 나머지까지 실패한다.
+     */
+    private GetCharacterSummaryResult awaitCollected(
+            CompletableFuture<GetCharacterSummaryResult> ongoing,
+            String characterName
+    ) {
+        try {
+            return ongoing.get(
+                    characterSnapshotProperties.collectWaitTimeout().toMillis(),
+                    TimeUnit.MILLISECONDS
+            );
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+
+            throw new IllegalStateException(
+                    "캐릭터 수집을 기다리는 중 중단되었습니다.",
+                    exception
+            );
+        } catch (TimeoutException exception) {
+            log.warn(
+                    "진행 중인 캐릭터 수집을 기다리다 한도를 넘겼습니다. "
+                            + "characterName={}",
+                    characterName
+            );
+
+            throw new IllegalStateException(
+                    "캐릭터 수집이 한도 안에 끝나지 않았습니다.",
+                    exception
+            );
+        } catch (ExecutionException exception) {
+            throw rethrow(exception.getCause());
+        }
+    }
+
+    /**
+     * 수집을 맡은 쪽의 실패를 기다린 쪽에도 그대로 전한다.
+     *
+     * 감싸서 던지면 예외 타입이 달라져 호출부의 처리 경로가 바뀐다.
+     */
+    private RuntimeException rethrow(Throwable cause) {
+        if (cause instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+
+        if (cause instanceof Error error) {
+            throw error;
+        }
+
+        return new IllegalStateException("캐릭터 수집이 실패했습니다.", cause);
     }
 
     /**

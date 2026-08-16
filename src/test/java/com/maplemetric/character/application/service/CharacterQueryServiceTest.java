@@ -159,7 +159,10 @@ class CharacterQueryServiceTest {
                         additionalOptionCalculator,
                         characterRankingQuery,
                         characterSnapshotStoreService,
-                        new CharacterSnapshotProperties(Duration.ofMinutes(5)),
+                        new CharacterSnapshotProperties(
+                                Duration.ofMinutes(5),
+                                Duration.ofSeconds(30)
+                        ),
                         clock
                 );
     }

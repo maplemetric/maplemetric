@@ -122,7 +122,10 @@ class CharacterSummaryStoreBehaviorTest {
                 ),
                 characterRankingQuery,
                 characterSnapshotStoreService,
-                new CharacterSnapshotProperties(MIN_REFRESH_INTERVAL),
+                new CharacterSnapshotProperties(
+                        MIN_REFRESH_INTERVAL,
+                        Duration.ofSeconds(30)
+                ),
                 Clock.fixed(NOW, ZoneId.of("Asia/Seoul"))
         );
     }
