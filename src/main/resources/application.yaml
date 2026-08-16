@@ -54,6 +54,12 @@ maplemetric:
       base-url: https://open.api.nexon.com
       key: ${NEXON_OPEN_API_KEY:}
 
+    # Nexon은 애플리케이션 단위로 초당 호출 수를 제한한다. 넘기면 429가 돌아오고
+    # 그 응답도 호출로 집계될 수 있어 한도를 넘기는 것 자체가 손해다.
+    # 개발 단계 5, 서비스 단계 500.
+    rate-limit:
+      requests-per-second: ${NEXON_REQUESTS_PER_SECOND:5}
+
   openai:
     enabled: ${OPENAI_ENABLED:false}
     base-url: ${OPENAI_BASE_URL:https://api.openai.com}

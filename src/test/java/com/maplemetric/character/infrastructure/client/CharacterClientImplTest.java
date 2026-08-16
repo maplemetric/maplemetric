@@ -7,6 +7,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maplemetric.common.nexon.NexonRateLimitProperties;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.character.domain.exception.CharacterErrorCode;
 import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.character.infrastructure.client.dto.CharacterAbilityResponse;
@@ -128,7 +130,8 @@ class CharacterClientImplTest {
 
         characterClient = new CharacterClientImpl(
                 restClientBuilder.build(),
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000))
         );
     }
 
@@ -1448,7 +1451,8 @@ class CharacterClientImplTest {
 
         return new CharacterClientImpl(
                 restClient,
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000))
         );
     }
 }

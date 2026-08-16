@@ -6,6 +6,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maplemetric.common.nexon.NexonRateLimitProperties;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
@@ -79,7 +81,8 @@ class RankingClientImplTest {
 
         rankingClient = new RankingClientImpl(
                 restClientBuilder.build(),
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000))
         );
     }
 
@@ -845,7 +848,8 @@ class RankingClientImplTest {
 
         return new RankingClientImpl(
                 restClient,
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000))
         );
     }
 }

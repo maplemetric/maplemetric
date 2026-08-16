@@ -21,6 +21,7 @@ import com.maplemetric.character.infrastructure.client.dto.CharacterVMatrixRespo
 import com.maplemetric.character.infrastructure.client.dto.OcidResponse;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -103,13 +104,15 @@ public class CharacterClientImpl implements CharacterClient {
 
     public CharacterClientImpl(
             @Qualifier("nexonRestClient") RestClient nexonRestClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            NexonRequestRateGate rateGate
     ) {
         this.nexonApiRequester = new NexonApiRequester(
                 nexonRestClient,
                 objectMapper,
                 this::createException,
-                this::isCharacterNotFound
+                this::isCharacterNotFound,
+                rateGate
         );
     }
 

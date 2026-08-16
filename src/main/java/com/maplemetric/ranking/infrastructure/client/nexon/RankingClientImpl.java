@@ -3,6 +3,7 @@ package com.maplemetric.ranking.infrastructure.client.nexon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.OverallRankingResponse;
@@ -52,13 +53,15 @@ public class RankingClientImpl implements RankingClient {
 
     public RankingClientImpl(
             @Qualifier("nexonRestClient") RestClient nexonRestClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            NexonRequestRateGate rateGate
     ) {
         this.nexonApiRequester = new NexonApiRequester(
                 nexonRestClient,
                 objectMapper,
                 this::createException,
-                (apiName, errorCode) -> false
+                (apiName, errorCode) -> false,
+                rateGate
         );
     }
 

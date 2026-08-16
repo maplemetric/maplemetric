@@ -31,18 +31,21 @@ public final class NexonApiRequester {
     private final Function<NexonApiFailure, ? extends RuntimeException>
             exceptionFactory;
     private final BiPredicate<String, String> notFoundPredicate;
+    private final NexonRequestRateGate rateGate;
 
     public NexonApiRequester(
             RestClient restClient,
             ObjectMapper objectMapper,
             Function<NexonApiFailure, ? extends RuntimeException>
                     exceptionFactory,
-            BiPredicate<String, String> notFoundPredicate
+            BiPredicate<String, String> notFoundPredicate,
+            NexonRequestRateGate rateGate
     ) {
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.exceptionFactory = exceptionFactory;
         this.notFoundPredicate = notFoundPredicate;
+        this.rateGate = rateGate;
     }
 
     public <T> T request(
@@ -78,6 +81,10 @@ public final class NexonApiRequester {
                         identifierName,
                         identifierValue
                 );
+
+        // 재시도도 이 지점을 다시 지난다. 429를 받고 되돌아온 요청이 관문을
+        // 건너뛰면 한도를 넘긴 채로 다시 나간다.
+        rateGate.acquire();
 
         try {
             T response = restClient.get()
