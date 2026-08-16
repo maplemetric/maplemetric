@@ -15,6 +15,8 @@ spring:
         format_sql: false
 
 management:
+  # 노출과 상세는 기본값을 그대로 쓴다. 여기서 다시 좁히지 않는 이유는 기본이 이미
+  # 닫혀 있기 때문이다. 넓히려면 무엇을 어떤 보호 뒤에 열지 먼저 정해야 한다.
   endpoint:
     health:
       show-details: never

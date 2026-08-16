@@ -3,7 +3,13 @@ spring:
     name: maplemetric-service
 
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+    # 기본값을 두지 않는다. profile을 지정하지 않고 띄우면 아래 기본 설정만 적용되고,
+    # 그 기본은 Actuator를 health 하나로 닫아 둔다.
+    #
+    # local을 기본값으로 두면 지정을 잊은 배포가 개발용 설정으로 뜬다. 개발용은
+    # Actuator를 넓게 열고 상태 상세까지 내보내므로, 잊었을 때 가장 넓게 열리는
+    # 셈이 된다.
+    active: ${SPRING_PROFILES_ACTIVE:}
 
   config:
     import: optional:file:.env[.properties]
@@ -35,18 +41,24 @@ spring:
       port: ${REDIS_PORT:6379}
 
 management:
+  # 기본은 닫는다. 필요한 profile만 넓힌다.
+  #
+  # 이 앞을 막는 것이 없다. Spring Security 의존성이 없고 내부 인증 필터는
+  # /internal 만 본다. 그래서 여기 여는 것은 곧 인증 없이 공개하는 것이다.
+  #
+  # 반대로 두면 profile을 새로 만들 때 좁히는 것을 잊는 순간 전부 열린 채로 나간다.
+  # 잊었을 때 닫히는 쪽이 기본이어야 한다.
+  #
+  # health는 컨테이너와 로드밸런서가 인증 없이 확인해야 하는 경로라 남긴다.
   endpoints:
     web:
       exposure:
         include:
           - health
-          - info
-          - metrics
-          - prometheus
 
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: never
 
 maplemetric:
   nexon:
