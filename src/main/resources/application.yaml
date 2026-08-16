@@ -75,6 +75,14 @@ maplemetric:
       # 갱신 한 번이 Nexon을 21회 호출한다. 연타로 그만큼씩 소비하지 않게 한다.
       min-refresh-interval: ${CHARACTER_MIN_REFRESH_INTERVAL:5m}
 
+      # 같은 캐릭터를 이미 수집 중이면 그 결과를 기다린다. 각자 수집하면 호출량이
+      # 요청 수만큼 늘어나기 때문이다.
+      #
+      # 수집이 모두 재시도를 소진하면 이론상 9분까지 걸리지만 그만큼 기다리게 하면
+      # 요청 처리 Thread가 묶인다. 기다리다 한도를 넘기면 저장본이 있는 경우 그것을
+      # 돌려주므로, 실제 수집 소요를 덮되 사용자가 포기하지 않을 값으로 둔다.
+      collect-wait-timeout: ${CHARACTER_COLLECT_WAIT_TIMEOUT:30s}
+
   internal:
     api-key: ${MAPLEMETRIC_INTERNAL_API_KEY:}
 
