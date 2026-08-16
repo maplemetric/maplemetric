@@ -433,6 +433,43 @@ class NexonApiRequesterTest {
         mockServer.verify();
     }
 
+    /**
+     * 허가를 기다리다 중단되면 재시도 대기와 같은 실패로 알린다.
+     *
+     * 여기서만 다른 예외를 던지면 전역 처리기가 500으로 바꾼다. 같은 계층의 같은
+     * 상황인데 소비자가 받는 응답이 달라진다.
+     */
+    @Test
+    void 허가를기다리다중단되면서버오류로알린다() {
+        NexonApiRequester requester = createRequester(
+                NEVER_NOT_FOUND,
+                new InterruptingRateGate()
+        );
+
+        TestNexonException exception =
+                requestExpectingFailure(requester, "ocid", OCID);
+
+        assertThat(exception.failure())
+                .isEqualTo(NexonApiFailure.SERVER_ERROR);
+
+        // 중단 표시를 삼키지 않는다.
+        assertThat(Thread.interrupted()).isTrue();
+    }
+
+    /** 허가를 기다리다 중단된 상황을 만든다. */
+    private static final class InterruptingRateGate
+            extends NexonRequestRateGate {
+
+        private InterruptingRateGate() {
+            super(new NexonRateLimitProperties(1000));
+        }
+
+        @Override
+        public void acquire() throws InterruptedException {
+            throw new InterruptedException("허가 대기 중단");
+        }
+    }
+
     /** 허가 요청 횟수만 센다. 실제로 기다리지 않는다. */
     private static final class CountingRateGate extends NexonRequestRateGate {
 

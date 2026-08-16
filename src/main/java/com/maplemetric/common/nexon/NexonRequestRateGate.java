@@ -62,7 +62,7 @@ public class NexonRequestRateGate {
      * 한도에 여유가 있으면 곧바로 돌아온다. 없으면 여유가 생길 때까지 기다렸다가
      * 다시 확인한다.
      */
-    public void acquire() {
+    public void acquire() throws InterruptedException {
         while (true) {
             long waitNanos;
 
@@ -96,23 +96,14 @@ public class NexonRequestRateGate {
         }
     }
 
-    private static void sleepNanos(long nanos) {
-        try {
-            TimeUnit.NANOSECONDS.sleep(nanos);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-
-            throw new IllegalStateException(
-                    "넥슨 요청 허가를 기다리는 중 중단되었습니다.",
-                    exception
-            );
-        }
+    private static void sleepNanos(long nanos) throws InterruptedException {
+        TimeUnit.NANOSECONDS.sleep(nanos);
     }
 
     /** 대기를 테스트에서 관찰하기 위한 경계다. */
     @FunctionalInterface
     interface Sleeper {
 
-        void sleep(long nanos);
+        void sleep(long nanos) throws InterruptedException;
     }
 }

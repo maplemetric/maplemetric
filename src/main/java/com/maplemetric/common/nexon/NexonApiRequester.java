@@ -84,7 +84,7 @@ public final class NexonApiRequester {
 
         // 재시도도 이 지점을 다시 지난다. 429를 받고 되돌아온 요청이 관문을
         // 건너뛰면 한도를 넘긴 채로 다시 나간다.
-        rateGate.acquire();
+        acquirePermit();
 
         try {
             T response = restClient.get()
@@ -323,6 +323,24 @@ public final class NexonApiRequester {
     ) {
         return RATE_LIMIT_RETRY_DELAY_MILLIS
                 * (rateLimitRetryCount + 1);
+    }
+
+    /**
+     * 관문에서 허가를 받는다.
+     *
+     * 기다리다 중단되면 재시도 대기와 같은 실패로 알린다. 여기서만 다른 예외를
+     * 던지면 같은 상황인데 소비자가 받는 응답이 달라진다.
+     */
+    private void acquirePermit() {
+        try {
+            rateGate.acquire();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+
+            throw createException(
+                    NexonApiFailure.SERVER_ERROR
+            );
+        }
     }
 
     private void sleepBeforeRetry(
