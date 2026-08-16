@@ -6,6 +6,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maplemetric.common.nexon.NexonRateLimitProperties;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.event.application.exception.EventException;
 import com.maplemetric.event.application.exception.EventFailure;
 import com.maplemetric.event.infrastructure.client.nexon.response.EventNoticeListResponse;
@@ -58,7 +60,8 @@ class NexonEventClientTest {
 
         eventClient = new NexonEventClient(
                 restClientBuilder.build(),
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
         );
     }
 
@@ -245,7 +248,8 @@ class NexonEventClientTest {
 
         return new NexonEventClient(
                 restClient,
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
         );
     }
 }

@@ -3,6 +3,7 @@ package com.maplemetric.notice.infrastructure.client.nexon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.notice.application.exception.NoticeException;
 import com.maplemetric.notice.application.exception.NoticeFailure;
 import com.maplemetric.notice.infrastructure.client.nexon.response.CashshopNoticeListResponse;
@@ -39,13 +40,15 @@ class NexonNoticeClient {
 
     NexonNoticeClient(
             @Qualifier("nexonRestClient") RestClient nexonRestClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            NexonRequestRateGate rateGate
     ) {
         this.nexonApiRequester = new NexonApiRequester(
                 nexonRestClient,
                 objectMapper,
                 this::createException,
-                (apiName, errorCode) -> false
+                (apiName, errorCode) -> false,
+                rateGate
         );
     }
 

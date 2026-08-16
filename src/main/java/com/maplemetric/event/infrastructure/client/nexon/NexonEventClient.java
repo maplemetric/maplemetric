@@ -3,6 +3,7 @@ package com.maplemetric.event.infrastructure.client.nexon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.event.application.exception.EventException;
 import com.maplemetric.event.application.exception.EventFailure;
 import com.maplemetric.event.infrastructure.client.nexon.response.EventNoticeListResponse;
@@ -24,13 +25,15 @@ class NexonEventClient {
 
     NexonEventClient(
             @Qualifier("nexonRestClient") RestClient nexonRestClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            NexonRequestRateGate rateGate
     ) {
         this.nexonApiRequester = new NexonApiRequester(
                 nexonRestClient,
                 objectMapper,
                 this::createException,
-                (apiName, errorCode) -> false
+                (apiName, errorCode) -> false,
+                rateGate
         );
     }
 

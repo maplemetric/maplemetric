@@ -54,6 +54,17 @@ maplemetric:
       base-url: https://open.api.nexon.com
       key: ${NEXON_OPEN_API_KEY:}
 
+    # Nexon은 애플리케이션 단위로 초당 호출 수를 제한한다. 넘기면 429가 돌아오고
+    # 그 응답도 호출로 집계될 수 있어 한도를 넘기는 것 자체가 손해다.
+    # 개발 단계 5, 서비스 단계 500.
+    rate-limit:
+      requests-per-second: ${NEXON_REQUESTS_PER_SECOND:5}
+
+      # 허가를 기다리는 상한이다. 서로 다른 캐릭터를 동시에 조회하면 저장본
+      # 합치기가 적용되지 않아 요청마다 21회를 쓴다. 상한이 없으면 처리 Thread가
+      # 언제 끝날지 모르는 대기에 묶인다. 넘기면 시간 초과로 알린다.
+      max-wait: ${NEXON_PERMIT_MAX_WAIT:10s}
+
   openai:
     enabled: ${OPENAI_ENABLED:false}
     base-url: ${OPENAI_BASE_URL:https://api.openai.com}

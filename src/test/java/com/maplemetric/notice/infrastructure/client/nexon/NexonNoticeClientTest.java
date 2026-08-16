@@ -6,6 +6,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maplemetric.common.nexon.NexonRateLimitProperties;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.notice.application.exception.NoticeException;
 import com.maplemetric.notice.application.exception.NoticeFailure;
 import com.maplemetric.notice.infrastructure.client.nexon.response.CashshopNoticeListResponse;
@@ -66,7 +68,8 @@ class NexonNoticeClientTest {
 
         nexonNoticeClient = new NexonNoticeClient(
                 restClientBuilder.build(),
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
         );
     }
 
@@ -322,7 +325,8 @@ class NexonNoticeClientTest {
 
         return new NexonNoticeClient(
                 restClient,
-                objectMapper
+                objectMapper,
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
         );
     }
 }

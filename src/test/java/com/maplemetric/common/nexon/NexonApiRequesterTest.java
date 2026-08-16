@@ -7,7 +7,10 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maplemetric.common.nexon.NexonRateLimitProperties;
+import com.maplemetric.common.nexon.NexonRequestRateGate;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +55,18 @@ class NexonApiRequesterTest {
     private NexonApiRequester createRequester(
             BiPredicate<String, String> notFoundPredicate
     ) {
+        return createRequester(
+                notFoundPredicate,
+                new NexonRequestRateGate(
+                        new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1))
+                )
+        );
+    }
+
+    private NexonApiRequester createRequester(
+            BiPredicate<String, String> notFoundPredicate,
+            NexonRequestRateGate rateGate
+    ) {
         RestClient.Builder builder =
                 RestClient.builder().baseUrl(BASE_URL);
 
@@ -61,7 +76,8 @@ class NexonApiRequesterTest {
                 builder.build(),
                 new ObjectMapper(),
                 TestNexonException::new,
-                notFoundPredicate
+                notFoundPredicate,
+                rateGate
         );
     }
 
@@ -366,6 +382,111 @@ class NexonApiRequesterTest {
         assertThat(result).isEqualTo("응답");
 
         mockServer.verify();
+    }
+
+    /**
+     * 요청 하나마다 관문에서 허가를 받는다.
+     *
+     * 관문을 만들어 두고 요청 경로에서 부르지 않으면 초당 한도는 그대로 넘긴다.
+     * 연결 자체를 고정한다.
+     */
+    @Test
+    void 요청마다관문에서허가를받는다() {
+        CountingRateGate gate = new CountingRateGate();
+
+        NexonApiRequester requester = createRequester(NEVER_NOT_FOUND, gate);
+
+        expectOnce(withSuccess("응답", MediaType.APPLICATION_JSON));
+
+        request(requester, "ocid", OCID);
+
+        assertThat(gate.count()).isEqualTo(1);
+
+        mockServer.verify();
+    }
+
+    /**
+     * 재시도도 관문을 다시 지난다.
+     *
+     * 요청 제한을 맞고 되돌아온 요청이 관문을 건너뛰면, 한도를 넘긴 상태에서
+     * 다시 나가 상황을 악화시킨다.
+     */
+    @Test
+    void 재시도도관문을다시지난다() {
+        CountingRateGate gate = new CountingRateGate();
+
+        NexonApiRequester requester = createRequester(NEVER_NOT_FOUND, gate);
+
+        // 첫 요청은 요청 제한, 두 번째는 성공이다.
+        expectOnce(
+                errorResponse(
+                        HttpStatus.TOO_MANY_REQUESTS,
+                        errorBody(RATE_LIMIT_CODE, "요청이 많습니다.")
+                )
+        );
+        expectOnce(withSuccess("응답", MediaType.APPLICATION_JSON));
+
+        request(requester, "ocid", OCID);
+
+        assertThat(gate.count()).isEqualTo(2);
+
+        mockServer.verify();
+    }
+
+    /**
+     * 허가를 기다리다 중단되면 재시도 대기와 같은 실패로 알린다.
+     *
+     * 여기서만 다른 예외를 던지면 전역 처리기가 500으로 바꾼다. 같은 계층의 같은
+     * 상황인데 소비자가 받는 응답이 달라진다.
+     */
+    @Test
+    void 허가를기다리다중단되면서버오류로알린다() {
+        NexonApiRequester requester = createRequester(
+                NEVER_NOT_FOUND,
+                new InterruptingRateGate()
+        );
+
+        TestNexonException exception =
+                requestExpectingFailure(requester, "ocid", OCID);
+
+        assertThat(exception.failure())
+                .isEqualTo(NexonApiFailure.SERVER_ERROR);
+
+        // 중단 표시를 삼키지 않는다.
+        assertThat(Thread.interrupted()).isTrue();
+    }
+
+    /** 허가를 기다리다 중단된 상황을 만든다. */
+    private static final class InterruptingRateGate
+            extends NexonRequestRateGate {
+
+        private InterruptingRateGate() {
+            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)));
+        }
+
+        @Override
+        public void acquire() throws InterruptedException {
+            throw new InterruptedException("허가 대기 중단");
+        }
+    }
+
+    /** 허가 요청 횟수만 센다. 실제로 기다리지 않는다. */
+    private static final class CountingRateGate extends NexonRequestRateGate {
+
+        private final AtomicInteger count = new AtomicInteger();
+
+        private CountingRateGate() {
+            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)));
+        }
+
+        @Override
+        public void acquire() {
+            count.incrementAndGet();
+        }
+
+        private int count() {
+            return count.get();
+        }
     }
 
     /** Client마다 다른 예외 타입을 대신하는 테스트 전용 예외다. */
