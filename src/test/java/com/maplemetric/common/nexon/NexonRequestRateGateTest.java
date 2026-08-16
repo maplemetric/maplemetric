@@ -2,15 +2,13 @@ package com.maplemetric.common.nexon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 
@@ -22,70 +20,41 @@ import org.junit.jupiter.api.Test;
  */
 class NexonRequestRateGateTest {
 
-    private static final Instant START =
-            Instant.parse("2026-08-16T00:00:00Z");
-
     private static final long ONE_SECOND_NANOS = 1_000_000_000L;
 
-    /** 흐르는 시간을 직접 조절한다. */
-    private static final class MovableClock extends Clock {
-
-        private Instant now;
-
-        private MovableClock(Instant now) {
-            this.now = now;
-        }
-
-        private void advance(long nanos) {
-            now = now.plusNanos(nanos);
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneId.of("UTC");
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-    }
+    /** 직접 넘기는 단조 증가 시간이다. */
+    private final AtomicLong ticker = new AtomicLong();
 
     /** 실제로 자지 않고 요청받은 대기 시간만 기록한다. */
-    private static final class RecordingSleeper
+    private final class RecordingSleeper
             implements NexonRequestRateGate.Sleeper {
 
         private final List<Long> waits = new ArrayList<>();
-        private final MovableClock clock;
-
-        private RecordingSleeper(MovableClock clock) {
-            this.clock = clock;
-        }
 
         @Override
         public void sleep(long nanos) {
             waits.add(nanos);
 
             // 기다린 만큼 시간이 흐른 것으로 본다.
-            clock.advance(nanos);
+            ticker.addAndGet(nanos);
         }
+    }
+
+    private NexonRequestRateGate gateOf(
+            int limit,
+            NexonRequestRateGate.Sleeper sleeper
+    ) {
+        return new NexonRequestRateGate(
+                new NexonRateLimitProperties(limit),
+                ticker::get,
+                sleeper
+        );
     }
 
     @Test
     void 한도안에서는기다리지않는다() {
-        MovableClock clock = new MovableClock(START);
-        RecordingSleeper sleeper = new RecordingSleeper(clock);
-
-        NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(5),
-                clock,
-                sleeper
-        );
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(5, sleeper);
 
         for (int i = 0; i < 5; i++) {
             gate.acquire();
@@ -99,44 +68,28 @@ class NexonRequestRateGateTest {
      */
     @Test
     void 한도를넘으면다음자리가빌때까지기다린다() {
-        MovableClock clock = new MovableClock(START);
-        RecordingSleeper sleeper = new RecordingSleeper(clock);
-
-        NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(5),
-                clock,
-                sleeper
-        );
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(5, sleeper);
 
         for (int i = 0; i < 5; i++) {
             gate.acquire();
         }
 
-        // 아직 시간이 흐르지 않았다. 여섯 번째는 꼬박 1초를 기다려야 한다.
         gate.acquire();
 
         assertThat(sleeper.waits).containsExactly(ONE_SECOND_NANOS);
     }
 
-    /**
-     * 1초가 지나면 자리가 다시 열린다.
-     */
     @Test
     void 일초가지나면다시허가한다() {
-        MovableClock clock = new MovableClock(START);
-        RecordingSleeper sleeper = new RecordingSleeper(clock);
-
-        NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(5),
-                clock,
-                sleeper
-        );
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(5, sleeper);
 
         for (int i = 0; i < 5; i++) {
             gate.acquire();
         }
 
-        clock.advance(ONE_SECOND_NANOS);
+        ticker.addAndGet(ONE_SECOND_NANOS);
 
         for (int i = 0; i < 5; i++) {
             gate.acquire();
@@ -145,23 +98,14 @@ class NexonRequestRateGateTest {
         assertThat(sleeper.waits).isEmpty();
     }
 
-    /**
-     * 일부만 지났으면 남은 시간만 기다린다.
-     */
     @Test
     void 남은시간만기다린다() {
-        MovableClock clock = new MovableClock(START);
-        RecordingSleeper sleeper = new RecordingSleeper(clock);
-
-        NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(1),
-                clock,
-                sleeper
-        );
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(1, sleeper);
 
         gate.acquire();
 
-        clock.advance(400_000_000L);
+        ticker.addAndGet(400_000_000L);
 
         gate.acquire();
 
@@ -170,21 +114,12 @@ class NexonRequestRateGateTest {
 
     /**
      * Client마다 Requester를 따로 만들어도 관문이 같으면 한도가 합산된다.
-     *
-     * 제한 상태를 Requester 안에 두면 Client 수만큼 한도를 쓰게 된다.
      */
     @Test
     void 여러사용처가같은관문을쓰면한도가합산된다() {
-        MovableClock clock = new MovableClock(START);
-        RecordingSleeper sleeper = new RecordingSleeper(clock);
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate shared = gateOf(5, sleeper);
 
-        NexonRequestRateGate shared = new NexonRequestRateGate(
-                new NexonRateLimitProperties(5),
-                clock,
-                sleeper
-        );
-
-        // 서로 다른 Client가 같은 관문을 나눠 쓴다.
         for (int i = 0; i < 3; i++) {
             shared.acquire();
         }
@@ -201,18 +136,72 @@ class NexonRequestRateGateTest {
     }
 
     /**
-     * 동시에 들어와도 한도를 넘겨 허가하지 않는다.
+     * 잠에서 늦게 깨어나도 그 시점의 한도를 다시 확인한다.
+     *
+     * 자리를 미리 예약하고 한 번만 자면, 예약 시각이 모두 지난 대기자들이 함께
+     * 깨어나 한꺼번에 나간다. 깨어난 시점에 자리가 없으면 다시 기다려야 한다.
+     */
+    @Test
+    void 늦게깨어나면다시확인한다() {
+        List<Long> waits = new ArrayList<>();
+        AtomicInteger sleepCount = new AtomicInteger();
+
+        // 첫 대기에서 시간이 전혀 흐르지 않은 것처럼 만든다. 예약해 두고
+        // 한 번만 자는 구현은 여기서 그대로 통과한다.
+        NexonRequestRateGate gate = gateOf(1, nanos -> {
+            waits.add(nanos);
+
+            if (sleepCount.incrementAndGet() == 1) {
+                return;
+            }
+
+            ticker.addAndGet(nanos);
+        });
+
+        gate.acquire();
+        gate.acquire();
+
+        // 첫 대기 후 자리가 없으므로 한 번 더 기다려야 한다.
+        assertThat(waits).hasSize(2);
+    }
+
+    /**
+     * 시간을 뒤로 돌려도 허가가 새어 나가지 않는다.
+     *
+     * 벽시계를 쓰면 NTP 보정으로 시각이 뒤로 갈 때 계산이 어긋난다. 단조 증가값을
+     * 쓰면 그런 일이 없다.
+     */
+    @Test
+    void 시간이뒤로가도한도를넘기지않는다() {
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(1, sleeper);
+
+        ticker.set(10 * ONE_SECOND_NANOS);
+
+        gate.acquire();
+
+        // 단조 시계라면 일어날 수 없는 일이다. 그래도 한도가 무너지지 않아야 한다.
+        ticker.addAndGet(-5 * ONE_SECOND_NANOS);
+
+        gate.acquire();
+
+        assertThat(sleeper.waits).isNotEmpty();
+    }
+
+    /**
+     * 동시에 들어와도 어느 1초 구간에서도 한도를 넘지 않는다.
+     *
+     * 대기 횟수를 세는 것으로는 부족하다. 자리가 언제 열리느냐에 따라 횟수가
+     * 달라지기 때문이다. 실제로 나간 시각을 모아 불변식을 직접 확인한다.
      */
     @Test
     void 동시요청에서도한도를넘기지않는다() throws Exception {
-        MovableClock clock = new MovableClock(START);
-        AtomicLong waitCount = new AtomicLong();
+        int limit = 5;
+        List<Long> sendTimes =
+                java.util.Collections.synchronizedList(new ArrayList<>());
 
-        NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(5),
-                clock,
-                nanos -> waitCount.incrementAndGet()
-        );
+        // 자고 나면 시간이 흘러 자리가 열리게 둔다.
+        NexonRequestRateGate gate = gateOf(limit, ticker::addAndGet);
 
         int callers = 20;
         CountDownLatch ready = new CountDownLatch(callers);
@@ -225,6 +214,7 @@ class NexonRequestRateGateTest {
                     ready.countDown();
                     go.await(30, TimeUnit.SECONDS);
                     gate.acquire();
+                    sendTimes.add(ticker.get());
                     return null;
                 });
             }
@@ -239,7 +229,23 @@ class NexonRequestRateGateTest {
             executor.shutdownNow();
         }
 
-        // 시간이 흐르지 않았으므로 한도 5건만 즉시 허가되고 나머지는 기다린다.
-        assertThat(waitCount.get()).isEqualTo(callers - 5);
+        assertThat(sendTimes).hasSize(callers);
+
+        // 어느 1초 구간을 잘라도 한도를 넘는 요청이 없어야 한다.
+        List<Long> sorted = new ArrayList<>(sendTimes);
+        sorted.sort(Long::compare);
+
+        for (int i = 0; i + limit < sorted.size(); i++) {
+            long window = sorted.get(i + limit) - sorted.get(i);
+
+            assertThat(window)
+                    .describedAs(
+                            "%d번째부터 %d건이 %dns 안에 나갔다",
+                            i,
+                            limit + 1,
+                            window
+                    )
+                    .isGreaterThanOrEqualTo(ONE_SECOND_NANOS);
+        }
     }
 }

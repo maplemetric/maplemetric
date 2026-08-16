@@ -1,10 +1,9 @@
 package com.maplemetric.common.nexon;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,9 +16,13 @@ import org.springframework.stereotype.Component;
  * 관문은 하나만 존재해야 한다. Client가 각자 {@link NexonApiRequester}를 만들기
  * 때문에 제한 상태를 Requester 안에 두면 Client 수만큼 한도를 쓰게 된다.
  *
- * 최근 1초 안에 나간 요청 시각을 들고 있다가, 한도를 채웠으면 가장 오래된 요청이
- * 1초를 지날 때까지 기다린다. 고정 구간으로 세지 않는 이유는 구간 경계에서 한도의
- * 두 배가 몰려 나갈 수 있기 때문이다.
+ * 자리를 미리 예약하지 않는다. 예약해 두고 그 시각까지 한 번만 자면, JVM이 멈추거나
+ * 스레드가 밀렸을 때 예약 시각이 모두 지난 대기자들이 한꺼번에 깨어나 함께 나간다.
+ * 대신 확인하고, 자리가 없으면 자고, 깨어나 다시 확인한다. 실제로 나가는 시점에
+ * 자리를 기록하므로 예약 시각과 전송 시각이 어긋나지 않는다.
+ *
+ * 시간은 단조 증가값으로 잰다. 벽시계는 NTP 보정이나 관리자 변경으로 뒤로 갈 수
+ * 있어 경과 시간 측정에 쓰면 과도한 대기나 이른 만료가 생긴다.
  */
 @Component
 public class NexonRequestRateGate {
@@ -28,75 +31,62 @@ public class NexonRequestRateGate {
             TimeUnit.SECONDS.toNanos(1);
 
     private final NexonRateLimitProperties properties;
-    private final Clock clock;
+    private final LongSupplier ticker;
     private final Sleeper sleeper;
 
-    /** 최근 1초 구간에 허가한 요청 시각이다. 오래된 것부터 버린다. */
+    /** 최근 1초 안에 실제로 나간 요청 시각이다. 오래된 것부터 버린다. */
     private final Deque<Long> recentPermits = new ArrayDeque<>();
 
     @Autowired
     public NexonRequestRateGate(NexonRateLimitProperties properties) {
         this(
                 properties,
-                Clock.systemUTC(),
+                System::nanoTime,
                 NexonRequestRateGate::sleepNanos
         );
     }
 
     NexonRequestRateGate(
             NexonRateLimitProperties properties,
-            Clock clock,
+            LongSupplier ticker,
             Sleeper sleeper
     ) {
         this.properties = properties;
-        this.clock = clock;
+        this.ticker = ticker;
         this.sleeper = sleeper;
     }
 
     /**
      * 요청 하나를 보낼 허가를 받는다.
      *
-     * 한도에 여유가 있으면 곧바로 돌아온다. 없으면 여유가 생길 때까지 기다린다.
+     * 한도에 여유가 있으면 곧바로 돌아온다. 없으면 여유가 생길 때까지 기다렸다가
+     * 다시 확인한다.
      */
     public void acquire() {
-        long waitNanos;
+        while (true) {
+            long waitNanos;
 
-        synchronized (this) {
-            waitNanos = reserve();
-        }
+            synchronized (this) {
+                long now = ticker.getAsLong();
 
-        if (waitNanos > 0) {
+                discardExpired(now);
+
+                if (recentPermits.size() < properties.requestsPerSecond()) {
+                    recentPermits.addLast(now);
+
+                    return;
+                }
+
+                // 가장 오래된 허가가 1초를 지나야 한 자리가 빈다.
+                waitNanos = recentPermits.peekFirst()
+                        + ONE_SECOND_NANOS
+                        - now;
+            }
+
+            // 기다리는 동안 잠금을 쥐고 있으면 뒤따르는 요청이 한도 계산조차
+            // 못 한다. 대기는 잠금 밖에서 한다.
             sleeper.sleep(waitNanos);
         }
-    }
-
-    /**
-     * 자리를 잡고 기다려야 할 시간을 돌려준다.
-     *
-     * 기다리는 동안 잠금을 쥐고 있으면 뒤따르는 요청이 한도 계산조차 못 한다.
-     * 자리는 잡되 대기는 잠금 밖에서 한다.
-     */
-    private long reserve() {
-        long now = nanosOf(clock.instant());
-
-        discardExpired(now);
-
-        int limit = properties.requestsPerSecond();
-
-        if (recentPermits.size() < limit) {
-            recentPermits.addLast(now);
-
-            return 0L;
-        }
-
-        // 가장 오래된 허가가 1초를 지나야 한 자리가 빈다.
-        long oldest = recentPermits.peekFirst();
-        long availableAt = oldest + ONE_SECOND_NANOS;
-
-        recentPermits.removeFirst();
-        recentPermits.addLast(availableAt);
-
-        return Math.max(0L, availableAt - now);
     }
 
     private void discardExpired(long now) {
@@ -104,11 +94,6 @@ public class NexonRequestRateGate {
                 && now - recentPermits.peekFirst() >= ONE_SECOND_NANOS) {
             recentPermits.removeFirst();
         }
-    }
-
-    private long nanosOf(Instant instant) {
-        return instant.getEpochSecond() * 1_000_000_000L
-                + instant.getNano();
     }
 
     private static void sleepNanos(long nanos) {
