@@ -6,6 +6,7 @@ import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -84,7 +85,7 @@ public final class NexonApiRequester {
 
         // 재시도도 이 지점을 다시 지난다. 429를 받고 되돌아온 요청이 관문을
         // 건너뛰면 한도를 넘긴 채로 다시 나간다.
-        acquirePermit();
+        acquirePermit(apiName);
 
         try {
             T response = restClient.get()
@@ -331,7 +332,7 @@ public final class NexonApiRequester {
      * 기다리다 중단되면 재시도 대기와 같은 실패로 알린다. 여기서만 다른 예외를
      * 던지면 같은 상황인데 소비자가 받는 응답이 달라진다.
      */
-    private void acquirePermit() {
+    private void acquirePermit(String apiName) {
         try {
             rateGate.acquire();
         } catch (InterruptedException exception) {
@@ -339,6 +340,17 @@ public final class NexonApiRequester {
 
             throw createException(
                     NexonApiFailure.SERVER_ERROR
+            );
+        } catch (TimeoutException exception) {
+            // 요청이 몰려 상한 안에 자리를 받지 못했다. 외부가 늦은 것과 같은
+            // 결과이므로 이미 있는 시간 초과 계약으로 알린다.
+            log.warn(
+                    "넥슨 요청 허가를 상한 안에 받지 못했습니다. api={}",
+                    apiName
+            );
+
+            throw createException(
+                    NexonApiFailure.TIMEOUT
             );
         }
     }

@@ -58,7 +58,7 @@ class NexonApiRequesterTest {
         return createRequester(
                 notFoundPredicate,
                 new NexonRequestRateGate(
-                        new NexonRateLimitProperties(1000)
+                        new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1))
                 )
         );
     }
@@ -461,7 +461,7 @@ class NexonApiRequesterTest {
             extends NexonRequestRateGate {
 
         private InterruptingRateGate() {
-            super(new NexonRateLimitProperties(1000));
+            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)));
         }
 
         @Override
@@ -476,7 +476,7 @@ class NexonApiRequesterTest {
         private final AtomicInteger count = new AtomicInteger();
 
         private CountingRateGate() {
-            super(new NexonRateLimitProperties(1000));
+            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)));
         }
 
         @Override

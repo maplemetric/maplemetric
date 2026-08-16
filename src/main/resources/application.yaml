@@ -60,6 +60,11 @@ maplemetric:
     rate-limit:
       requests-per-second: ${NEXON_REQUESTS_PER_SECOND:5}
 
+      # 허가를 기다리는 상한이다. 서로 다른 캐릭터를 동시에 조회하면 저장본
+      # 합치기가 적용되지 않아 요청마다 21회를 쓴다. 상한이 없으면 처리 Thread가
+      # 언제 끝날지 모르는 대기에 묶인다. 넘기면 시간 초과로 알린다.
+      max-wait: ${NEXON_PERMIT_MAX_WAIT:10s}
+
   openai:
     enabled: ${OPENAI_ENABLED:false}
     base-url: ${OPENAI_BASE_URL:https://api.openai.com}

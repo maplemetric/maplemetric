@@ -1,6 +1,8 @@
 package com.maplemetric.common.nexon;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
@@ -45,7 +48,7 @@ class NexonRequestRateGateTest {
             NexonRequestRateGate.Sleeper sleeper
     ) {
         return new NexonRequestRateGate(
-                new NexonRateLimitProperties(limit),
+                new NexonRateLimitProperties(limit, java.time.Duration.ofHours(1)),
                 ticker::get,
                 sleeper
         );
@@ -186,6 +189,57 @@ class NexonRequestRateGateTest {
         gate.acquire();
 
         assertThat(sleeper.waits).isNotEmpty();
+    }
+
+    /**
+     * 상한을 넘겨 기다려야 하면 기다리지 않고 시간 초과로 끝낸다.
+     *
+     * 상한이 없으면 요청이 몰릴 때 처리 Thread가 언제 끝날지 모르는 대기에 묶여
+     * 서비스 전체가 멈춘다.
+     */
+    @Test
+    void 대기상한을넘으면시간초과로끝낸다() {
+        RecordingSleeper sleeper = new RecordingSleeper();
+
+        // 자리 하나가 비려면 1초가 필요한데 상한은 그보다 짧다.
+        NexonRequestRateGate gate = new NexonRequestRateGate(
+                new NexonRateLimitProperties(
+                        1,
+                        java.time.Duration.ofMillis(300)
+                ),
+                ticker::get,
+                sleeper
+        );
+
+        assertThatCode(gate::acquire).doesNotThrowAnyException();
+
+        assertThatThrownBy(gate::acquire)
+                .isInstanceOf(TimeoutException.class);
+
+        // 기다리지도 않고 끝나야 한다.
+        assertThat(sleeper.waits).isEmpty();
+    }
+
+    /**
+     * 상한 안에 자리가 열리면 기다렸다가 정상으로 받는다.
+     */
+    @Test
+    void 상한안에자리가열리면기다렸다받는다() throws Exception {
+        RecordingSleeper sleeper = new RecordingSleeper();
+
+        NexonRequestRateGate gate = new NexonRequestRateGate(
+                new NexonRateLimitProperties(
+                        1,
+                        java.time.Duration.ofSeconds(5)
+                ),
+                ticker::get,
+                sleeper
+        );
+
+        gate.acquire();
+        gate.acquire();
+
+        assertThat(sleeper.waits).containsExactly(ONE_SECOND_NANOS);
     }
 
     /**

@@ -3,6 +3,7 @@ package com.maplemetric.common.nexon;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -61,8 +62,14 @@ public class NexonRequestRateGate {
      *
      * 한도에 여유가 있으면 곧바로 돌아온다. 없으면 여유가 생길 때까지 기다렸다가
      * 다시 확인한다.
+     *
+     * 대기에는 상한이 있다. 서로 다른 캐릭터를 동시에 조회하면 저장본 합치기가
+     * 적용되지 않아 요청마다 21회를 쓴다. 상한이 없으면 처리 Thread가 언제 끝날지
+     * 모르는 대기에 묶여 서비스 전체가 멈춘다.
      */
-    public void acquire() throws InterruptedException {
+    public void acquire() throws InterruptedException, TimeoutException {
+        long deadline = ticker.getAsLong() + properties.maxWait().toNanos();
+
         while (true) {
             long waitNanos;
 
@@ -81,6 +88,12 @@ public class NexonRequestRateGate {
                 waitNanos = recentPermits.peekFirst()
                         + ONE_SECOND_NANOS
                         - now;
+
+                if (now + waitNanos > deadline) {
+                    throw new TimeoutException(
+                            "넥슨 요청 허가를 상한 안에 받지 못했습니다."
+                    );
+                }
             }
 
             // 기다리는 동안 잠금을 쥐고 있으면 뒤따르는 요청이 한도 계산조차

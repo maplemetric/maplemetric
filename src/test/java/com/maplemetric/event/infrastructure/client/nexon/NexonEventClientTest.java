@@ -61,7 +61,7 @@ class NexonEventClientTest {
         eventClient = new NexonEventClient(
                 restClientBuilder.build(),
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
         );
     }
 
@@ -249,7 +249,7 @@ class NexonEventClientTest {
         return new NexonEventClient(
                 restClient,
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
         );
     }
 }
