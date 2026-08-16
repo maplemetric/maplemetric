@@ -161,6 +161,7 @@ class CharacterQueryServiceTest {
                         characterSnapshotStoreService,
                         new CharacterSnapshotProperties(
                                 Duration.ofMinutes(5),
+                                Duration.ofSeconds(30),
                                 Duration.ofSeconds(30)
                         ),
                         clock

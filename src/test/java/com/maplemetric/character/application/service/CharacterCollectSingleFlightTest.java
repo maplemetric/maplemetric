@@ -149,7 +149,8 @@ class CharacterCollectSingleFlightTest {
                 characterSnapshotStoreService,
                 new CharacterSnapshotProperties(
                         Duration.ofMinutes(5),
-                        collectWaitTimeout
+                        collectWaitTimeout,
+                        Duration.ofSeconds(30)
                 ),
                 Clock.fixed(NOW, ZoneId.of("Asia/Seoul"))
         );
@@ -428,7 +429,8 @@ class CharacterCollectSingleFlightTest {
         CharacterSnapshotProperties properties =
                 new CharacterSnapshotProperties(
                         Duration.ofMinutes(5),
-                        subMillisecond
+                        subMillisecond,
+                        Duration.ofSeconds(30)
                 );
 
         assertThat(properties.collectWaitTimeout()).isEqualTo(subMillisecond);

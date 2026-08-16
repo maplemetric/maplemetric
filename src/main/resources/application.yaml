@@ -94,6 +94,17 @@ maplemetric:
       # 돌려주므로, 실제 수집 소요를 덮되 사용자가 포기하지 않을 값으로 둔다.
       collect-wait-timeout: ${CHARACTER_COLLECT_WAIT_TIMEOUT:30s}
 
+      # 수집을 맡은 쪽 자신의 상한이다. 호출 하나하나에는 상한이 있지만 수집 전체에는
+      # 없어서, 기다리는 쪽이 위 한도로 포기한 뒤에도 일하는 쪽은 계속 호출했다.
+      #
+      # 상한을 넘기면 남은 조회를 시작하지 않고 시간 초과로 끝낸다. 이미 진행 중이던
+      # 호출 하나는 자기 상한까지 마치므로 실제 소요는 이 값을 조금 넘길 수 있다.
+      #
+      # 값은 기다리는 쪽과 같은 30초로 둔다. 아직 실측한 p95가 없어 수집 소요에서
+      # 끌어낸 값이 아니라, 두 쪽이 같은 시점에 포기하게 하려는 운영상의 선택이다.
+      # 실사용 소요를 재고 나면 다시 정한다.
+      max-collect-duration: ${CHARACTER_MAX_COLLECT_DURATION:30s}
+
   internal:
     api-key: ${MAPLEMETRIC_INTERNAL_API_KEY:}
 

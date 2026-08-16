@@ -11,11 +11,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * {@code collectWaitTimeout}은 같은 캐릭터를 이미 수집 중일 때 그 결과를 기다리는
  * 한도다. 수집이 끝나기를 기다리면 Nexon 호출을 아끼지만 무한정 기다릴 수는 없다.
+ *
+ * {@code maxCollectDuration}은 수집을 맡은 쪽 자신의 한도다. 기다리는 쪽에만 한도를
+ * 두면 일하는 쪽은 언제 끝날지 모르는 채로 남는다. 두 값은 성격이 다르므로 따로 둔다.
  */
 @ConfigurationProperties(prefix = "maplemetric.character.snapshot")
 public record CharacterSnapshotProperties(
         Duration minRefreshInterval,
-        Duration collectWaitTimeout
+        Duration collectWaitTimeout,
+        Duration maxCollectDuration
 ) {
 
     public CharacterSnapshotProperties {
@@ -30,6 +34,14 @@ public record CharacterSnapshotProperties(
                 || collectWaitTimeout.isZero()) {
             throw new IllegalArgumentException(
                     "수집 대기 한도는 0보다 커야 합니다."
+            );
+        }
+
+        if (maxCollectDuration == null
+                || maxCollectDuration.isNegative()
+                || maxCollectDuration.isZero()) {
+            throw new IllegalArgumentException(
+                    "수집 상한은 0보다 커야 합니다."
             );
         }
     }

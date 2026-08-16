@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
@@ -405,56 +406,72 @@ public class CharacterQueryService {
             String characterName,
             Instant fetchedAt
     ) {
+        // 이름 검사와 첫 조회는 상한보다 먼저 본다. 상한이 이미 지난 뒤에 여기 닿으면
+        // 잘못 입력한 이름이 시간 초과로 보고되어, 고칠 수 있는 잘못을 외부 탓으로
+        // 돌리게 된다.
         String ocid = getValidatedOcid(characterName);
 
-        CharacterBasic basic =
-                loadCharacterBasicPort.loadCharacterBasic(ocid);
+        Instant deadline = fetchedAt.plus(
+                characterSnapshotProperties.maxCollectDuration()
+        );
 
-        CharacterStat stat =
-                loadCharacterStatPort.loadCharacterStat(ocid);
+        CharacterBasic basic = beforeDeadline(characterName, deadline, () ->
+                loadCharacterBasicPort.loadCharacterBasic(ocid));
+
+        CharacterStat stat = beforeDeadline(characterName, deadline, () ->
+                loadCharacterStatPort.loadCharacterStat(ocid));
 
         CharacterRanking characterRanking =
-                getCharacterRanking(
-                        ocid,
-                        basic
-                );
+                beforeDeadline(characterName, deadline, () ->
+                        getCharacterRanking(
+                                ocid,
+                                basic
+                        ));
 
-        CharacterDojang dojang =
-                loadCharacterDojangPort.loadCharacterDojang(ocid);
+        CharacterDojang dojang = beforeDeadline(characterName, deadline, () ->
+                loadCharacterDojangPort.loadCharacterDojang(ocid));
 
         CharacterPopularity popularity =
-                loadCharacterPopularityPort
-                        .loadCharacterPopularity(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterPopularityPort
+                                .loadCharacterPopularity(ocid));
 
         CharacterHyperStat hyperStat =
-                loadCharacterHyperStatPort
-                        .loadCharacterHyperStat(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterHyperStatPort
+                                .loadCharacterHyperStat(ocid));
 
         CharacterAbility ability =
-                loadCharacterAbilityPort
-                        .loadCharacterAbility(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterAbilityPort
+                                .loadCharacterAbility(ocid));
 
-        CharacterUnion union =
-                loadCharacterUnionPort.loadCharacterUnion(ocid);
+        CharacterUnion union = beforeDeadline(characterName, deadline, () ->
+                loadCharacterUnionPort.loadCharacterUnion(ocid));
 
         CharacterSymbol characterSymbol =
-                loadCharacterSymbolPort.loadCharacterSymbol(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterSymbolPort.loadCharacterSymbol(ocid));
 
         CharacterSkills skills =
-                loadCharacterSkillsPort
-                        .loadCharacterSkills(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterSkillsPort
+                                .loadCharacterSkills(ocid));
 
         CharacterHexa hexa =
-                loadCharacterHexaPort
-                        .loadCharacterHexa(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterHexaPort
+                                .loadCharacterHexa(ocid));
 
         CharacterEquipment equipment =
-                loadCharacterEquipmentPort
-                        .loadCharacterEquipment(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterEquipmentPort
+                                .loadCharacterEquipment(ocid));
 
         CharacterSetEffect setEffect =
-                loadCharacterSetEffectPort
-                        .loadCharacterSetEffect(ocid);
+                beforeDeadline(characterName, deadline, () ->
+                        loadCharacterSetEffectPort
+                                .loadCharacterSetEffect(ocid));
 
         GetCharacterSummaryResult summary = GetCharacterSummaryResult.of(
                 GetCharacterBasicResult.from(basic),
@@ -509,6 +526,36 @@ public class CharacterQueryService {
         }
 
         return summary;
+    }
+
+    /**
+     * 상한이 남아 있을 때만 다음 조회를 시작한다.
+     *
+     * 호출 하나하나에는 상한이 있지만 수집 전체에는 없었다. 느린 호출이 이어지면
+     * 요청 Thread가 그만큼 묶이고, 기다리던 요청이 이미 포기한 뒤에도 수집은 계속
+     * Nexon을 부른다.
+     *
+     * 이미 시작한 호출은 자기 상한까지 마친다. 여기서 막는 것은 다음 호출이므로
+     * 실제 소요는 상한을 호출 하나만큼 넘길 수 있다. 중간까지 받은 결과는 버린다.
+     * 일부만 담긴 저장본은 다음 조회가 완성본으로 잘못 쓰기 때문이다.
+     */
+    private <T> T beforeDeadline(
+            String characterName,
+            Instant deadline,
+            Supplier<T> load
+    ) {
+        if (!Instant.now(clock).isBefore(deadline)) {
+            log.warn(
+                    "캐릭터 수집이 상한을 넘겨 남은 조회를 시작하지 않습니다. "
+                            + "characterName={}, deadline={}",
+                    characterName,
+                    deadline
+            );
+
+            throw new CharacterException(CharacterErrorCode.NEXON_API_TIMEOUT);
+        }
+
+        return load.get();
     }
 
     private CharacterRanking getCharacterRanking(
