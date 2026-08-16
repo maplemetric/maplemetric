@@ -221,6 +221,40 @@ class NexonRequestRateGateTest {
     }
 
     /**
+     * 늦게 깨어나 상한을 넘겼으면 자리가 비었어도 보내지 않는다.
+     *
+     * 대기 예정 시간만 검사하면 이 경우를 놓친다. JVM이 멈추거나 스케줄러가 밀려
+     * 상한을 지나 깨어났는데 그 사이 자리까지 비면, 상한을 넘긴 뒤에 외부 호출이
+     * 한 건 더 나간다. {@code maxWait}을 대기 상한이라고 정의해 두었으므로 코드가
+     * 그 정의를 지켜야 한다.
+     */
+    @Test
+    void 상한을넘겨깨어나면자리가비어도보내지않는다() {
+        List<Long> waits = new ArrayList<>();
+
+        // 요청받은 것보다 훨씬 오래 잔다. JVM이 멈춘 상황이다.
+        NexonRequestRateGate gate = new NexonRequestRateGate(
+                new NexonRateLimitProperties(
+                        1,
+                        java.time.Duration.ofSeconds(2)
+                ),
+                ticker::get,
+                nanos -> {
+                    waits.add(nanos);
+                    ticker.addAndGet(5 * ONE_SECOND_NANOS);
+                }
+        );
+
+        assertThatCode(gate::acquire).doesNotThrowAnyException();
+
+        // 한 번은 기다린다. 깨어나 보니 상한을 넘겼고 자리는 비어 있다.
+        assertThatThrownBy(gate::acquire)
+                .isInstanceOf(TimeoutException.class);
+
+        assertThat(waits).hasSize(1);
+    }
+
+    /**
      * 상한 안에 자리가 열리면 기다렸다가 정상으로 받는다.
      */
     @Test

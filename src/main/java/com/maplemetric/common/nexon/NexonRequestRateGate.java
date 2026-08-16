@@ -76,6 +76,14 @@ public class NexonRequestRateGate {
             synchronized (this) {
                 long now = ticker.getAsLong();
 
+                // 늦게 깨어나 상한을 넘겼다면 자리가 비었더라도 보내지 않는다.
+                // 그렇지 않으면 상한을 지난 뒤에 외부 호출이 한 건 더 나간다.
+                if (now > deadline) {
+                    throw new TimeoutException(
+                            "넥슨 요청 허가를 상한 안에 받지 못했습니다."
+                    );
+                }
+
                 discardExpired(now);
 
                 if (recentPermits.size() < properties.requestsPerSecond()) {
