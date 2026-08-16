@@ -12,6 +12,16 @@ logging:
     org.flywaydb: info
 
 management:
+  # 개발 편의를 위해 넓힌다. 이 profile은 로컬에서만 쓴다.
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+          - prometheus
+
   endpoint:
     health:
       show-details: always

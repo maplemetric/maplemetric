@@ -35,18 +35,24 @@ spring:
       port: ${REDIS_PORT:6379}
 
 management:
+  # 기본은 닫는다. 필요한 profile만 넓힌다.
+  #
+  # 이 앞을 막는 것이 없다. Spring Security 의존성이 없고 내부 인증 필터는
+  # /internal 만 본다. 그래서 여기 여는 것은 곧 인증 없이 공개하는 것이다.
+  #
+  # 반대로 두면 profile을 새로 만들 때 좁히는 것을 잊는 순간 전부 열린 채로 나간다.
+  # 잊었을 때 닫히는 쪽이 기본이어야 한다.
+  #
+  # health는 컨테이너와 로드밸런서가 인증 없이 확인해야 하는 경로라 남긴다.
   endpoints:
     web:
       exposure:
         include:
           - health
-          - info
-          - metrics
-          - prometheus
 
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: never
 
 maplemetric:
   nexon:
