@@ -37,6 +37,7 @@ import java.time.ZoneId;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -179,7 +180,8 @@ class CharacterCollectDeadlineTest {
                         MAX_COLLECT_DURATION
                 ),
                 clock,
-                ticker::get
+                ticker::get,
+                new SimpleMeterRegistry()
         );
     }
 

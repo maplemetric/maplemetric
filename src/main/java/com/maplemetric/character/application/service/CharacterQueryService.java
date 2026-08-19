@@ -46,6 +46,8 @@ import com.maplemetric.character.domain.exception.CharacterException;
 import com.maplemetric.ranking.api.CharacterRanking;
 import com.maplemetric.ranking.api.CharacterRankingQuery;
 import com.maplemetric.ranking.api.CharacterRankingQueryException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -75,6 +77,13 @@ public class CharacterQueryService {
     private static final int KOREAN_CHARACTER_WEIGHT = 2;
     private static final int ENGLISH_NUMBER_CHARACTER_WEIGHT = 1;
 
+    private static final String COLLECT_DURATION_METRIC_NAME =
+            "character.collect.duration";
+
+    private static final String OUTCOME_SUCCESS = "success";
+    private static final String OUTCOME_TIMEOUT = "timeout";
+    private static final String OUTCOME_FAILED = "failed";
+
     private final LoadCharacterAbilityPort loadCharacterAbilityPort;
     private final LoadCharacterBasicPort loadCharacterBasicPort;
     private final LoadCharacterDojangPort loadCharacterDojangPort;
@@ -95,6 +104,10 @@ public class CharacterQueryService {
 
     /** 수집 상한을 재는 단조 증가값이다. 벽시계와 달리 뒤로 가지 않는다. */
     private final LongSupplier ticker;
+
+    private final Timer collectSuccessTimer;
+    private final Timer collectTimeoutTimer;
+    private final Timer collectFailedTimer;
 
     /**
      * 캐릭터명별로 진행 중인 수집이다.
@@ -122,7 +135,8 @@ public class CharacterQueryService {
             AdditionalOptionCalculator additionalOptionCalculator,
             CharacterRankingQuery characterRankingQuery,
             CharacterSnapshotStoreService characterSnapshotStoreService,
-            CharacterSnapshotProperties characterSnapshotProperties
+            CharacterSnapshotProperties characterSnapshotProperties,
+            MeterRegistry meterRegistry
     ) {
         this(
                 loadCharacterAbilityPort,
@@ -142,7 +156,8 @@ public class CharacterQueryService {
                 characterSnapshotStoreService,
                 characterSnapshotProperties,
                 Clock.systemUTC(),
-                System::nanoTime
+                System::nanoTime,
+                meterRegistry
         );
     }
 
@@ -164,7 +179,8 @@ public class CharacterQueryService {
             CharacterSnapshotStoreService characterSnapshotStoreService,
             CharacterSnapshotProperties characterSnapshotProperties,
             Clock clock,
-            LongSupplier ticker
+            LongSupplier ticker,
+            MeterRegistry meterRegistry
     ) {
         this.loadCharacterAbilityPort = loadCharacterAbilityPort;
         this.loadCharacterBasicPort =
@@ -188,6 +204,12 @@ public class CharacterQueryService {
         this.characterSnapshotProperties = characterSnapshotProperties;
         this.clock = clock;
         this.ticker = ticker;
+        this.collectSuccessTimer =
+                createCollectTimer(meterRegistry, OUTCOME_SUCCESS);
+        this.collectTimeoutTimer =
+                createCollectTimer(meterRegistry, OUTCOME_TIMEOUT);
+        this.collectFailedTimer =
+                createCollectTimer(meterRegistry, OUTCOME_FAILED);
     }
 
     public GetCharacterBasicResult getCharacterBasic(
@@ -330,7 +352,11 @@ public class CharacterQueryService {
             return stored.get().summary();
         }
 
-        return collectCharacterSummary(characterName, start);
+        return measured(
+                characterName,
+                start,
+                () -> collectCharacterSummary(characterName, start)
+        );
     }
 
     /**
@@ -556,6 +582,75 @@ public class CharacterQueryService {
      * 경과는 벽시계가 아니라 단조 증가값으로 잰다. 벽시계는 NTP 보정으로 뒤로 갈 수
      * 있어, 뒤로 가면 상한이 늘어나고 앞으로 가면 멀쩡한 수집이 잘린다.
      */
+    /**
+     * 수집 한 번의 소요와 끝난 방식을 남긴다.
+     *
+     * 상한 값에 근거가 없다. 재는 수단이 없으면 값을 정할 근거도 생기지 않는다.
+     * 정상 수집이 몇 초인지, 상한에 걸리는 요청이 실제로 있는지 알아야 조정한다.
+     *
+     * 저장본을 돌려준 경로는 수집이 아니므로 여기를 지나지 않는다.
+     *
+     * 소요는 상한을 재는 것과 같은 기준에서 잰다. 그래야 남긴 값을 상한과 그대로
+     * 견줄 수 있다.
+     *
+     * 지표는 운영에서 아직 읽을 수 없다. 노출을 health 하나로 닫아 두었기 때문이다.
+     * 그래서 로그로도 남긴다. 노출 경로가 정해지면 지표가 바로 쓰인다.
+     */
+    private GetCharacterSummaryResult measured(
+            String characterName,
+            CollectStart start,
+            Supplier<GetCharacterSummaryResult> collect
+    ) {
+        String outcome = OUTCOME_FAILED;
+
+        try {
+            GetCharacterSummaryResult summary = collect.get();
+
+            outcome = OUTCOME_SUCCESS;
+
+            return summary;
+        } catch (CharacterException exception) {
+            if (exception.getErrorCode()
+                    == CharacterErrorCode.NEXON_API_TIMEOUT) {
+                outcome = OUTCOME_TIMEOUT;
+            }
+
+            throw exception;
+        } finally {
+            long elapsedNanos = ticker.getAsLong() - start.tick();
+
+            collectTimer(outcome)
+                    .record(elapsedNanos, TimeUnit.NANOSECONDS);
+
+            log.info(
+                    "캐릭터 수집을 마쳤습니다. "
+                            + "characterName={}, 결과={}, 소요밀리초={}",
+                    characterName,
+                    outcome,
+                    elapsedNanos / 1_000_000L
+            );
+        }
+    }
+
+    private Timer collectTimer(String outcome) {
+        return switch (outcome) {
+            case OUTCOME_SUCCESS -> collectSuccessTimer;
+            case OUTCOME_TIMEOUT -> collectTimeoutTimer;
+            default -> collectFailedTimer;
+        };
+    }
+
+    private static Timer createCollectTimer(
+            MeterRegistry meterRegistry,
+            String outcome
+    ) {
+        return Timer.builder(COLLECT_DURATION_METRIC_NAME)
+                .description("캐릭터 종합 수집 한 번의 소요")
+                .tag("outcome", outcome)
+                .publishPercentileHistogram()
+                .register(meterRegistry);
+    }
+
     private <T> T beforeDeadline(
             String characterName,
             long startedTick,
