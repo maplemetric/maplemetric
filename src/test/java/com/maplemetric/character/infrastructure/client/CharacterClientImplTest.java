@@ -131,7 +131,7 @@ class CharacterClientImplTest {
         characterClient = new CharacterClientImpl(
                 restClientBuilder.build(),
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"))
         );
     }
 
@@ -1452,7 +1452,7 @@ class CharacterClientImplTest {
         return new CharacterClientImpl(
                 restClient,
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"))
         );
     }
 }

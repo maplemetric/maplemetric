@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.Test;
  * 대기 요청을 가로채 관찰한다.
  */
 class NexonRequestRateGateTest {
+
+    private static final String KEY = "key-1";
 
     private static final long ONE_SECOND_NANOS = 1_000_000_000L;
 
@@ -49,6 +52,7 @@ class NexonRequestRateGateTest {
     ) {
         return new NexonRequestRateGate(
                 new NexonRateLimitProperties(limit, java.time.Duration.ofHours(1)),
+                List.of(KEY),
                 ticker::get,
                 sleeper
         );
@@ -203,10 +207,8 @@ class NexonRequestRateGateTest {
 
         // 자리 하나가 비려면 1초가 필요한데 상한은 그보다 짧다.
         NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(
-                        1,
-                        java.time.Duration.ofMillis(300)
-                ),
+                new NexonRateLimitProperties(1, java.time.Duration.ofMillis(300)),
+                List.of(KEY),
                 ticker::get,
                 sleeper
         );
@@ -234,10 +236,8 @@ class NexonRequestRateGateTest {
 
         // 요청받은 것보다 훨씬 오래 잔다. JVM이 멈춘 상황이다.
         NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(
-                        1,
-                        java.time.Duration.ofSeconds(2)
-                ),
+                new NexonRateLimitProperties(1, java.time.Duration.ofSeconds(2)),
+                List.of(KEY),
                 ticker::get,
                 nanos -> {
                     waits.add(nanos);
@@ -262,10 +262,8 @@ class NexonRequestRateGateTest {
         RecordingSleeper sleeper = new RecordingSleeper();
 
         NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(
-                        1,
-                        java.time.Duration.ofSeconds(5)
-                ),
+                new NexonRateLimitProperties(1, java.time.Duration.ofSeconds(5)),
+                List.of(KEY),
                 ticker::get,
                 sleeper
         );
@@ -321,5 +319,91 @@ class NexonRequestRateGateTest {
         }
 
         assertThat(granted.get()).isEqualTo(callers);
+    }
+
+    /**
+     * Key가 여럿이면 한도가 Key 수만큼 늘어난다.
+     *
+     * Nexon은 애플리케이션 단위로 세므로 Key마다 자기 몫을 온전히 가진다. 창을
+     * 하나만 두면 Key를 늘려도 처리량이 그대로다.
+     */
+    @Test
+    void Key가여럿이면한도가그만큼늘어난다() throws Exception {
+        RecordingSleeper sleeper = new RecordingSleeper();
+
+        NexonRequestRateGate gate = new NexonRequestRateGate(
+                new NexonRateLimitProperties(2, java.time.Duration.ofHours(1)),
+                List.of("key-a", "key-b", "key-c"),
+                ticker::get,
+                sleeper
+        );
+
+        // Key 3개 × 초당 2건 = 6건까지 기다리지 않는다.
+        for (int i = 0; i < 6; i++) {
+            gate.acquire();
+        }
+
+        assertThat(sleeper.waits).isEmpty();
+
+        gate.acquire();
+
+        assertThat(sleeper.waits).hasSize(1);
+    }
+
+    /**
+     * 허가는 Key마다 고르게 나눠 준다.
+     *
+     * 늘 앞에서부터 보면 첫 Key만 한도까지 쓰고 나머지가 남는다. 그러면 Key를
+     * 늘린 만큼 처리량이 늘지 않는다.
+     */
+    @Test
+    void 허가를Key마다고르게나눈다() throws Exception {
+        NexonRequestRateGate gate = new NexonRequestRateGate(
+                new NexonRateLimitProperties(5, java.time.Duration.ofHours(1)),
+                List.of("key-a", "key-b", "key-c"),
+                ticker::get,
+                new RecordingSleeper()
+        );
+
+        List<String> granted = new ArrayList<>();
+
+        for (int i = 0; i < 6; i++) {
+            granted.add(gate.acquire());
+        }
+
+        assertThat(granted).containsExactly(
+                "key-a", "key-b", "key-c",
+                "key-a", "key-b", "key-c"
+        );
+    }
+
+    /**
+     * 허가한 Key를 그대로 알려 준다.
+     *
+     * 부르는 쪽이 Key를 따로 고르면 관문이 세는 창과 실제로 쓰인 Key가 어긋난다.
+     */
+    @Test
+    void 허가한Key를알려준다() throws Exception {
+        NexonRequestRateGate gate = new NexonRequestRateGate(
+                new NexonRateLimitProperties(5, java.time.Duration.ofHours(1)),
+                List.of("only-key"),
+                ticker::get,
+                new RecordingSleeper()
+        );
+
+        assertThat(gate.acquire()).isEqualTo("only-key");
+    }
+
+    /**
+     * Key가 하나도 없으면 만들지 못한다.
+     *
+     * 빈 채로 뜨면 모든 요청이 Key 없이 나가 전부 실패한다.
+     */
+    @Test
+    void Key가없으면만들지못한다() {
+        assertThatThrownBy(() -> new NexonRequestRateGate(
+                new NexonRateLimitProperties(5, java.time.Duration.ofHours(1)),
+                List.of()
+        )).isInstanceOf(IllegalArgumentException.class);
     }
 }

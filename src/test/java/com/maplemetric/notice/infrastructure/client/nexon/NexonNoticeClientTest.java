@@ -69,7 +69,7 @@ class NexonNoticeClientTest {
         nexonNoticeClient = new NexonNoticeClient(
                 restClientBuilder.build(),
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"))
         );
     }
 
@@ -326,7 +326,7 @@ class NexonNoticeClientTest {
         return new NexonNoticeClient(
                 restClient,
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"))
         );
     }
 }

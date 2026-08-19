@@ -64,11 +64,20 @@ maplemetric:
   nexon:
     open-api:
       base-url: https://open.api.nexon.com
+      # Key를 여럿 둘 수 있다. Nexon은 초당·일일 한도를 애플리케이션 단위로
+      # 세므로, 애플리케이션을 따로 등록해 받은 Key를 함께 쓰면 그만큼 한도가
+      # 늘어난다. 한도가 Key마다 따로 붙는다는 것이 요점이다.
+      #
+      # 단수형도 그대로 받는다. Key 하나만 쓰던 설정을 고치지 않아도 된다.
+      keys: ${NEXON_OPEN_API_KEYS:}
       key: ${NEXON_OPEN_API_KEY:}
 
     # Nexon은 애플리케이션 단위로 초당 호출 수를 제한한다. 넘기면 429가 돌아오고
     # 그 응답도 호출로 집계될 수 있어 한도를 넘기는 것 자체가 손해다.
     # 개발 단계 5, 서비스 단계 500.
+    #
+    # 이 값은 Key 하나당 한도다. Key가 여럿이면 관문이 Key마다 따로 세므로
+    # 전체 처리량은 Key 수만큼 늘어난다.
     rate-limit:
       requests-per-second: ${NEXON_REQUESTS_PER_SECOND:5}
 

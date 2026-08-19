@@ -58,7 +58,8 @@ class NexonApiRequesterTest {
         return createRequester(
                 notFoundPredicate,
                 new NexonRequestRateGate(
-                        new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1))
+                        new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)),
+                        java.util.List.of("test-key")
                 )
         );
     }
@@ -461,11 +462,11 @@ class NexonApiRequesterTest {
             extends NexonRequestRateGate {
 
         private InterruptingRateGate() {
-            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)));
+            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"));
         }
 
         @Override
-        public void acquire() throws InterruptedException {
+        public String acquire() throws InterruptedException {
             throw new InterruptedException("허가 대기 중단");
         }
     }
@@ -476,12 +477,14 @@ class NexonApiRequesterTest {
         private final AtomicInteger count = new AtomicInteger();
 
         private CountingRateGate() {
-            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)));
+            super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"));
         }
 
         @Override
-        public void acquire() {
+        public String acquire() {
             count.incrementAndGet();
+            
+            return "test-key";
         }
 
         private int count() {
