@@ -3,6 +3,7 @@ package com.maplemetric;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.env.YamlPropertySourceLoader;
@@ -78,12 +79,35 @@ class ActuatorExposureTest {
         return fallback == null ? "" : fallback.trim();
     }
 
+    /**
+     * 서비스 포트에 열린 것을 관리 포트 분리로만 지킨다.
+     *
+     * 운영에서 health 말고 더 여는 유일한 근거가 그 경로들이 서비스 포트에 없다는
+     * 것이다. 분리가 빠지면 지표가 공개 포트에 그대로 열린다.
+     *
+     * 노출을 넓히는 변경과 포트를 분리하는 설정이 따로 있으면, 한쪽만 남기는 실수를
+     * 잡지 못한다. 둘을 잇는다.
+     */
     @Test
-    void 운영은health하나만연다() throws IOException {
+    void 운영에서health보다넓히면관리포트를분리한다() throws IOException {
         PropertySourcesPropertyResolver prod = effective("prod");
 
         assertThat(prod.getProperty(EXPOSURE + "[0]")).isEqualTo("health");
-        assertThat(prod.getProperty(EXPOSURE + "[1]")).isNull();
+
+        if (prod.getProperty(EXPOSURE + "[1]") == null) {
+            return;
+        }
+
+        String managementPort =
+                prod.getProperty("management.server.port");
+
+        assertThat(managementPort)
+                .as("운영이 health보다 넓게 여는데 관리 포트가 분리돼 있지 않다")
+                .isNotBlank();
+
+        assertThat(managementPort)
+                .as("관리 포트가 서비스 포트와 같으면 분리한 것이 아니다")
+                .isNotEqualTo(prod.getProperty("server.port"));
     }
 
     @Test
@@ -93,18 +117,36 @@ class ActuatorExposureTest {
     }
 
     /**
-     * 개발용으로 넓힌 값이 운영으로 새지 않는다.
+     * 운영이 여는 것을 하나하나 고정한다.
      *
-     * 넓히는 쪽을 local 하나로 두었으므로, 그것이 다른 profile에 영향을 주지 않아야
-     * 이 구조가 의미를 가진다.
+     * 관리 포트가 분리돼 있어도 그 포트에 무엇이든 열어도 되는 것은 아니다.
+     * env, beans, heapdump 같은 것은 설정과 내부 구조를 그대로 내보낸다.
+     *
+     * 목록을 통째로 고정해 두면 새 항목이 조용히 끼어들 때 드러난다.
      */
     @Test
-    void 개발용으로넓힌값이운영으로새지않는다() throws IOException {
-        assertThat(effective("local").getProperty(EXPOSURE + "[1]"))
-                .isNotNull();
+    void 운영이여는것을하나하나고정한다() throws IOException {
+        PropertySourcesPropertyResolver prod = effective("prod");
 
-        assertThat(effective("prod").getProperty(EXPOSURE + "[1]"))
-                .isNull();
+        assertThat(exposedList(prod))
+                .containsExactly("health", "metrics", "prometheus");
+    }
+
+    private List<String> exposedList(
+            PropertySourcesPropertyResolver resolver
+    ) {
+        List<String> exposed = new ArrayList<>();
+
+        for (int index = 0; ; index++) {
+            String value =
+                    resolver.getProperty(EXPOSURE + "[" + index + "]");
+
+            if (value == null) {
+                return exposed;
+            }
+
+            exposed.add(value);
+        }
     }
 
     /**
