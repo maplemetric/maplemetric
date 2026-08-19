@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
  * Scheduler를 두지 않는다. 유료 호출이라 승인 없이 자동으로 도는 경로가 있으면
  * 안 되고, 이 저장소에는 상시 실행되는 서버도 없다.
  *
- * 한 번의 실행은 설정된 한도까지만 생성한다. 응답의 생성 건수가 한도와 같으면
- * 남은 대상이 있다는 뜻이므로 다시 호출한다.
+ * 한 번의 실행은 설정된 한도까지만 생성한다. 응답의 hasMore가 참이면 한도 때문에
+ * 멈춘 것이므로 다시 호출한다. 생성 건수를 한도와 비교해 짐작하지 않는다.
  */
 @RestController
 @RequestMapping("/internal/v1/insights/statistics")

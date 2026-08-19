@@ -51,19 +51,20 @@ public class StatisticsInsightGenerationService
     @Override
     public GenerateStatisticsInsightOutcome generate() {
         int generated = 0;
-        int skipped = 0;
+        int alreadyExists = 0;
+        int noHistory = 0;
         int failed = 0;
+        boolean hasMore = false;
 
         for (StatisticsSubject subject : statisticsFactQuery.listSubjects()) {
-            if (generated >= properties.maxPerRun()) {
-                break;
-            }
+            boolean withinLimit = generated < properties.maxPerRun();
 
             try {
-                if (generateOne(subject)) {
-                    generated++;
-                } else {
-                    skipped++;
+                switch (generateOne(subject, withinLimit)) {
+                    case GENERATED -> generated++;
+                    case ALREADY_EXISTS -> alreadyExists++;
+                    case NO_HISTORY -> noHistory++;
+                    case BLOCKED_BY_LIMIT -> hasMore = true;
                 }
             } catch (RuntimeException exception) {
                 failed++;
@@ -74,27 +75,55 @@ public class StatisticsInsightGenerationService
                         exception
                 );
             }
+
+            if (hasMore) {
+                // 만들어야 하는데 한도에 막힌 대상을 만났다. 더 볼 것 없이 확정이다.
+                //
+                // 한도에 닿았다는 것만으로 멈추지 않는 이유는, 뒤가 전부 건너뛸
+                // 대상이면 만들 것이 없는데도 다시 호출하라고 알리기 때문이다.
+                // 만들 것이 실제로 남았는지 확인될 때까지 훑는다.
+                break;
+            }
         }
 
         log.info(
                 "통계 인사이트 생성을 마쳤습니다. "
-                        + "생성={}, 건너뜀={}, 실패={}",
+                        + "생성={}, 이미있음={}, 기준일없음={}, 실패={}, 남음={}",
                 generated,
-                skipped,
-                failed
+                alreadyExists,
+                noHistory,
+                failed,
+                hasMore
         );
 
         return new GenerateStatisticsInsightOutcome(
                 generated,
-                skipped,
-                failed
+                alreadyExists,
+                noHistory,
+                failed,
+                hasMore
         );
     }
 
-    /**
-     * @return 실제로 생성했으면 {@code true}, 건너뛰었으면 {@code false}
-     */
-    private boolean generateOne(StatisticsSubject subject) {
+    /** 대상 하나를 처리한 결과다. */
+    private enum SubjectOutcome {
+
+        GENERATED,
+
+        /** 이미 만들어 뒀다. 재실행이 비용을 늘리지 않는다는 뜻이라 조치가 없다. */
+        ALREADY_EXISTS,
+
+        /** 설명할 기준일이 없다. 수집이 비어 있다는 뜻이라 확인이 필요하다. */
+        NO_HISTORY,
+
+        /** 만들어야 하는데 실행 한도에 막혔다. 다음 실행이 필요하다는 뜻이다. */
+        BLOCKED_BY_LIMIT
+    }
+
+    private SubjectOutcome generateOne(
+            StatisticsSubject subject,
+            boolean withinLimit
+    ) {
         StatisticsHistoryFact history = loadHistory(subject);
 
         LocalDate asOf = history.range() == null
@@ -103,7 +132,7 @@ public class StatisticsInsightGenerationService
 
         // 수집된 기준일이 없으면 설명할 대상 자체가 없다.
         if (asOf == null) {
-            return false;
+            return SubjectOutcome.NO_HISTORY;
         }
 
         if (saveStatisticsInsightPort.exists(
@@ -112,7 +141,13 @@ public class StatisticsInsightGenerationService
                 properties.rangePreset(),
                 asOf
         )) {
-            return false;
+            return SubjectOutcome.ALREADY_EXISTS;
+        }
+
+        // 여기까지 왔으면 만들어야 하는 대상이다. 한도는 이 시점에 본다. 앞에서 보면
+        // 건너뛸 대상까지 남은 것으로 세게 된다.
+        if (!withinLimit) {
+            return SubjectOutcome.BLOCKED_BY_LIMIT;
         }
 
         StatisticsInsightFacts facts = assembler.assemble(history);
@@ -127,7 +162,7 @@ public class StatisticsInsightGenerationService
                 preview.model()
         );
 
-        return true;
+        return SubjectOutcome.GENERATED;
     }
 
     private StatisticsHistoryFact loadHistory(StatisticsSubject subject) {

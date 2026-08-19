@@ -122,7 +122,11 @@ X-Internal-API-Key: {{internalApiKey}}
 # 사람이 직접 실행하는 유일한 경로다.
 #
 # 한 번의 실행은 STATISTICS_INSIGHT_MAX_PER_RUN까지만 만든다.
-# generated가 그 한도와 같으면 남은 대상이 있다는 뜻이므로 다시 호출한다.
+# hasMore가 true면 한도 때문에 멈춘 것이므로 다시 호출한다. generated를 한도와
+# 비교해 짐작하지 않는다. 정확히 마지막까지 만들고 끝난 경우와 건수가 같다.
+#
+# alreadyExists는 넘어가도 된다. noHistory는 수집된 기준일이 없다는 뜻이라
+# 확인이 필요하다.
 POST {{baseUrl}}/internal/v1/insights/statistics
 X-Internal-API-Key: {{internalApiKey}}
 
@@ -144,17 +148,34 @@ X-Internal-API-Key: {{internalApiKey}}
 
         client.assert(
             "generated" in data
-            && "skipped" in data
-            && "failed" in data,
-            "generated / skipped / failed 필드가 모두 있지 않습니다."
+            && "alreadyExists" in data
+            && "noHistory" in data
+            && "failed" in data
+            && "hasMore" in data,
+            "generated / alreadyExists / noHistory / failed / hasMore "
+            + "필드가 모두 있지 않습니다."
         );
     });
 
     client.log(
         "생성 " + data.generated
-        + " / 건너뜀 " + data.skipped
+        + " / 이미있음 " + data.alreadyExists
+        + " / 기준일없음 " + data.noHistory
         + " / 실패 " + data.failed
+        + " / 남음 " + data.hasMore
     );
+
+    if (data.hasMore) {
+        client.log(
+            "한도 때문에 멈췄습니다. 남은 대상을 위해 다시 호출한다."
+        );
+    }
+
+    if (data.noHistory > 0) {
+        client.log(
+            "수집된 기준일이 없어 건너뛴 대상이 있습니다. 수집 상태를 확인한다."
+        );
+    }
 
     if (data.failed > 0) {
         client.log(
