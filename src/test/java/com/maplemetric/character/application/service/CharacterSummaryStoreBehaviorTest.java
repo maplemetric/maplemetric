@@ -34,6 +34,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -128,7 +129,8 @@ class CharacterSummaryStoreBehaviorTest {
                         Duration.ofSeconds(30)
                 ),
                 Clock.fixed(NOW, ZoneId.of("Asia/Seoul")),
-                System::nanoTime
+                System::nanoTime,
+                new SimpleMeterRegistry()
         );
     }
 

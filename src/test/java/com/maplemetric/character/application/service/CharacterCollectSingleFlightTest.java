@@ -43,6 +43,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -153,7 +154,8 @@ class CharacterCollectSingleFlightTest {
                         Duration.ofSeconds(30)
                 ),
                 Clock.fixed(NOW, ZoneId.of("Asia/Seoul")),
-                System::nanoTime
+                System::nanoTime,
+                new SimpleMeterRegistry()
         );
     }
 

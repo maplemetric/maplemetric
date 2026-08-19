@@ -71,6 +71,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -165,7 +166,8 @@ class CharacterQueryServiceTest {
                                 Duration.ofSeconds(30)
                         ),
                         clock,
-                        System::nanoTime
+                        System::nanoTime,
+                        new SimpleMeterRegistry()
                 );
     }
 
