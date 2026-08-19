@@ -534,17 +534,27 @@ class CharacterCollectSingleFlightTest {
      * 정해진 시간만 쉬고 넘어가면 느린 환경에서 후속 요청이 아직 합류하지 못한 채
      * 수집이 끝나고, 그 요청이 새로 수집을 맡아 구현이 옳아도 실패한다.
      * 시간이 아니라 실제 상태를 기다린다.
+     *
+     * 상태만 세면 안 된다. 장벽에 묶인 Thread도 대기 상태라, 모든 요청이 아직
+     * 장벽에 있을 때 조건이 그대로 참이 된다. 그러면 아무도 수집을 맡기 전에
+     * 걸쇠가 풀려 위와 똑같은 실패가 난다.
+     *
+     * 그래서 수집이 시작된 것을 먼저 확인한다. 수집을 맡은 쪽이 첫 호출에
+     * 들어갔다는 것은 장벽이 이미 열렸다는 뜻이므로, 그 뒤로는 장벽에 묶인
+     * Thread가 없다.
      */
     private void awaitFollowersWaiting(int expected) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
 
         while (System.nanoTime() < deadline) {
-            long waiting = callerThreads.stream()
-                    .filter(thread -> thread != Thread.currentThread())
-                    .map(Thread::getState)
-                    .filter(state -> state == Thread.State.WAITING
-                            || state == Thread.State.TIMED_WAITING)
-                    .count();
+            long waiting = collectAttempts.get() == 0
+                    ? 0
+                    : callerThreads.stream()
+                            .filter(thread -> thread != Thread.currentThread())
+                            .map(Thread::getState)
+                            .filter(state -> state == Thread.State.WAITING
+                                    || state == Thread.State.TIMED_WAITING)
+                            .count();
 
             if (waiting >= expected) {
                 return;
