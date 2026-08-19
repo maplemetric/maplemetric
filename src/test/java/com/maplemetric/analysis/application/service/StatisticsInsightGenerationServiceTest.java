@@ -67,7 +67,7 @@ class StatisticsInsightGenerationServiceTest {
         GenerateStatisticsInsightOutcome outcome = service.generate();
 
         assertThat(outcome).isEqualTo(
-                new GenerateStatisticsInsightOutcome(1, 1, 0)
+                new GenerateStatisticsInsightOutcome(1, 1, 0, 0, false)
         );
 
         // 이미 있는 대상은 생성 자체를 하지 않아 비용이 들지 않는다.
@@ -136,6 +136,78 @@ class StatisticsInsightGenerationServiceTest {
     }
 
     /**
+     * 한도 때문에 멈췄으면 남은 대상이 있다고 알린다.
+     *
+     * 운영자가 다시 호출해야 하는지 판단하는 유일한 근거다.
+     */
+    @Test
+    void 한도때문에멈추면남았다고알린다() {
+        service = createService(1);
+
+        givenSubjects(job("hero"), job("bishop"));
+        givenHistory("hero", AS_OF);
+        givenPreview();
+
+        assertThat(service.generate().hasMore()).isTrue();
+    }
+
+    /**
+     * 마지막 대상에서 한도에 닿아 끝나면 남은 것이 없다.
+     *
+     * 생성 건수와 한도를 비교해 짐작하면 이 경우를 "남았다"로 잘못 읽는다. 끝났는데
+     * 다시 부르게 된다.
+     */
+    @Test
+    void 마지막대상에서한도에닿아끝나면남지않았다고알린다() {
+        service = createService(1);
+
+        // 대상이 하나뿐이라 생성 건수가 한도와 같아도 남은 것이 없다.
+        givenSubjects(job("hero"));
+        givenHistory("hero", AS_OF);
+        givenPreview();
+
+        GenerateStatisticsInsightOutcome outcome = service.generate();
+
+        assertThat(outcome.generated()).isEqualTo(1);
+        assertThat(outcome.hasMore()).isFalse();
+    }
+
+    /**
+     * 건너뛴 이유를 나눠 센다.
+     *
+     * 이미 있는 것은 넘어가도 되지만 기준일이 없는 것은 수집이 비었다는 뜻이라
+     * 확인이 필요하다. 합쳐 세면 조치가 필요한 쪽을 놓친다.
+     */
+    @Test
+    void 건너뛴이유를나눠센다() {
+        givenSubjects(job("hero"), job("bishop"), world("scania"));
+        givenHistory("hero", AS_OF);
+        givenHistory("scania", AS_OF);
+        givenPreview();
+
+        // bishop은 수집된 기준일이 없다.
+        given(statisticsFactQuery.getJobHistoryFact(
+                "bishop", PRESET, null, null
+        )).willReturn(history(job("bishop"), null));
+
+        // hero는 아직 없어 새로 만든다.
+        given(saveStatisticsInsightPort.exists(
+                StatisticsSubjectType.JOB, "hero", PRESET, AS_OF
+        )).willReturn(false);
+
+        // scania는 이미 만들어 뒀다.
+        given(saveStatisticsInsightPort.exists(
+                StatisticsSubjectType.WORLD, "scania", PRESET, AS_OF
+        )).willReturn(true);
+
+        GenerateStatisticsInsightOutcome outcome = service.generate();
+
+        assertThat(outcome).isEqualTo(
+                new GenerateStatisticsInsightOutcome(1, 1, 1, 0, false)
+        );
+    }
+
+    /**
      * 수집된 기준일이 없으면 설명할 대상 자체가 없다.
      */
     @Test
@@ -148,7 +220,7 @@ class StatisticsInsightGenerationServiceTest {
         GenerateStatisticsInsightOutcome outcome = service.generate();
 
         assertThat(outcome).isEqualTo(
-                new GenerateStatisticsInsightOutcome(0, 1, 0)
+                new GenerateStatisticsInsightOutcome(0, 0, 1, 0, false)
         );
 
         verify(insightGenerator, never()).generate(any());

@@ -28,9 +28,9 @@ class StatisticsInsightControllerTest {
     private GenerateStatisticsInsightUseCase generateUseCase;
 
     @Test
-    void 생성실행은건수를생성건너뜀실패로나누어반환한다() throws Exception {
+    void 생성실행결과를항목별로나누어반환한다() throws Exception {
         given(generateUseCase.generate()).willReturn(
-                new GenerateStatisticsInsightOutcome(12, 3, 1)
+                new GenerateStatisticsInsightOutcome(12, 3, 2, 1, false)
         );
 
         mockMvc.perform(post(INSIGHT_PATH))
@@ -41,8 +41,29 @@ class StatisticsInsightControllerTest {
                                 .value("STATISTICS_INSIGHT_GENERATED")
                 )
                 .andExpect(jsonPath("$.data.generated").value(12))
-                .andExpect(jsonPath("$.data.skipped").value(3))
-                .andExpect(jsonPath("$.data.failed").value(1));
+                .andExpect(jsonPath("$.data.alreadyExists").value(3))
+                .andExpect(jsonPath("$.data.noHistory").value(2))
+                .andExpect(jsonPath("$.data.failed").value(1))
+                .andExpect(jsonPath("$.data.hasMore").value(false));
+    }
+
+    /**
+     * 건너뛴 이유가 합쳐지지 않는지 고정한다.
+     *
+     * 이미 있는 것은 넘어가도 되지만 기준일이 없는 것은 수집이 비었다는 뜻이라
+     * 확인이 필요하다. 하나로 합치면 조치가 필요한 쪽이 응답에서 사라진다.
+     */
+    @Test
+    void 건너뛴이유를합치지않는다() throws Exception {
+        given(generateUseCase.generate()).willReturn(
+                new GenerateStatisticsInsightOutcome(0, 3, 2, 0, false)
+        );
+
+        mockMvc.perform(post(INSIGHT_PATH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.alreadyExists").value(3))
+                .andExpect(jsonPath("$.data.noHistory").value(2))
+                .andExpect(jsonPath("$.data.skipped").doesNotExist());
     }
 
     /**
@@ -51,7 +72,7 @@ class StatisticsInsightControllerTest {
     @Test
     void 요청한번은생성을한번만위임한다() throws Exception {
         given(generateUseCase.generate()).willReturn(
-                new GenerateStatisticsInsightOutcome(0, 0, 0)
+                new GenerateStatisticsInsightOutcome(0, 0, 0, 0, false)
         );
 
         mockMvc.perform(post(INSIGHT_PATH))
@@ -61,22 +82,21 @@ class StatisticsInsightControllerTest {
     }
 
     /**
-     * 생성 건수가 실행 한도와 같으면 남은 대상이 있다는 뜻이다.
+     * 재호출 여부를 판단하는 근거가 응답에 그대로 실리는지 고정한다.
      *
-     * 소비자가 재호출 여부를 판단하는 근거가 generated 값이므로 그 값이
-     * 응답에 그대로 실리는지 고정한다.
+     * 생성 건수가 한도와 같은 것만으로는 남았는지 알 수 없다. 정확히 마지막까지
+     * 만들고 끝난 경우와 건수가 같기 때문이다.
      */
     @Test
-    void 한도까지생성하면그건수를그대로반환한다() throws Exception {
+    void 남은대상이있으면그사실을반환한다() throws Exception {
         given(generateUseCase.generate()).willReturn(
-                new GenerateStatisticsInsightOutcome(70, 0, 0)
+                new GenerateStatisticsInsightOutcome(70, 0, 0, 0, true)
         );
 
         mockMvc.perform(post(INSIGHT_PATH))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.generated").value(70))
-                .andExpect(jsonPath("$.data.skipped").value(0))
-                .andExpect(jsonPath("$.data.failed").value(0));
+                .andExpect(jsonPath("$.data.hasMore").value(true));
     }
 
     /**
@@ -85,7 +105,7 @@ class StatisticsInsightControllerTest {
     @Test
     void 일부대상이실패해도요청은성공으로응답한다() throws Exception {
         given(generateUseCase.generate()).willReturn(
-                new GenerateStatisticsInsightOutcome(5, 0, 4)
+                new GenerateStatisticsInsightOutcome(5, 0, 0, 4, false)
         );
 
         mockMvc.perform(post(INSIGHT_PATH))

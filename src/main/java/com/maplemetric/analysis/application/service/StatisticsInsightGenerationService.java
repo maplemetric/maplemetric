@@ -51,19 +51,25 @@ public class StatisticsInsightGenerationService
     @Override
     public GenerateStatisticsInsightOutcome generate() {
         int generated = 0;
-        int skipped = 0;
+        int alreadyExists = 0;
+        int noHistory = 0;
         int failed = 0;
+        boolean hasMore = false;
 
         for (StatisticsSubject subject : statisticsFactQuery.listSubjects()) {
             if (generated >= properties.maxPerRun()) {
+                // 이 대상을 아직 처리하지 않은 채로 멈춘다. 남은 것이 있다는 사실을
+                // 짐작이 아니라 이 지점에서 확정한다.
+                hasMore = true;
+
                 break;
             }
 
             try {
-                if (generateOne(subject)) {
-                    generated++;
-                } else {
-                    skipped++;
+                switch (generateOne(subject)) {
+                    case GENERATED -> generated++;
+                    case ALREADY_EXISTS -> alreadyExists++;
+                    case NO_HISTORY -> noHistory++;
                 }
             } catch (RuntimeException exception) {
                 failed++;
@@ -78,23 +84,36 @@ public class StatisticsInsightGenerationService
 
         log.info(
                 "통계 인사이트 생성을 마쳤습니다. "
-                        + "생성={}, 건너뜀={}, 실패={}",
+                        + "생성={}, 이미있음={}, 기준일없음={}, 실패={}, 남음={}",
                 generated,
-                skipped,
-                failed
+                alreadyExists,
+                noHistory,
+                failed,
+                hasMore
         );
 
         return new GenerateStatisticsInsightOutcome(
                 generated,
-                skipped,
-                failed
+                alreadyExists,
+                noHistory,
+                failed,
+                hasMore
         );
     }
 
-    /**
-     * @return 실제로 생성했으면 {@code true}, 건너뛰었으면 {@code false}
-     */
-    private boolean generateOne(StatisticsSubject subject) {
+    /** 대상 하나를 처리한 결과다. */
+    private enum SubjectOutcome {
+
+        GENERATED,
+
+        /** 이미 만들어 뒀다. 재실행이 비용을 늘리지 않는다는 뜻이라 조치가 없다. */
+        ALREADY_EXISTS,
+
+        /** 설명할 기준일이 없다. 수집이 비어 있다는 뜻이라 확인이 필요하다. */
+        NO_HISTORY
+    }
+
+    private SubjectOutcome generateOne(StatisticsSubject subject) {
         StatisticsHistoryFact history = loadHistory(subject);
 
         LocalDate asOf = history.range() == null
@@ -103,7 +122,7 @@ public class StatisticsInsightGenerationService
 
         // 수집된 기준일이 없으면 설명할 대상 자체가 없다.
         if (asOf == null) {
-            return false;
+            return SubjectOutcome.NO_HISTORY;
         }
 
         if (saveStatisticsInsightPort.exists(
@@ -112,7 +131,7 @@ public class StatisticsInsightGenerationService
                 properties.rangePreset(),
                 asOf
         )) {
-            return false;
+            return SubjectOutcome.ALREADY_EXISTS;
         }
 
         StatisticsInsightFacts facts = assembler.assemble(history);
@@ -127,7 +146,7 @@ public class StatisticsInsightGenerationService
                 preview.model()
         );
 
-        return true;
+        return SubjectOutcome.GENERATED;
     }
 
     private StatisticsHistoryFact loadHistory(StatisticsSubject subject) {
