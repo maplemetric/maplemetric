@@ -48,4 +48,4 @@ logging:
 maplemetric:
   nexon:
     open-api:
-      key: ${NEXON_OPEN_API_KEY}
+      keys: ${NEXON_OPEN_API_KEYS:${NEXON_OPEN_API_KEY}}

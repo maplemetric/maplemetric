@@ -82,7 +82,7 @@ class RankingClientImplTest {
         rankingClient = new RankingClientImpl(
                 restClientBuilder.build(),
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"))
         );
     }
 
@@ -849,7 +849,7 @@ class RankingClientImplTest {
         return new RankingClientImpl(
                 restClient,
                 objectMapper,
-                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)))
+                new NexonRequestRateGate(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"))
         );
     }
 }

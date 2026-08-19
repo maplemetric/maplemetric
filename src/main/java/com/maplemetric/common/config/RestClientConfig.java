@@ -11,9 +11,6 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class RestClientConfig {
 
-    private static final String NEXON_API_KEY_HEADER =
-            "x-nxopen-api-key";
-
     private static final Duration CONNECT_TIMEOUT =
             Duration.ofSeconds(3);
 
@@ -33,11 +30,9 @@ public class RestClientConfig {
 
         return RestClient.builder()
                 .requestFactory(requestFactory)
+                // Key를 여기 고정하지 않는다. 어느 Key로 보낼지는 관문이 요청마다
+                // 정하므로 그때 헤더를 붙인다.
                 .baseUrl(nexonApiProperties.baseUrl())
-                .defaultHeader(
-                        NEXON_API_KEY_HEADER,
-                        nexonApiProperties.key()
-                )
                 .build();
     }
 }

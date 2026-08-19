@@ -22,6 +22,8 @@ public final class NexonApiRequester {
     private static final String RATE_LIMIT_ERROR_CODE =
             "OPENAPI00007";
 
+    private static final String API_KEY_HEADER = "x-nxopen-api-key";
+
     private static final int MAX_RATE_LIMIT_RETRY_COUNT = 3;
 
     private static final long RATE_LIMIT_RETRY_DELAY_MILLIS =
@@ -85,7 +87,7 @@ public final class NexonApiRequester {
 
         // 재시도도 이 지점을 다시 지난다. 429를 받고 되돌아온 요청이 관문을
         // 건너뛰면 한도를 넘긴 채로 다시 나간다.
-        acquirePermit(apiName);
+        String apiKey = acquirePermit(apiName);
 
         try {
             T response = restClient.get()
@@ -102,6 +104,7 @@ public final class NexonApiRequester {
 
                         return uriBuilder.build();
                     })
+                    .header(API_KEY_HEADER, apiKey)
                     .retrieve()
                     .body(responseType);
 
@@ -332,9 +335,9 @@ public final class NexonApiRequester {
      * 기다리다 중단되면 재시도 대기와 같은 실패로 알린다. 여기서만 다른 예외를
      * 던지면 같은 상황인데 소비자가 받는 응답이 달라진다.
      */
-    private void acquirePermit(String apiName) {
+    private String acquirePermit(String apiName) {
         try {
-            rateGate.acquire();
+            return rateGate.acquire();
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
 
