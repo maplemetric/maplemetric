@@ -69,7 +69,8 @@ maplemetric:
       # 늘어난다. 한도가 Key마다 따로 붙는다는 것이 요점이다.
       #
       # 단수형도 그대로 받는다. Key 하나만 쓰던 설정을 고치지 않아도 된다.
-      keys: ${NEXON_OPEN_API_KEYS:${NEXON_OPEN_API_KEY:}}
+      keys: ${NEXON_OPEN_API_KEYS:}
+      key: ${NEXON_OPEN_API_KEY:}
 
     # Nexon은 애플리케이션 단위로 초당 호출 수를 제한한다. 넘기면 429가 돌아오고
     # 그 응답도 호출로 집계될 수 있어 한도를 넘기는 것 자체가 손해다.
