@@ -210,7 +210,7 @@ class CharacterCollectSingleFlightTest {
                 );
 
         // 수집을 맡은 쪽과 합류한 쪽이 모두 자리를 잡은 뒤에 풀어준다.
-        awaitFollowersWaiting(CALLER_COUNT);
+        awaitFollowersWaiting(CALLER_COUNT - 1);
         releaseLeader.countDown();
 
         for (Future<GetCharacterSummaryResult> caller : callers) {
@@ -258,7 +258,7 @@ class CharacterCollectSingleFlightTest {
                         service.getCharacterSummary(CHARACTER_NAME)
                 );
 
-        awaitFollowersWaiting(CALLER_COUNT);
+        awaitFollowersWaiting(CALLER_COUNT - 1);
         releaseLeader.countDown();
 
         // 대기 한도(5초)보다 넉넉히 잡되, 한도에 걸려 끝나면 아래 단정이 실패한다.
@@ -305,7 +305,7 @@ class CharacterCollectSingleFlightTest {
                         service.getCharacterSummary(CHARACTER_NAME)
                 );
 
-        awaitFollowersWaiting(CALLER_COUNT);
+        awaitFollowersWaiting(CALLER_COUNT - 1);
         releaseLeader.countDown();
 
         for (Future<GetCharacterSummaryResult> caller : callers) {
@@ -529,32 +529,29 @@ class CharacterCollectSingleFlightTest {
     }
 
     /**
-     * 합류한 요청이 모두 결과를 기다리는 상태가 될 때까지 둔다.
+     * 합류한 요청이 모두 결과를 기다리는 지점에 들어갈 때까지 둔다.
+     *
+     * 수집을 맡은 쪽은 합류자가 아니므로 세지 않는다.
      *
      * 정해진 시간만 쉬고 넘어가면 느린 환경에서 후속 요청이 아직 합류하지 못한 채
      * 수집이 끝나고, 그 요청이 새로 수집을 맡아 구현이 옳아도 실패한다.
      * 시간이 아니라 실제 상태를 기다린다.
      *
-     * 상태만 세면 안 된다. 장벽에 묶인 Thread도 대기 상태라, 모든 요청이 아직
-     * 장벽에 있을 때 조건이 그대로 참이 된다. 그러면 아무도 수집을 맡기 전에
-     * 걸쇠가 풀려 위와 똑같은 실패가 난다.
+     * 대기 상태를 세는 것으로는 안 된다. 장벽에 묶인 Thread도 대기 상태이고,
+     * 장벽이 열린 뒤에도 각자 락을 다시 잡는 동안 여전히 대기 상태다. 그 사이에
+     * 조건이 참이 되면 아무도 합류하기 전에 걸쇠가 풀려 위와 똑같은 실패가 난다.
      *
-     * 그래서 수집이 시작된 것을 먼저 확인한다. 수집을 맡은 쪽이 첫 호출에
-     * 들어갔다는 것은 장벽이 이미 열렸다는 뜻이므로, 그 뒤로는 장벽에 묶인
-     * Thread가 없다.
+     * 그래서 상태가 아니라 위치를 본다. 진행 중인 수집을 기다리는 지점에 실제로
+     * 들어간 Thread만 센다. 거기 있다는 것은 합류가 끝났다는 뜻이다.
      */
     private void awaitFollowersWaiting(int expected) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
 
         while (System.nanoTime() < deadline) {
-            long waiting = collectAttempts.get() == 0
-                    ? 0
-                    : callerThreads.stream()
-                            .filter(thread -> thread != Thread.currentThread())
-                            .map(Thread::getState)
-                            .filter(state -> state == Thread.State.WAITING
-                                    || state == Thread.State.TIMED_WAITING)
-                            .count();
+            long waiting = callerThreads.stream()
+                    .filter(thread -> thread != Thread.currentThread())
+                    .filter(this::isAwaitingCollected)
+                    .count();
 
             if (waiting >= expected) {
                 return;
@@ -569,8 +566,29 @@ class CharacterCollectSingleFlightTest {
         }
 
         throw new IllegalStateException(
-                "합류한 요청이 대기 상태가 되지 않았습니다."
+                "합류한 요청이 대기 지점에 도달하지 않았습니다."
         );
+    }
+
+    /**
+     * 진행 중인 수집을 기다리는 지점에 들어가 있는지 본다.
+     *
+     * 대기 상태만으로는 장벽에 묶인 것과 구별되지 않는다. 실제로 어느 지점에
+     * 있는지를 봐야 합류가 끝났다고 말할 수 있다.
+     *
+     * 이 지점의 이름이 바뀌면 합류를 하나도 세지 못해 대기가 상한까지 가고
+     * 위 메시지로 끝난다. 조용히 통과하지 않는다.
+     */
+    private boolean isAwaitingCollected(Thread thread) {
+        for (StackTraceElement frame : thread.getStackTrace()) {
+            if (frame.getClassName()
+                    .endsWith("CharacterQueryService")
+                    && "awaitCollected".equals(frame.getMethodName())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
