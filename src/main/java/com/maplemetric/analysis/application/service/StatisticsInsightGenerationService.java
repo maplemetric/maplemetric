@@ -57,19 +57,14 @@ public class StatisticsInsightGenerationService
         boolean hasMore = false;
 
         for (StatisticsSubject subject : statisticsFactQuery.listSubjects()) {
-            if (generated >= properties.maxPerRun()) {
-                // 이 대상을 아직 처리하지 않은 채로 멈춘다. 남은 것이 있다는 사실을
-                // 짐작이 아니라 이 지점에서 확정한다.
-                hasMore = true;
-
-                break;
-            }
+            boolean withinLimit = generated < properties.maxPerRun();
 
             try {
-                switch (generateOne(subject)) {
+                switch (generateOne(subject, withinLimit)) {
                     case GENERATED -> generated++;
                     case ALREADY_EXISTS -> alreadyExists++;
                     case NO_HISTORY -> noHistory++;
+                    case BLOCKED_BY_LIMIT -> hasMore = true;
                 }
             } catch (RuntimeException exception) {
                 failed++;
@@ -79,6 +74,15 @@ public class StatisticsInsightGenerationService
                         subject.slug(),
                         exception
                 );
+            }
+
+            if (hasMore) {
+                // 만들어야 하는데 한도에 막힌 대상을 만났다. 더 볼 것 없이 확정이다.
+                //
+                // 한도에 닿았다는 것만으로 멈추지 않는 이유는, 뒤가 전부 건너뛸
+                // 대상이면 만들 것이 없는데도 다시 호출하라고 알리기 때문이다.
+                // 만들 것이 실제로 남았는지 확인될 때까지 훑는다.
+                break;
             }
         }
 
@@ -110,10 +114,16 @@ public class StatisticsInsightGenerationService
         ALREADY_EXISTS,
 
         /** 설명할 기준일이 없다. 수집이 비어 있다는 뜻이라 확인이 필요하다. */
-        NO_HISTORY
+        NO_HISTORY,
+
+        /** 만들어야 하는데 실행 한도에 막혔다. 다음 실행이 필요하다는 뜻이다. */
+        BLOCKED_BY_LIMIT
     }
 
-    private SubjectOutcome generateOne(StatisticsSubject subject) {
+    private SubjectOutcome generateOne(
+            StatisticsSubject subject,
+            boolean withinLimit
+    ) {
         StatisticsHistoryFact history = loadHistory(subject);
 
         LocalDate asOf = history.range() == null
@@ -132,6 +142,12 @@ public class StatisticsInsightGenerationService
                 asOf
         )) {
             return SubjectOutcome.ALREADY_EXISTS;
+        }
+
+        // 여기까지 왔으면 만들어야 하는 대상이다. 한도는 이 시점에 본다. 앞에서 보면
+        // 건너뛸 대상까지 남은 것으로 세게 된다.
+        if (!withinLimit) {
+            return SubjectOutcome.BLOCKED_BY_LIMIT;
         }
 
         StatisticsInsightFacts facts = assembler.assemble(history);
