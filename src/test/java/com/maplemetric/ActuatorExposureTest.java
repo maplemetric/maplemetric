@@ -108,6 +108,61 @@ class ActuatorExposureTest {
     }
 
     /**
+     * 노출 목록에 적은 엔드포인트를 실제로 제공한다.
+     *
+     * Actuator만으로는 지표를 메모리에 담을 뿐 Prometheus 형식으로 내보내지 못한다.
+     * registry 없이 목록에만 적으면 그 경로는 404인데, 설정만 읽는 사람에게는 열려
+     * 있는 것으로 보인다. 실제로 운영 노출을 좁히는 작업에서 이것을 열려 있는
+     * 엔드포인트로 세었다.
+     *
+     * 설정과 실제 제공을 따로 보면 이 어긋남을 잡지 못한다. 둘을 잇는다.
+     */
+    @Test
+    void 노출한엔드포인트를실제로제공한다() throws IOException {
+        for (String profile : new String[] {"", "local", "prod"}) {
+            if (!exposes(profile, "prometheus")) {
+                continue;
+            }
+
+            assertThat(onClasspath(
+                    "io.micrometer.prometheusmetrics.PrometheusMeterRegistry"
+            ))
+                    .as("%s 노출에 prometheus가 있으나 registry가 없다", profile)
+                    .isTrue();
+        }
+    }
+
+    private boolean exposes(String profile, String endpoint)
+            throws IOException {
+        PropertySourcesPropertyResolver resolver = profile.isEmpty()
+                ? effective()
+                : effective(profile);
+
+        for (int index = 0; ; index++) {
+            String value =
+                    resolver.getProperty(EXPOSURE + "[" + index + "]");
+
+            if (value == null) {
+                return false;
+            }
+
+            if (endpoint.equals(value)) {
+                return true;
+            }
+        }
+    }
+
+    private boolean onClasspath(String className) {
+        try {
+            Class.forName(className, false, getClass().getClassLoader());
+
+            return true;
+        } catch (ClassNotFoundException exception) {
+            return false;
+        }
+    }
+
+    /**
      * profile 설정이 기본 설정을 덮도록 Spring과 같은 순서로 쌓는다.
      */
     private PropertySourcesPropertyResolver effective(String... profiles)
