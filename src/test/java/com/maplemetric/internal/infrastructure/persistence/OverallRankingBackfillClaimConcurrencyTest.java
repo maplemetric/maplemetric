@@ -123,7 +123,8 @@ class OverallRankingBackfillClaimConcurrencyTest {
     @Test
     void 같은기준일의결과기록은잠금을기다려한번만집계된다() throws Exception {
         BackfillJob job = service.createJob(FROM, TO);
-        UUID dateId = inNewTransaction(() -> claim(job.id()).id());
+        BackfillDate claimed = inNewTransaction(() -> claim(job.id()));
+        UUID dateId = claimed.id();
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
@@ -133,8 +134,8 @@ class OverallRankingBackfillClaimConcurrencyTest {
                 dateRepository.findByIdForUpdate(dateId);
 
                 List<Future<?>> submitted = List.of(
-                        executor.submit(() -> fail(dateId)),
-                        executor.submit(() -> fail(dateId))
+                        executor.submit(() -> fail(claimed)),
+                        executor.submit(() -> fail(claimed))
                 );
 
                 // 행을 잠그지 않고 읽으면 둘 다 이 시간 안에 끝나고, 각자 RUNNING을
@@ -169,8 +170,8 @@ class OverallRankingBackfillClaimConcurrencyTest {
     void 커밋된상태전이는이후Transaction에서그대로보인다() {
         BackfillJob job = service.createJob(FROM, TO);
 
-        inNewTransaction(() -> service.succeedDate(claim(job.id()).id()));
-        inNewTransaction(() -> service.succeedDate(claim(job.id()).id()));
+        inNewTransaction(() -> succeed(claim(job.id())));
+        inNewTransaction(() -> succeed(claim(job.id())));
 
         BackfillJob finished = service.findJob(job.id()).orElseThrow();
 
@@ -186,8 +187,17 @@ class OverallRankingBackfillClaimConcurrencyTest {
                 .containsOnly(BackfillStatus.SUCCEEDED);
     }
 
-    private void fail(UUID backfillDateId) {
-        service.failDate(backfillDateId, BackfillErrorType.UNKNOWN, false);
+    private void fail(BackfillDate date) {
+        service.failDate(
+                date.id(),
+                date.claimToken(),
+                BackfillErrorType.UNKNOWN,
+                false
+        );
+    }
+
+    private void succeed(BackfillDate date) {
+        service.succeedDate(date.id(), date.claimToken());
     }
 
     private BackfillDate claim(UUID backfillJobId) {

@@ -95,10 +95,10 @@ class OverallRankingBackfillStatePersistenceAdapter
     }
 
     @Override
-    public void succeedDate(UUID backfillDateId) {
+    public void succeedDate(UUID backfillDateId, UUID claimToken) {
         OverallRankingBackfillDateEntity date = getDate(backfillDateId);
 
-        if (!date.succeed()) {
+        if (!date.succeed(claimToken)) {
             return;
         }
 
@@ -107,10 +107,10 @@ class OverallRankingBackfillStatePersistenceAdapter
     }
 
     @Override
-    public void skipDate(UUID backfillDateId) {
+    public void skipDate(UUID backfillDateId, UUID claimToken) {
         OverallRankingBackfillDateEntity date = getDate(backfillDateId);
 
-        if (!date.skip()) {
+        if (!date.skip(claimToken)) {
             return;
         }
 
@@ -121,20 +121,22 @@ class OverallRankingBackfillStatePersistenceAdapter
     @Override
     public void releaseDate(
             UUID backfillDateId,
+            UUID claimToken,
             BackfillErrorType errorType
     ) {
-        getDate(backfillDateId).release(errorType);
+        getDate(backfillDateId).release(claimToken, errorType);
     }
 
     @Override
     public void failDate(
             UUID backfillDateId,
+            UUID claimToken,
             BackfillErrorType errorType,
             boolean retryable
     ) {
         OverallRankingBackfillDateEntity date = getDate(backfillDateId);
 
-        if (!date.fail(errorType, retryable) || retryable) {
+        if (!date.fail(claimToken, errorType, retryable) || retryable) {
             return;
         }
 
@@ -239,6 +241,7 @@ class OverallRankingBackfillStatePersistenceAdapter
                 date.getStatus(),
                 date.getAttemptCount(),
                 date.getLastErrorType(),
+                date.getClaimToken(),
                 date.getStartedAt(),
                 date.getFinishedAt()
         );

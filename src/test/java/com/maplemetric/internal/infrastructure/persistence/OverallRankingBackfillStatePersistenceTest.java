@@ -141,13 +141,13 @@ class OverallRankingBackfillStatePersistenceTest {
     void 성공과Skip은집계를올리고모두끝나면Job을성공으로닫는다() {
         BackfillJob job = service.createJob(FROM, TO);
 
-        service.succeedDate(claim(job.id()).id());
-        service.skipDate(claim(job.id()).id());
+        succeedDate(claim(job.id()));
+        skipDate(claim(job.id()));
 
         assertThat(findJob(job.id()).status())
                 .isEqualTo(BackfillStatus.RUNNING);
 
-        service.succeedDate(claim(job.id()).id());
+        succeedDate(claim(job.id()));
 
         BackfillJob finished = findJob(job.id());
 
@@ -162,8 +162,8 @@ class OverallRankingBackfillStatePersistenceTest {
     void 재시도가능한실패는PENDING으로되돌리고시도횟수를유지한다() {
         BackfillJob job = service.createJob(FROM, FROM);
 
-        service.failDate(
-                claim(job.id()).id(),
+        failDate(
+                claim(job.id()),
                 BackfillErrorType.EXTERNAL_TIMEOUT,
                 true
         );
@@ -197,8 +197,8 @@ class OverallRankingBackfillStatePersistenceTest {
 
         assertThat(claimed.attemptCount()).isEqualTo(1);
 
-        service.releaseDate(
-                claimed.id(),
+        releaseDate(
+                claimed,
                 BackfillErrorType.EXTERNAL_RATE_LIMITED
         );
 
@@ -220,8 +220,8 @@ class OverallRankingBackfillStatePersistenceTest {
     void 재시도불가능한실패는기준일과Job을실패로닫는다() {
         BackfillJob job = service.createJob(FROM, FROM);
 
-        service.failDate(
-                claim(job.id()).id(),
+        failDate(
+                claim(job.id()),
                 BackfillErrorType.RESPONSE_INVALID,
                 false
         );
@@ -241,12 +241,12 @@ class OverallRankingBackfillStatePersistenceTest {
     void 실패한기준일이하나라도있으면Job은성공으로닫히지않는다() {
         BackfillJob job = service.createJob(FROM, FROM.plusDays(1));
 
-        service.failDate(
-                claim(job.id()).id(),
+        failDate(
+                claim(job.id()),
                 BackfillErrorType.STORE_FAILED,
                 false
         );
-        service.succeedDate(claim(job.id()).id());
+        succeedDate(claim(job.id()));
 
         assertThat(findJob(job.id()).status())
                 .isEqualTo(BackfillStatus.FAILED);
@@ -256,7 +256,7 @@ class OverallRankingBackfillStatePersistenceTest {
     void 취소는남은기준일과Job을CANCELLED로닫고끝난기준일은건드리지않는다() {
         BackfillJob job = service.createJob(FROM, TO);
 
-        service.succeedDate(claim(job.id()).id());
+        succeedDate(claim(job.id()));
         service.cancelJob(job.id());
 
         assertThat(service.findDates(job.id()))
@@ -279,10 +279,10 @@ class OverallRankingBackfillStatePersistenceTest {
         BackfillJob job = service.createJob(FROM, TO);
 
         // 실행기가 외부 호출을 하는 사이 관리자가 Job을 취소한 상황이다.
-        UUID claimedDateId = claim(job.id()).id();
+        BackfillDate claimedDate = claim(job.id());
         service.cancelJob(job.id());
 
-        service.succeedDate(claimedDateId);
+        succeedDate(claimedDate);
 
         assertThat(service.findDates(job.id()))
                 .extracting(date -> date.status())
@@ -298,12 +298,12 @@ class OverallRankingBackfillStatePersistenceTest {
     void 종료된기준일에Skip과실패를기록해도집계가바뀌지않는다() {
         BackfillJob job = service.createJob(FROM, FROM);
 
-        UUID claimedDateId = claim(job.id()).id();
-        service.succeedDate(claimedDateId);
+        BackfillDate claimedDate = claim(job.id());
+        succeedDate(claimedDate);
 
-        service.skipDate(claimedDateId);
-        service.failDate(
-                claimedDateId,
+        skipDate(claimedDate);
+        failDate(
+                claimedDate,
                 BackfillErrorType.UNKNOWN,
                 false
         );
@@ -354,11 +354,7 @@ class OverallRankingBackfillStatePersistenceTest {
                 Instant.now().plusSeconds(600)
         ).get(0);
 
-        service.failDate(
-                stale.id(),
-                BackfillErrorType.UNKNOWN,
-                true
-        );
+        failDate(stale, BackfillErrorType.UNKNOWN, true);
 
         BackfillDate reclaimed = claim(job.id());
 
@@ -370,7 +366,7 @@ class OverallRankingBackfillStatePersistenceTest {
     void 끝난기준일은회수대상이아니다() {
         BackfillJob job = service.createJob(FROM, FROM);
 
-        service.succeedDate(claim(job.id()).id());
+        succeedDate(claim(job.id()));
         entityManager.flush();
 
         assertThat(service.findStaleClaims(
@@ -414,6 +410,168 @@ class OverallRankingBackfillStatePersistenceTest {
                 """,
                 job.id()
         )).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    /**
+     * 점유할 때마다 새 표를 발급한다.
+     *
+     * 표가 같으면 앞선 점유의 뒤늦은 결과가 새 점유에 그대로 통한다.
+     */
+    @Test
+    void 점유할때마다새표를발급한다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        BackfillDate first = claim(job.id());
+
+        assertThat(first.claimToken()).isNotNull();
+
+        failDate(first, BackfillErrorType.EXTERNAL_TIMEOUT, true);
+
+        BackfillDate second = claim(job.id());
+
+        assertThat(second.claimToken()).isNotNull();
+        assertThat(second.claimToken()).isNotEqualTo(first.claimToken());
+    }
+
+    /**
+     * 점유를 잃은 실행기의 뒤늦은 결과는 아무것도 바꾸지 않는다.
+     *
+     * 오래 걸려 회수된 실행기가 그 사이 다시 점유한 실행기의 점유를 덮어쓰면, 같은
+     * 기준일을 둘이 수집하고 시도 한도도 무너진다.
+     */
+    @Test
+    void 점유를잃은실행기의뒤늦은결과는무시된다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        BackfillDate lost = claim(job.id());
+
+        // 회수된 뒤 다른 실행기가 다시 잡았다.
+        failDate(lost, BackfillErrorType.UNKNOWN, true);
+
+        BackfillDate current = claim(job.id());
+
+        succeedDate(lost);
+        skipDate(lost);
+        failDate(lost, BackfillErrorType.UNKNOWN, false);
+        releaseDate(lost, BackfillErrorType.EXTERNAL_RATE_LIMITED);
+
+        BackfillDate untouched = onlyDate(job.id());
+
+        assertThat(untouched.status()).isEqualTo(BackfillStatus.RUNNING);
+        assertThat(untouched.claimToken()).isEqualTo(current.claimToken());
+
+        BackfillJob unchanged = findJob(job.id());
+
+        assertThat(unchanged.succeededDateCount()).isZero();
+        assertThat(unchanged.skippedDateCount()).isZero();
+        assertThat(unchanged.failedDateCount()).isZero();
+    }
+
+    /**
+     * 점유가 끝나면 표를 지운다.
+     *
+     * 표가 남아 있는 것은 지금 누군가 점유 중이라는 뜻이다. 끝난 기준일에 남겨 두면
+     * 표의 의미가 흐려진다.
+     */
+    @Test
+    void 점유가끝나면표를지운다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        BackfillDate claimed = claim(job.id());
+
+        releaseDate(claimed, BackfillErrorType.EXTERNAL_RATE_LIMITED);
+
+        assertThat(onlyDate(job.id()).claimToken()).isNull();
+
+        BackfillDate retried = claim(job.id());
+
+        failDate(retried, BackfillErrorType.EXTERNAL_TIMEOUT, true);
+
+        assertThat(onlyDate(job.id()).claimToken()).isNull();
+
+        BackfillDate finished = claim(job.id());
+
+        succeedDate(finished);
+
+        assertThat(onlyDate(job.id()).claimToken()).isNull();
+    }
+
+    /** 취소도 표를 남기지 않는다. 점유 중이 아닌 기준일이 되기 때문이다. */
+    @Test
+    void 취소도표를남기지않는다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        claim(job.id());
+
+        service.cancelJob(job.id());
+
+        BackfillDate cancelled = onlyDate(job.id());
+
+        assertThat(cancelled.status()).isEqualTo(BackfillStatus.CANCELLED);
+        assertThat(cancelled.claimToken()).isNull();
+    }
+
+    /**
+     * 회수 조회와 회수 기록 사이에 다시 점유되면 회수가 적용되지 않는다.
+     *
+     * 회수 조회는 행을 잠그지 않는다. 그 사이 다른 실행기가 잡으면 표가 달라진다.
+     */
+    @Test
+    void 회수전에다시점유되면회수가적용되지않는다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        BackfillDate claimed = claim(job.id());
+
+        BackfillDate stale = service.findStaleClaims(
+                job.id(),
+                Instant.now().plusSeconds(600)
+        ).get(0);
+
+        // 회수를 기록하기 전에 원래 실행기가 스스로 끝내고 다른 실행기가 다시 잡았다.
+        failDate(claimed, BackfillErrorType.UNKNOWN, true);
+
+        BackfillDate reclaimed = claim(job.id());
+
+        failDate(stale, BackfillErrorType.UNKNOWN, true);
+
+        BackfillDate current = onlyDate(job.id());
+
+        assertThat(current.status()).isEqualTo(BackfillStatus.RUNNING);
+        assertThat(current.claimToken()).isEqualTo(reclaimed.claimToken());
+    }
+
+    /**
+     * 점유한 실행기로서 결과를 기록한다.
+     *
+     * 점유할 때 받은 표를 함께 넘겨야 상태가 바뀐다. 시험마다 표를 꺼내 넘기면
+     * 검증하려는 것이 무엇인지가 가려진다.
+     */
+    private void succeedDate(BackfillDate date) {
+        service.succeedDate(date.id(), date.claimToken());
+    }
+
+    private void skipDate(BackfillDate date) {
+        service.skipDate(date.id(), date.claimToken());
+    }
+
+    private void failDate(
+            BackfillDate date,
+            BackfillErrorType errorType,
+            boolean retryable
+    ) {
+        service.failDate(
+                date.id(),
+                date.claimToken(),
+                errorType,
+                retryable
+        );
+    }
+
+    private void releaseDate(
+            BackfillDate date,
+            BackfillErrorType errorType
+    ) {
+        service.releaseDate(date.id(), date.claimToken(), errorType);
     }
 
     private BackfillDate claim(UUID backfillJobId) {

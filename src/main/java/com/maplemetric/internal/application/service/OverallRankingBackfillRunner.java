@@ -203,12 +203,15 @@ public class OverallRankingBackfillRunner {
                         date.snapshotDate()
                 );
 
-                backfillStateService.skipDate(date.id());
+                backfillStateService.skipDate(date.id(), date.claimToken());
 
                 return false;
             }
 
-            backfillStateService.succeedDate(date.id());
+            backfillStateService.succeedDate(
+                    date.id(),
+                    date.claimToken()
+            );
 
             return false;
         } catch (OverallRankingCollectionAlreadyRunningException exception) {
@@ -259,6 +262,7 @@ public class OverallRankingBackfillRunner {
 
             backfillStateService.releaseDate(
                     date.id(),
+                    date.claimToken(),
                     BackfillErrorType.EXTERNAL_RATE_LIMITED
             );
 
@@ -298,7 +302,12 @@ public class OverallRankingBackfillRunner {
                 retryLeft
         );
 
-        backfillStateService.failDate(date.id(), errorType, retryLeft);
+        backfillStateService.failDate(
+                date.id(),
+                date.claimToken(),
+                errorType,
+                retryLeft
+        );
     }
 
     /**

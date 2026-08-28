@@ -45,5 +45,14 @@ public record OverallRankingBackfillProperties(
                     "Backfill 점유 회수 임계 시간은 0보다 커야 합니다."
             );
         }
+
+        // 회수 임계가 호출 간격보다 짧거나 같으면, 정상 실행이 다음 호출을 기다리는
+        // 동안 자기 점유가 회수돼 다른 실행기에 넘어간다. 같은 기준일을 둘이
+        // 수집하게 되므로 설정을 받는 자리에서 막는다.
+        if (staleClaimTimeout.compareTo(requestInterval) <= 0) {
+            throw new IllegalArgumentException(
+                    "Backfill 점유 회수 임계 시간은 호출 간격보다 길어야 합니다."
+            );
+        }
     }
 }
