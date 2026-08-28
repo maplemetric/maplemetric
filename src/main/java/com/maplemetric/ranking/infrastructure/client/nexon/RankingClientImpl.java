@@ -3,6 +3,7 @@ package com.maplemetric.ranking.infrastructure.client.nexon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonApiFailure;
 import com.maplemetric.common.nexon.NexonApiRequester;
+import com.maplemetric.common.nexon.NexonRequestClass;
 import com.maplemetric.common.nexon.NexonRequestRateGate;
 import com.maplemetric.ranking.domain.exception.RankingException;
 import com.maplemetric.ranking.infrastructure.client.nexon.response.DojangRankingResponse;
@@ -71,7 +72,8 @@ public class RankingClientImpl implements RankingClient {
             String worldName,
             Integer worldType,
             String className,
-            int page
+            int page,
+            NexonRequestClass requestClass
     ) {
         LinkedHashMap<String, String> queryParameters =
                 new LinkedHashMap<>();
@@ -100,7 +102,8 @@ public class RankingClientImpl implements RankingClient {
                         OverallRankingResponse.class,
                         OVERALL_RANKING_API,
                         "page",
-                        Integer.toString(page)
+                        Integer.toString(page),
+                        requestClass
                 );
 
         validateRanking(response.ranking());

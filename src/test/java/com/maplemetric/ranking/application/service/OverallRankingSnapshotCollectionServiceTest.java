@@ -1,5 +1,6 @@
 package com.maplemetric.ranking.application.service;
 
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -71,7 +72,8 @@ class OverallRankingSnapshotCollectionServiceTest {
                 null,
                 null,
                 null,
-                1
+                1,
+                OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(
                         List.of(1, 2),
@@ -84,7 +86,8 @@ class OverallRankingSnapshotCollectionServiceTest {
                 null,
                 null,
                 null,
-                2
+                2,
+                OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(
                         List.of(),
@@ -110,13 +113,13 @@ class OverallRankingSnapshotCollectionServiceTest {
         assertThat(result.truncated()).isFalse();
 
         verify(loadRankingListPort).loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         );
         verify(loadRankingListPort).loadOverallRanking(
-                RANKING_DATE, null, null, null, 2
+                RANKING_DATE, null, null, null, 2, OverallRankingCollectionRequestClass.CRITICAL
         );
         verify(loadRankingListPort, never()).loadOverallRanking(
-                RANKING_DATE, null, null, null, 3
+                RANKING_DATE, null, null, null, 3, OverallRankingCollectionRequestClass.CRITICAL
         );
 
         OverallRankingCollection saved =
@@ -146,13 +149,13 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, "루나", 0, "팬텀", 1
+                RANKING_DATE, "루나", 0, "팬텀", 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(1, 2), RANKING_DATE)
         );
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, "루나", 0, "팬텀", 2
+                RANKING_DATE, "루나", 0, "팬텀", 2, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(3, 4), RANKING_DATE)
         );
@@ -173,7 +176,7 @@ class OverallRankingSnapshotCollectionServiceTest {
         assertThat(result.truncated()).isTrue();
 
         verify(loadRankingListPort, never()).loadOverallRanking(
-                RANKING_DATE, "루나", 0, "팬텀", 3
+                RANKING_DATE, "루나", 0, "팬텀", 3, OverallRankingCollectionRequestClass.CRITICAL
         );
     }
 
@@ -195,13 +198,13 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(1), RANKING_DATE)
         );
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 2
+                RANKING_DATE, null, null, null, 2, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(2), otherDate)
         );
@@ -244,7 +247,7 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(1), otherDate)
         );
@@ -348,13 +351,13 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(1), RANKING_DATE)
         );
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 2
+                RANKING_DATE, null, null, null, 2, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(), RANKING_DATE)
         );
@@ -374,10 +377,10 @@ class OverallRankingSnapshotCollectionServiceTest {
         assertThat(outcome.truncated()).isFalse();
 
         verify(loadRankingListPort).loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         );
         verify(loadRankingListPort).loadOverallRanking(
-                RANKING_DATE, null, null, null, 2
+                RANKING_DATE, null, null, null, 2, OverallRankingCollectionRequestClass.CRITICAL
         );
     }
 
@@ -437,7 +440,7 @@ class OverallRankingSnapshotCollectionServiceTest {
                 });
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(), RANKING_DATE)
         );
@@ -450,7 +453,7 @@ class OverallRankingSnapshotCollectionServiceTest {
 
         verify(loadRankingListPort, times(1))
                 .loadOverallRanking(
-                        RANKING_DATE, null, null, null, 1
+                        RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
                 );
     }
 
@@ -471,7 +474,7 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(), RANKING_DATE)
         );
@@ -529,7 +532,7 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(1), otherDate)
         );
@@ -540,7 +543,7 @@ class OverallRankingSnapshotCollectionServiceTest {
         );
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(
                 createRanking(List.of(), RANKING_DATE)
         );
@@ -574,7 +577,7 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willThrow(new RankingException(nexonApiFailure));
 
         OverallRankingCollectionException exception =
@@ -606,7 +609,7 @@ class OverallRankingSnapshotCollectionServiceTest {
                 .willReturn(false);
 
         given(loadRankingListPort.loadOverallRanking(
-                RANKING_DATE, null, null, null, 1
+                RANKING_DATE, null, null, null, 1, OverallRankingCollectionRequestClass.CRITICAL
         )).willThrow(
                 new RankingException(NexonApiFailure.SERVER_ERROR)
         );

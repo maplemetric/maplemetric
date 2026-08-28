@@ -1,5 +1,7 @@
 package com.maplemetric.ranking.infrastructure.client.nexon;
 
+import com.maplemetric.common.nexon.NexonRequestClass;
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
@@ -40,7 +42,8 @@ class NexonRankingListAdapterTest {
                 null,
                 0,
                 null,
-                2
+                2,
+                NexonRequestClass.CRITICAL
         )).willReturn(
                 new OverallRankingResponse(
                         List.of(
@@ -66,7 +69,8 @@ class NexonRankingListAdapterTest {
                         null,
                         0,
                         null,
-                        2
+                        2,
+                        OverallRankingCollectionRequestClass.CRITICAL
                 );
 
         assertThat(result.page()).isEqualTo(2);
@@ -105,7 +109,8 @@ class NexonRankingListAdapterTest {
                 null,
                 0,
                 null,
-                2
+                2,
+                NexonRequestClass.CRITICAL
         );
     }
 
@@ -360,6 +365,51 @@ class NexonRankingListAdapterTest {
                 "",
                 9000,
                 123_456_789L
+        );
+    }
+/**
+     * 수집 등급을 외부 호출 등급으로 옮긴다.
+     *
+     * 옮기지 않으면 대량 수집이 정기 수집과 사용자 조회의 하루 호출 한도를 먹는다.
+     */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "CRITICAL, CRITICAL",
+            "BULK, BULK"
+    })
+    void 수집등급을외부호출등급으로옮긴다(
+            OverallRankingCollectionRequestClass collectionClass,
+            NexonRequestClass nexonClass
+    ) {
+        NexonRankingListAdapter adapter = createAdapter();
+
+        given(rankingClient.getOverallRanking(
+                RANKING_DATE,
+                null,
+                null,
+                null,
+                1,
+                nexonClass
+        )).willReturn(
+                new OverallRankingResponse(List.of())
+        );
+
+        adapter.loadOverallRanking(
+                RANKING_DATE,
+                null,
+                null,
+                null,
+                1,
+                collectionClass
+        );
+
+        verify(rankingClient).getOverallRanking(
+                RANKING_DATE,
+                null,
+                null,
+                null,
+                1,
+                nexonClass
         );
     }
 }

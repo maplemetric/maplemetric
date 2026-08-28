@@ -103,7 +103,8 @@ public class OverallRankingSnapshotCollectionService
                             command.worldName(),
                             command.worldType(),
                             command.className(),
-                            page
+                            page,
+                            command.requestClass()
                     );
 
             pageCount = page;
@@ -183,7 +184,8 @@ public class OverallRankingSnapshotCollectionService
                                     null,
                                     null,
                                     null,
-                                    request.maxPages()
+                                    request.maxPages(),
+                                    request.requestClass()
                             )
                     );
 

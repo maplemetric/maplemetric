@@ -9,6 +9,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maplemetric.common.nexon.NexonRateLimitProperties;
 import com.maplemetric.common.nexon.NexonRequestRateGate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
@@ -496,30 +498,103 @@ class NexonApiRequesterTest {
         }
 
         @Override
-        public String acquire() throws InterruptedException {
+        public String acquire(NexonRequestClass requestClass)
+                throws InterruptedException {
             throw new InterruptedException("허가 대기 중단");
         }
     }
 
-    /** 허가 요청 횟수만 센다. 실제로 기다리지 않는다. */
+    /** 허가 요청과 그때의 등급을 기록한다. 실제로 기다리지 않는다. */
     private static final class CountingRateGate extends NexonRequestRateGate {
 
         private final AtomicInteger count = new AtomicInteger();
+
+        private final List<NexonRequestClass> requestClasses =
+                java.util.Collections.synchronizedList(new ArrayList<>());
 
         private CountingRateGate() {
             super(new NexonRateLimitProperties(1000, java.time.Duration.ofMinutes(1)), java.util.List.of("test-key"));
         }
 
         @Override
-        public String acquire() {
+        public String acquire(NexonRequestClass requestClass) {
             count.incrementAndGet();
-            
+            requestClasses.add(requestClass);
+
             return "test-key";
         }
 
         private int count() {
             return count.get();
         }
+
+        private List<NexonRequestClass> requestClasses() {
+            return List.copyOf(requestClasses);
+        }
+    }
+
+    /** 등급을 적지 않은 호출은 지금까지와 같은 호출 예산을 쓴다. */
+    @Test
+    void 등급을적지않으면정기수집몫으로보낸다() {
+        CountingRateGate gate = new CountingRateGate();
+
+        NexonApiRequester requester = createRequester(NEVER_NOT_FOUND, gate);
+
+        expectOnce(withSuccess("응답", MediaType.APPLICATION_JSON));
+
+        request(requester, "ocid", OCID);
+
+        assertThat(gate.requestClasses())
+                .containsExactly(NexonRequestClass.CRITICAL);
+
+        mockServer.verify();
+    }
+
+    /**
+     * 재시도도 처음에 밝힌 등급을 그대로 쓴다.
+     *
+     * 재시도가 등급을 잃으면 대량 요청의 재시도가 정기 수집 몫의 Key를 먹는다.
+     * 한도를 넘겨 되돌아온 요청일수록 그 Key를 여러 번 두드리게 된다.
+     */
+    @Test
+    void 재시도도처음등급을그대로쓴다() {
+        CountingRateGate gate = new CountingRateGate();
+
+        NexonApiRequester requester = createRequester(NEVER_NOT_FOUND, gate);
+
+        // 세 번 요청 제한을 맞고 네 번째에 성공한다.
+        for (int attempt = 0; attempt < 3; attempt++) {
+            expectOnce(
+                    errorResponse(
+                            HttpStatus.TOO_MANY_REQUESTS,
+                            errorBody(RATE_LIMIT_CODE, "요청이 많습니다.")
+                    )
+            );
+        }
+
+        expectOnce(withSuccess("응답", MediaType.APPLICATION_JSON));
+
+        requester.request(
+                PATH,
+                Map.of(),
+                String.class,
+                API_NAME,
+                "ocid",
+                OCID,
+                NexonRequestClass.BULK
+        );
+
+        assertThat(gate.requestClasses()).containsExactly(
+                NexonRequestClass.BULK,
+                NexonRequestClass.BULK,
+                NexonRequestClass.BULK,
+                NexonRequestClass.BULK
+        );
+
+        assertThat(gate.requestClasses())
+                .doesNotContain(NexonRequestClass.CRITICAL);
+
+        mockServer.verify();
     }
 
     /** Client마다 다른 예외 타입을 대신하는 테스트 전용 예외다. */

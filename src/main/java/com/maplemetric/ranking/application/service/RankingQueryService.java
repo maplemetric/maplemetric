@@ -1,5 +1,6 @@
 package com.maplemetric.ranking.application.service;
 
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
@@ -43,12 +44,14 @@ public class RankingQueryService {
         LocalDate rankingDate =
                 RankingDateResolver.resolve(date, clock);
 
+        // 사용자 조회는 실패하면 안 된다. 대량 수집과 호출 예산을 나눠 쓴다.
         return loadRankingListPort.loadOverallRanking(
                 rankingDate,
                 worldName,
                 worldType,
                 className,
-                page
+                page,
+                OverallRankingCollectionRequestClass.CRITICAL
         );
     }
 

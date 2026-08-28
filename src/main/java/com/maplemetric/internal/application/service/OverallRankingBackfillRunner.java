@@ -5,6 +5,7 @@ import com.maplemetric.internal.application.port.out.OverallRankingBackfillState
 import com.maplemetric.internal.application.port.out.OverallRankingBackfillStatePort.BackfillJob;
 import com.maplemetric.internal.application.properties.OverallRankingBackfillProperties;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
 import com.maplemetric.ranking.api.OverallRankingCollectionException;
@@ -186,10 +187,13 @@ public class OverallRankingBackfillRunner {
      */
     private boolean processDate(BackfillDate date) {
         try {
+            // 결손 메우기는 미뤄도 된다. 정기 수집과 사용자 조회의 하루 호출
+            // 한도를 먹지 않도록 따로 배정된 몫을 쓴다.
             OverallRankingCollectionStatus status = collectUseCase.collect(
                     new CollectOverallRankingSnapshotRequest(
                             date.snapshotDate(),
-                            properties.maxPages()
+                            properties.maxPages(),
+                            OverallRankingCollectionRequestClass.BULK
                     )
             ).status();
 

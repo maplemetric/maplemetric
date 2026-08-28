@@ -1,5 +1,6 @@
 package com.maplemetric.ranking.application.service;
 
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -38,7 +39,8 @@ class RankingQueryServiceTest {
                 "루나",
                 null,
                 "팬텀-전체 전직",
-                1
+                1,
+                OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(emptyOverallRanking());
 
         given(loadRankingListPort.loadUnionRanking(
@@ -82,7 +84,8 @@ class RankingQueryServiceTest {
                 "루나",
                 null,
                 "팬텀-전체 전직",
-                1
+                1,
+                OverallRankingCollectionRequestClass.CRITICAL
         );
 
         verify(loadRankingListPort).loadUnionRanking(
@@ -114,7 +117,8 @@ class RankingQueryServiceTest {
                 null,
                 null,
                 null,
-                1
+                1,
+                OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(emptyOverallRanking());
 
         service.getOverallRanking(
@@ -130,7 +134,8 @@ class RankingQueryServiceTest {
                 null,
                 null,
                 null,
-                1
+                1,
+                OverallRankingCollectionRequestClass.CRITICAL
         );
     }
 
@@ -181,7 +186,8 @@ class RankingQueryServiceTest {
                 null,
                 0,
                 null,
-                2
+                2,
+                OverallRankingCollectionRequestClass.CRITICAL
         )).willReturn(expected);
 
         GetOverallRankingResult result =

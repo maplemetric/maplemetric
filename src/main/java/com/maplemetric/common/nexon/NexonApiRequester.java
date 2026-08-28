@@ -51,6 +51,12 @@ public final class NexonApiRequester {
         this.rateGate = rateGate;
     }
 
+    /**
+     * 실패하면 안 되는 요청으로 보내고 응답을 받는다.
+     *
+     * 등급을 적지 않은 호출은 지금까지와 같은 호출 예산을 쓴다. 미뤄도 되는 대량
+     * 요청만 등급을 밝혀 예산을 가른다.
+     */
     public <T> T request(
             String path,
             Map<String, String> queryParameters,
@@ -66,6 +72,28 @@ public final class NexonApiRequester {
                 apiName,
                 identifierName,
                 identifierValue,
+                NexonRequestClass.CRITICAL
+        );
+    }
+
+    /** 지정한 호출 예산으로 요청을 보내고 응답을 받는다. */
+    public <T> T request(
+            String path,
+            Map<String, String> queryParameters,
+            Class<T> responseType,
+            String apiName,
+            String identifierName,
+            String identifierValue,
+            NexonRequestClass requestClass
+    ) {
+        return request(
+                path,
+                queryParameters,
+                responseType,
+                apiName,
+                identifierName,
+                identifierValue,
+                requestClass,
                 0
         );
     }
@@ -77,6 +105,7 @@ public final class NexonApiRequester {
             String apiName,
             String identifierName,
             String identifierValue,
+            NexonRequestClass requestClass,
             int rateLimitRetryCount
     ) {
         String logIdentifierValue =
@@ -87,7 +116,9 @@ public final class NexonApiRequester {
 
         // 재시도도 이 지점을 다시 지난다. 429를 받고 되돌아온 요청이 관문을
         // 건너뛰면 한도를 넘긴 채로 다시 나간다.
-        String apiKey = acquirePermit(apiName);
+        // 등급도 함께 지난다. 재시도가 등급을 잃으면 대량 요청의 재시도가 정기
+        // 수집 몫의 Key를 먹는다.
+        String apiKey = acquirePermit(apiName, requestClass);
 
         try {
             T response = restClient.get()
@@ -195,6 +226,7 @@ public final class NexonApiRequester {
                         apiName,
                         identifierName,
                         identifierValue,
+                        requestClass,
                         rateLimitRetryCount + 1
                 );
             }
@@ -362,9 +394,12 @@ public final class NexonApiRequester {
      * 기다리다 중단되면 재시도 대기와 같은 실패로 알린다. 여기서만 다른 예외를
      * 던지면 같은 상황인데 소비자가 받는 응답이 달라진다.
      */
-    private String acquirePermit(String apiName) {
+    private String acquirePermit(
+            String apiName,
+            NexonRequestClass requestClass
+    ) {
         try {
-            return rateGate.acquire();
+            return rateGate.acquire(requestClass);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
 
