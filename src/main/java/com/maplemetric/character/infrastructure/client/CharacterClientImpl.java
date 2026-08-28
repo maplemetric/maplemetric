@@ -421,6 +421,12 @@ public class CharacterClientImpl implements CharacterClient {
         CharacterErrorCode errorCode = switch (failure) {
             case NOT_FOUND ->
                     CharacterErrorCode.CHARACTER_NOT_FOUND;
+
+            // 한도 초과는 사용자에게 시간 초과와 같은 결과다. 지금 받을 수 없고,
+            // 저장본이 있으면 그것을 돌려주는 경로도 같다. 공개 코드를 새로
+            // 만들지 않는다.
+            case RATE_LIMITED ->
+                    CharacterErrorCode.NEXON_API_TIMEOUT;
             case CLIENT_ERROR ->
                     CharacterErrorCode.NEXON_API_CLIENT_ERROR;
             case SERVER_ERROR ->

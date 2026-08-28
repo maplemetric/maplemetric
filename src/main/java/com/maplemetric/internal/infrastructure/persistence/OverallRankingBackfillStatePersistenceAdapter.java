@@ -119,6 +119,14 @@ class OverallRankingBackfillStatePersistenceAdapter
     }
 
     @Override
+    public void releaseDate(
+            UUID backfillDateId,
+            BackfillErrorType errorType
+    ) {
+        getDate(backfillDateId).release(errorType);
+    }
+
+    @Override
     public void failDate(
             UUID backfillDateId,
             BackfillErrorType errorType,

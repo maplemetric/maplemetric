@@ -115,8 +115,13 @@ public class OverallRankingBackfillRunner {
                 sleepBetweenRequests(date);
             }
 
-            processDate(date);
+            boolean stop = processDate(date);
+
             processed++;
+
+            if (stop) {
+                break;
+            }
         }
 
         log.info(
@@ -176,7 +181,10 @@ public class OverallRankingBackfillRunner {
         }
     }
 
-    private void processDate(BackfillDate date) {
+    /**
+     * @return 이번 실행을 여기서 멈춰야 하면 {@code true}
+     */
+    private boolean processDate(BackfillDate date) {
         try {
             OverallRankingCollectionStatus status = collectUseCase.collect(
                     new CollectOverallRankingSnapshotRequest(
@@ -192,19 +200,20 @@ public class OverallRankingBackfillRunner {
                 );
 
                 backfillStateService.skipDate(date.id());
-                return;
+
+                return false;
             }
 
             backfillStateService.succeedDate(date.id());
+
+            return false;
         } catch (OverallRankingCollectionAlreadyRunningException exception) {
             // 정기 수집과 겹친 상황이다. 이 기준일 자체의 문제가 아니므로 다시 시도한다.
             recordFailure(date, BackfillErrorType.EXTERNAL_SERVER, true);
+
+            return false;
         } catch (OverallRankingCollectionException exception) {
-            recordFailure(
-                    date,
-                    toErrorType(exception.getFailure()),
-                    isRetryable(exception.getFailure())
-            );
+            return recordCollectionFailure(date, exception.getFailure());
         } catch (RuntimeException exception) {
             log.error(
                     "Backfill 기준일 처리에 실패했습니다. 기준일={}",
@@ -213,7 +222,52 @@ public class OverallRankingBackfillRunner {
             );
 
             recordFailure(date, BackfillErrorType.STORE_FAILED, true);
+
+            return false;
         }
+    }
+
+    /**
+     * 수집 실패를 기록하고 이번 실행을 계속할지 정한다.
+     *
+     * 한도 초과는 이 기준일의 문제가 아니라 지금 받을 수 없다는 뜻이다. 그래서 두
+     * 가지를 함께 한다.
+     *
+     * 하나는 시도 횟수를 쓰지 않는 것이다. 점유할 때마다 시도가 오르는데, 한도가
+     * 이어지는 동안 같은 기준일을 곧바로 다시 잡으면 몇 초 만에 한도를 다 써 결국
+     * 영구 실패가 된다. 한도 초과는 그 기준일을 시험한 적이 없으므로 세지 않는다.
+     *
+     * 다른 하나는 이번 실행을 멈추는 것이다. 한도가 마른 상태에서 다음 기준일로
+     * 넘어가도 똑같이 실패한다. 실제로 그렇게 630회를 헛되이 썼다.
+     */
+    private boolean recordCollectionFailure(
+            BackfillDate date,
+            OverallRankingCollectionFailure failure
+    ) {
+        if (failure
+                == OverallRankingCollectionFailure.EXTERNAL_API_RATE_LIMITED) {
+            log.warn(
+                    "한도 초과로 이번 실행을 멈춥니다. "
+                            + "기준일={}, 시도={}",
+                    date.snapshotDate(),
+                    date.attemptCount()
+            );
+
+            backfillStateService.releaseDate(
+                    date.id(),
+                    BackfillErrorType.EXTERNAL_RATE_LIMITED
+            );
+
+            return true;
+        }
+
+        recordFailure(
+                date,
+                toErrorType(failure),
+                isRetryable(failure)
+        );
+
+        return false;
     }
 
     /**
@@ -275,6 +329,8 @@ public class OverallRankingBackfillRunner {
         return switch (failure) {
             case EXTERNAL_API_CLIENT_ERROR ->
                     BackfillErrorType.EXTERNAL_CLIENT;
+            case EXTERNAL_API_RATE_LIMITED ->
+                    BackfillErrorType.EXTERNAL_RATE_LIMITED;
             case EXTERNAL_API_SERVER_ERROR ->
                     BackfillErrorType.EXTERNAL_SERVER;
             case EXTERNAL_API_TIMEOUT -> BackfillErrorType.EXTERNAL_TIMEOUT;
@@ -288,10 +344,16 @@ public class OverallRankingBackfillRunner {
      *
      * 응답 검증 실패는 다시 불러도 같은 응답이 오므로 재시도하지 않는다. Client 오류도
      * 요청 자체가 잘못된 것이라 반복해봐야 Quota만 쓴다.
+     *
+     * 한도 초과는 다르다. 요청은 올바르고 지금 받을 수 없을 뿐이라, 한도가 회복되면
+     * 같은 요청이 성공한다. 영구 실패로 닫으면 그 기준일은 다시 잡히지 않아 한도가
+     * 풀려도 스스로 돌아오지 않는다.
      */
     private boolean isRetryable(OverallRankingCollectionFailure failure) {
         return switch (failure) {
-            case EXTERNAL_API_SERVER_ERROR, EXTERNAL_API_TIMEOUT -> true;
+            case EXTERNAL_API_SERVER_ERROR,
+                 EXTERNAL_API_TIMEOUT,
+                 EXTERNAL_API_RATE_LIMITED -> true;
             case EXTERNAL_API_CLIENT_ERROR, EXTERNAL_API_RESPONSE_INVALID ->
                     false;
         };

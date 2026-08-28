@@ -89,6 +89,14 @@ public class OverallRankingBackfillStateService {
     }
 
     @Transactional
+    public void releaseDate(
+            UUID backfillDateId,
+            BackfillErrorType errorType
+    ) {
+        backfillStatePort.releaseDate(backfillDateId, errorType);
+    }
+
+    @Transactional
     public void cancelJob(UUID backfillJobId) {
         backfillStatePort.cancelJob(backfillJobId);
     }

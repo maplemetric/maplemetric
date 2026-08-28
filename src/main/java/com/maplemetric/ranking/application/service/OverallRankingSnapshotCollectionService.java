@@ -247,6 +247,8 @@ public class OverallRankingSnapshotCollectionService
         return switch (failure) {
             case NOT_FOUND, CLIENT_ERROR ->
                     OverallRankingCollectionFailure.EXTERNAL_API_CLIENT_ERROR;
+            case RATE_LIMITED ->
+                    OverallRankingCollectionFailure.EXTERNAL_API_RATE_LIMITED;
             case SERVER_ERROR ->
                     OverallRankingCollectionFailure.EXTERNAL_API_SERVER_ERROR;
             case TIMEOUT ->

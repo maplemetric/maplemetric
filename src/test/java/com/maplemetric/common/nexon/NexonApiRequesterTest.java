@@ -237,6 +237,36 @@ class NexonApiRequesterTest {
     }
 
     /**
+     * 재시도를 다 써도 한도 초과라는 사실이 남는다.
+     *
+     * 일반 Client 오류로 뭉개면 요청 자체가 잘못된 것과 구별되지 않는다. 그러면
+     * 부르는 쪽이 영구 실패로 판정해, 한도가 풀려도 다시 시도하지 않는다.
+     * 실제로 그 이유로 Backfill 기준일 63개가 영구 실패로 닫혔다.
+     */
+    @Test
+    void 재시도를다써도한도초과라는사실이남는다() {
+        NexonApiRequester requester = createRequester(NEVER_NOT_FOUND);
+
+        // 첫 요청과 재시도 세 번 모두 한도 초과다.
+        for (int attempt = 0; attempt < 4; attempt++) {
+            expectOnce(
+                    errorResponse(
+                            HttpStatus.TOO_MANY_REQUESTS,
+                            errorBody(RATE_LIMIT_CODE, "요청이 많습니다.")
+                    )
+            );
+        }
+
+        TestNexonException exception =
+                requestExpectingFailure(requester, "ocid", OCID);
+
+        assertThat(exception.failure())
+                .isEqualTo(NexonApiFailure.RATE_LIMITED);
+
+        mockServer.verify();
+    }
+
+    /**
      * 오류 응답이 깨져 있어도 파싱 실패가 밖으로 새지 않는다.
      *
      * 외부가 보낸 본문 때문에 분류 자체가 중단되면 소비자는 원인을 알 수 없는
