@@ -36,7 +36,7 @@ class BackfillClaimTokenMigrationTest {
 
     private static final String CHECK_VIOLATION_SQL_STATE = "23514";
 
-    /** 배포된 기본 시도 한도다. V21이 이 값으로 판단한다. */
+    /** 배포된 기본 시도 한도다. V21이 이 값을 보지 않는다는 것을 보인다. */
     private static final int MAX_ATTEMPTS = 3;
 
     @Container
@@ -44,13 +44,13 @@ class BackfillClaimTokenMigrationTest {
             new PostgreSQLContainer<>(POSTGRES_IMAGE);
 
     /**
-     * 시도가 남은 점유는 다시 잡히게 풀어 둔다.
+     * 점유된 채 남은 기준일에는 아무도 가지지 않은 표를 발급한다.
      *
-     * 그 실행기는 표를 모르므로 결과를 기록하지 못한다. 그대로 두면 아무도 손대지
-     * 못한 채 남는다.
+     * 그 실행기들은 이 표를 모르므로 결과를 기록하지 못한다. 그것이 맞는 결과다.
+     * 이미 사라진 실행기의 점유이고 결과가 어떻게 됐는지 알 수 없다.
      */
     @Test
-    void V21은_시도가_남은_점유를_다시_잡히게_되돌린다() throws SQLException {
+    void V21은_남은_점유에_아무도_가지지_않은_표를_발급한다() throws SQLException {
         migrateToVersion(BEFORE_CLAIM_TOKEN_VERSION);
 
         UUID jobId = insertJob();
@@ -60,23 +60,23 @@ class BackfillClaimTokenMigrationTest {
 
         Map<String, Object> date = fetchDate(dateId);
 
-        assertThat(date.get("status")).isEqualTo("PENDING");
-        assertThat(date.get("claim_token")).isNull();
-        assertThat(date.get("finished_at")).isNull();
+        assertThat(date.get("claim_token")).isNotNull();
 
-        // 실제로 한 번 시작했던 사실은 남는다.
+        // 상태와 시도 횟수는 건드리지 않는다. 회수 경로가 판단할 몫이다.
+        assertThat(date.get("status")).isEqualTo("RUNNING");
         assertThat(date.get("attempt_count")).isEqualTo(1);
         assertThat(date.get("started_at")).isNotNull();
     }
 
     /**
-     * 시도 한도에 닿은 점유는 실패로 닫는다.
+     * 시도 한도에 닿은 점유도 여기서 닫지 않는다.
      *
-     * 되돌리면 이미 한도를 다 쓴 기준일이 다시 잡혀 외부를 한 번 더 호출한다.
-     * 실행기의 회수 경로는 이 경우를 실패로 닫으므로 마이그레이션도 같아야 한다.
+     * 닫으려면 시도 한도를 알아야 하는데 마이그레이션은 설정을 읽을 수 없다.
+     * 기본값으로 짐작하면 한도를 줄여 쓰는 환경에서 틀린다. 시작 시각이 이미
+     * 지났으므로 다음 실행의 회수 경로가 설정된 한도로 판단한다.
      */
     @Test
-    void V21은_시도_한도에_닿은_점유를_실패로_닫는다() throws SQLException {
+    void V21은_시도_한도_판단을_회수_경로에_맡긴다() throws SQLException {
         migrateToVersion(BEFORE_CLAIM_TOKEN_VERSION);
 
         UUID jobId = insertJob();
@@ -86,62 +86,40 @@ class BackfillClaimTokenMigrationTest {
 
         Map<String, Object> date = fetchDate(dateId);
 
-        assertThat(date.get("status")).isEqualTo("FAILED");
-        assertThat(date.get("last_error_type")).isEqualTo("UNKNOWN");
-        assertThat(date.get("claim_token")).isNull();
-        assertThat(date.get("finished_at")).isNotNull();
+        assertThat(date.get("status")).isEqualTo("RUNNING");
+        assertThat(date.get("attempt_count")).isEqualTo(MAX_ATTEMPTS);
+
+        // Job 집계를 건드리지 않았으므로 회수 결과와 어긋나지 않는다.
+        assertThat(fetchJob(jobId).get("failed_date_count")).isEqualTo(0);
+        assertThat(fetchJob(jobId).get("status")).isEqualTo("PENDING");
     }
 
-    /** 실패로 닫으면 Job 집계도 함께 올린다. 어긋나면 Job이 닫히지 않는다. */
+    /** 점유마다 다른 표를 준다. 같으면 하나를 알아낸 쪽이 다른 것도 건드린다. */
     @Test
-    void V21은_실패로_닫은_기준일을_Job_집계에_반영한다() throws SQLException {
+    void V21은_점유마다_다른_표를_발급한다() throws SQLException {
         migrateToVersion(BEFORE_CLAIM_TOKEN_VERSION);
 
         UUID jobId = insertJob();
-        insertDate(jobId, "2026-07-01", "RUNNING", MAX_ATTEMPTS);
-        insertDate(jobId, "2026-07-02", "RUNNING", MAX_ATTEMPTS);
+        UUID first = insertDate(jobId, "2026-07-01", "RUNNING", 1);
+        UUID second = insertDate(jobId, "2026-07-02", "RUNNING", 1);
 
         migrateToVersion(CLAIM_TOKEN_VERSION);
 
-        assertThat(fetchJob(jobId).get("failed_date_count")).isEqualTo(2);
+        assertThat(fetchDate(first).get("claim_token"))
+                .isNotEqualTo(fetchDate(second).get("claim_token"));
     }
 
-    /**
-     * 남은 기준일이 없으면 Job도 닫는다.
-     *
-     * Job을 닫는 것은 결과를 기록하는 경로가 하는 일이다. 마지막 기준일을 여기서
-     * 닫으면 그 경로를 더 지나지 않아 Job이 열린 채로 남는다.
-     */
+    /** 점유 중이 아닌 기준일은 표 없이 그대로 둔다. */
     @Test
-    void V21은_남은_기준일이_없으면_Job도_닫는다() throws SQLException {
+    void V21은_점유_중이_아닌_기준일에_표를_주지_않는다() throws SQLException {
         migrateToVersion(BEFORE_CLAIM_TOKEN_VERSION);
 
         UUID jobId = insertJob();
-        insertDate(jobId, "2026-07-01", "RUNNING", MAX_ATTEMPTS);
+        UUID dateId = insertDate(jobId, "2026-07-01", "PENDING", 0);
 
         migrateToVersion(CLAIM_TOKEN_VERSION);
 
-        Map<String, Object> job = fetchJob(jobId);
-
-        assertThat(job.get("status")).isEqualTo("FAILED");
-        assertThat(job.get("finished_at")).isNotNull();
-    }
-
-    /** 아직 잡을 기준일이 남아 있으면 Job을 닫지 않는다. */
-    @Test
-    void V21은_남은_기준일이_있으면_Job을_닫지_않는다() throws SQLException {
-        migrateToVersion(BEFORE_CLAIM_TOKEN_VERSION);
-
-        UUID jobId = insertJob();
-        insertDate(jobId, "2026-07-01", "RUNNING", MAX_ATTEMPTS);
-        insertDate(jobId, "2026-07-02", "PENDING", 0);
-
-        migrateToVersion(CLAIM_TOKEN_VERSION);
-
-        Map<String, Object> job = fetchJob(jobId);
-
-        assertThat(job.get("status")).isEqualTo("PENDING");
-        assertThat(job.get("finished_at")).isNull();
+        assertThat(fetchDate(dateId).get("claim_token")).isNull();
     }
 
     /** 점유 중이 아닌 기준일에 표가 남으면 표의 의미가 흐려진다. */
