@@ -14,6 +14,7 @@ import com.maplemetric.internal.application.port.out.OverallRankingBackfillState
 import com.maplemetric.internal.application.properties.OverallRankingBackfillProperties;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
 import com.maplemetric.ranking.api.OverallRankingCollectionException;
@@ -66,6 +67,30 @@ class OverallRankingBackfillRunnerTest {
     void setUp() {
         sleeper = new RecordingSleeper();
         runner = createRunner(7);
+    }
+
+    /**
+     * 결손 메우기는 대량 수집 몫으로 요청한다.
+     *
+     * 정기 수집과 같은 몫을 쓰면 기준일이 많을수록 하루 호출 한도를 먼저 다 써서
+     * 그날 정기 수집을 실패시킨다.
+     */
+    @Test
+    void 결손메우기는대량수집몫으로요청한다() {
+        givenClaims(date(FIRST_DATE, 1));
+        givenCollected();
+
+        runner.run(JOB_ID);
+
+        ArgumentCaptor<CollectOverallRankingSnapshotRequest> requestCaptor =
+                ArgumentCaptor.forClass(
+                        CollectOverallRankingSnapshotRequest.class
+                );
+
+        verify(collectUseCase).collect(requestCaptor.capture());
+
+        assertThat(requestCaptor.getValue().requestClass())
+                .isEqualTo(OverallRankingCollectionRequestClass.BULK);
     }
 
     @Test

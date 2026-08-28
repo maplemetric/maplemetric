@@ -1,5 +1,6 @@
 package com.maplemetric.ranking.infrastructure.client.nexon;
 
+import com.maplemetric.common.nexon.NexonRequestClass;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -125,7 +126,8 @@ class RankingClientImplTest {
                         null,
                         1,
                         "팬텀-전체 전직",
-                        2
+                        2,
+                        NexonRequestClass.CRITICAL
                 );
 
         assertThat(result.ranking())
@@ -464,7 +466,8 @@ class RankingClientImplTest {
                 "루나",
                 1,
                 null,
-                1
+                1,
+                NexonRequestClass.CRITICAL
         );
 
         mockServer.verify();
@@ -642,7 +645,8 @@ class RankingClientImplTest {
                         null,
                         null,
                         null,
-                        1
+                        1,
+                        NexonRequestClass.CRITICAL
                 ),
                 RankingException.class
         );
@@ -739,7 +743,8 @@ class RankingClientImplTest {
                         null,
                         null,
                         null,
-                        1
+                        1,
+                        NexonRequestClass.CRITICAL
                 ),
                 RankingException.class
         );

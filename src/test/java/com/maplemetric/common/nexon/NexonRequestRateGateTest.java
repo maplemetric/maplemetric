@@ -322,23 +322,30 @@ class NexonRequestRateGateTest {
     }
 
     /**
-     * Key가 여럿이면 한도가 Key 수만큼 늘어난다.
+     * Key가 여럿이면 한도가 그 등급에 배정된 Key 수만큼 늘어난다.
      *
      * Nexon은 애플리케이션 단위로 세므로 Key마다 자기 몫을 온전히 가진다. 창을
      * 하나만 두면 Key를 늘려도 처리량이 그대로다.
+     *
+     * 늘어나는 폭은 전체 Key 수가 아니라 그 등급의 몫이다. 다른 등급의 Key는
+     * 비어 있어도 쓰지 않는다.
      */
     @Test
     void Key가여럿이면한도가그만큼늘어난다() throws Exception {
         RecordingSleeper sleeper = new RecordingSleeper();
 
         NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(2, java.time.Duration.ofHours(1)),
-                List.of("key-a", "key-b", "key-c"),
+                new NexonRateLimitProperties(
+                        2,
+                        java.time.Duration.ofHours(1),
+                        3
+                ),
+                List.of("key-a", "key-b", "key-c", "key-d"),
                 ticker::get,
                 sleeper
         );
 
-        // Key 3개 × 초당 2건 = 6건까지 기다리지 않는다.
+        // 배정된 Key 3개 × 초당 2건 = 6건까지 기다리지 않는다.
         for (int i = 0; i < 6; i++) {
             gate.acquire();
         }
@@ -351,7 +358,7 @@ class NexonRequestRateGateTest {
     }
 
     /**
-     * 허가는 Key마다 고르게 나눠 준다.
+     * 허가는 그 등급에 배정된 Key마다 고르게 나눠 준다.
      *
      * 늘 앞에서부터 보면 첫 Key만 한도까지 쓰고 나머지가 남는다. 그러면 Key를
      * 늘린 만큼 처리량이 늘지 않는다.
@@ -359,8 +366,12 @@ class NexonRequestRateGateTest {
     @Test
     void 허가를Key마다고르게나눈다() throws Exception {
         NexonRequestRateGate gate = new NexonRequestRateGate(
-                new NexonRateLimitProperties(5, java.time.Duration.ofHours(1)),
-                List.of("key-a", "key-b", "key-c"),
+                new NexonRateLimitProperties(
+                        5,
+                        java.time.Duration.ofHours(1),
+                        3
+                ),
+                List.of("key-a", "key-b", "key-c", "key-d"),
                 ticker::get,
                 new RecordingSleeper()
         );
@@ -405,5 +416,165 @@ class NexonRequestRateGateTest {
                 new NexonRateLimitProperties(5, java.time.Duration.ofHours(1)),
                 List.of()
         )).isInstanceOf(IllegalArgumentException.class);
+    }
+private NexonRequestRateGate gateOf(
+            int limit,
+            List<String> keys,
+            Integer reservedCriticalKeyCount,
+            NexonRequestRateGate.Sleeper sleeper
+    ) {
+        return new NexonRequestRateGate(
+                new NexonRateLimitProperties(
+                        limit,
+                        java.time.Duration.ofHours(1),
+                        reservedCriticalKeyCount
+                ),
+                keys,
+                ticker::get,
+                sleeper
+        );
+    }
+
+    /**
+     * 등급마다 배정된 Key만 쓴다.
+     *
+     * Nexon은 하루 한도도 애플리케이션 단위로 센다. 갈라 두지 않으면 대량 요청이
+     * 하루 한도를 다 먹었을 때 정기 수집까지 함께 멈춘다.
+     */
+    @Test
+    void 등급마다배정된Key만쓴다() throws Exception {
+        NexonRequestRateGate gate = gateOf(
+                5,
+                List.of("key-1", "key-2", "key-3"),
+                2,
+                new RecordingSleeper()
+        );
+
+        assertThat(gate.acquire(NexonRequestClass.CRITICAL))
+                .isEqualTo("key-1");
+        assertThat(gate.acquire(NexonRequestClass.CRITICAL))
+                .isEqualTo("key-2");
+        assertThat(gate.acquire(NexonRequestClass.CRITICAL))
+                .isEqualTo("key-1");
+
+        assertThat(gate.acquire(NexonRequestClass.BULK))
+                .isEqualTo("key-3");
+        assertThat(gate.acquire(NexonRequestClass.BULK))
+                .isEqualTo("key-3");
+    }
+
+    /** 등급을 적지 않은 호출은 지금까지와 같은 몫을 쓴다. */
+    @Test
+    void 등급을적지않으면정기수집몫을쓴다() throws Exception {
+        NexonRequestRateGate gate = gateOf(
+                5,
+                List.of("key-1", "key-2", "key-3"),
+                2,
+                new RecordingSleeper()
+        );
+
+        assertThat(gate.acquire()).isEqualTo("key-1");
+        assertThat(gate.acquire()).isEqualTo("key-2");
+    }
+
+    /**
+     * 대량 요청은 정기 수집 몫이 비어 있어도 기다린다.
+     *
+     * 남는 자리를 빌려 쓰면 격리했다고 적어 두고 실제로는 하지 않는 것이 된다.
+     */
+    @Test
+    void 대량요청은정기수집몫이비어도기다린다() throws Exception {
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(
+                2,
+                List.of("key-1", "key-2", "key-3"),
+                2,
+                sleeper
+        );
+
+        gate.acquire(NexonRequestClass.BULK);
+        gate.acquire(NexonRequestClass.BULK);
+
+        assertThat(sleeper.waits).isEmpty();
+
+        assertThat(gate.acquire(NexonRequestClass.BULK))
+                .isEqualTo("key-3");
+        assertThat(sleeper.waits).hasSize(1);
+    }
+
+    /**
+     * Key가 하나면 두 등급이 같은 창을 함께 센다.
+     *
+     * 등급마다 창을 따로 만들면 같은 Key로 초당 한도의 두 배가 나간다.
+     */
+    @Test
+    void Key가하나면두등급이같은창을함께센다() throws Exception {
+        RecordingSleeper sleeper = new RecordingSleeper();
+        NexonRequestRateGate gate = gateOf(
+                4,
+                List.of(KEY),
+                null,
+                sleeper
+        );
+
+        gate.acquire(NexonRequestClass.CRITICAL);
+        gate.acquire(NexonRequestClass.CRITICAL);
+        gate.acquire(NexonRequestClass.BULK);
+        gate.acquire(NexonRequestClass.BULK);
+
+        assertThat(sleeper.waits).isEmpty();
+
+        gate.acquire(NexonRequestClass.CRITICAL);
+
+        assertThat(sleeper.waits).hasSize(1);
+    }
+
+    /**
+     * 떼어 둘 Key 수가 전체와 같으면 시작하지 못한다.
+     *
+     * 대량 요청 몫이 비면 그 요청은 영영 나가지 못한다. 뜨고 나서 알면 늦다.
+     */
+    @Test
+    void 떼어둘Key수가전체와같으면시작하지못한다() {
+        assertThatThrownBy(() -> gateOf(
+                5,
+                List.of("key-1", "key-2"),
+                2,
+                new RecordingSleeper()
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("적어야 합니다");
+    }
+
+    /** 적지 않으면 Key 수를 보고 정한다. Key가 둘이면 하나씩 나눈다. */
+    @Test
+    void 떼어둘Key수를적지않으면Key수를보고정한다() throws Exception {
+        NexonRequestRateGate gate = gateOf(
+                5,
+                List.of("key-1", "key-2"),
+                null,
+                new RecordingSleeper()
+        );
+
+        assertThat(gate.acquire(NexonRequestClass.CRITICAL))
+                .isEqualTo("key-1");
+        assertThat(gate.acquire(NexonRequestClass.CRITICAL))
+                .isEqualTo("key-1");
+        assertThat(gate.acquire(NexonRequestClass.BULK))
+                .isEqualTo("key-2");
+    }
+
+    /** 등급 없이 부르면 무엇을 셌는지 알 수 없다. */
+    @Test
+    void 등급이없으면허가하지않는다() {
+        NexonRequestRateGate gate = gateOf(
+                5,
+                List.of("key-1", "key-2"),
+                null,
+                new RecordingSleeper()
+        );
+
+        assertThatThrownBy(() -> gate.acquire(null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

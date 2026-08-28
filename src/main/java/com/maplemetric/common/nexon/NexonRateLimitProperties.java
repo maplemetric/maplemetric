@@ -2,6 +2,7 @@ package com.maplemetric.common.nexon;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 /**
  * Nexon 요청의 초당 한도와 허가 대기 상한이다.
@@ -12,13 +13,29 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * {@code maxWait}는 허가를 기다리는 한도다. 상한이 없으면 요청이 몰릴 때 처리
  * Thread가 언제 끝날지 모르는 대기에 묶인다. 넘기면 시간 초과로 알리고 자리를
  * 비워 주는 편이 낫다.
+ *
+ * {@code reservedCriticalKeyCount}는 Key 목록 앞에서부터 몇 개를 실패하면 안 되는
+ * 요청 몫으로 떼어 둘지다. 나머지는 미뤄도 되는 대량 요청이 쓴다. Nexon은 하루
+ * 한도도 애플리케이션 단위로 세므로, 이렇게 갈라 두면 하루 사용량을 세지 않고도
+ * 대량 요청이 정기 수집의 예산을 먹는 것을 막는다.
+ *
+ * 적지 않으면 Key 수를 보고 정한다. Key가 셋 이상이면 둘을 떼어 둔다. 캐릭터 조회
+ * 하나가 21회를 쓰기 때문에 실패하면 안 되는 쪽에 초당 여유를 더 준다.
  */
 @ConfigurationProperties(prefix = "maplemetric.nexon.rate-limit")
 public record NexonRateLimitProperties(
         int requestsPerSecond,
-        Duration maxWait
+        Duration maxWait,
+        Integer reservedCriticalKeyCount
 ) {
 
+    /**
+     * 설정을 읽어 넣을 생성자를 못 박는다.
+     *
+     * 생성자가 둘이면 어느 쪽으로 값을 넣을지 정해지지 않아, 없는 기본 생성자를
+     * 찾다가 시작이 막힌다.
+     */
+    @ConstructorBinding
     public NexonRateLimitProperties {
         if (requestsPerSecond < 1) {
             throw new IllegalArgumentException(
@@ -31,5 +48,20 @@ public record NexonRateLimitProperties(
                     "넥슨 허가 대기 상한은 0보다 커야 합니다."
             );
         }
+
+        if (reservedCriticalKeyCount != null
+                && reservedCriticalKeyCount < 1) {
+            throw new IllegalArgumentException(
+                    "떼어 둘 넥슨 Key 수는 1 이상이어야 합니다."
+            );
+        }
+    }
+
+    /** 떼어 둘 Key 수를 적지 않으면 Key 수를 보고 정한다. */
+    public NexonRateLimitProperties(
+            int requestsPerSecond,
+            Duration maxWait
+    ) {
+        this(requestsPerSecond, maxWait, null);
     }
 }

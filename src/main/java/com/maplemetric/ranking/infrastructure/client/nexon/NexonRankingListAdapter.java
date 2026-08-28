@@ -1,6 +1,8 @@
 package com.maplemetric.ranking.infrastructure.client.nexon;
 
 import com.maplemetric.common.nexon.NexonApiFailure;
+import com.maplemetric.common.nexon.NexonRequestClass;
+import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import com.maplemetric.ranking.application.port.out.LoadRankingListPort;
 import com.maplemetric.ranking.application.result.GetDojangRankingResult;
 import com.maplemetric.ranking.application.result.GetOverallRankingResult;
@@ -35,7 +37,8 @@ class NexonRankingListAdapter
             String worldName,
             Integer worldType,
             String className,
-            int page
+            int page,
+            OverallRankingCollectionRequestClass requestClass
     ) {
         OverallRankingResponse response =
                 rankingClient.getOverallRanking(
@@ -43,7 +46,8 @@ class NexonRankingListAdapter
                         worldName,
                         worldType,
                         className,
-                        page
+                        page,
+                        toNexonRequestClass(requestClass)
                 );
 
         LocalDate asOf = resolveAsOf(
@@ -224,5 +228,20 @@ class NexonRankingListAdapter
         return new RankingException(
                 NexonApiFailure.RESPONSE_INVALID
         );
+    }
+/**
+     * 수집 등급을 외부 호출 등급으로 옮긴다.
+     *
+     * 두 이름이 같아 보여도 소유자가 다르다. 랭킹은 "이 수집이 미뤄도 되는가"를
+     * 말하고, 외부 관문은 "어느 Key 몫을 쓰는가"를 말한다. 여기서 한 번 옮겨 두면
+     * 랭킹의 공개 계약이 외부 공급자의 Key 배분 개념을 드러내지 않는다.
+     */
+    private static NexonRequestClass toNexonRequestClass(
+            OverallRankingCollectionRequestClass requestClass
+    ) {
+        return switch (requestClass) {
+            case CRITICAL -> NexonRequestClass.CRITICAL;
+            case BULK -> NexonRequestClass.BULK;
+        };
     }
 }
