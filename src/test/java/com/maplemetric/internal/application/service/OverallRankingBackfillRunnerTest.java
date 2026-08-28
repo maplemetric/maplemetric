@@ -296,6 +296,61 @@ class OverallRankingBackfillRunnerTest {
         );
     }
 
+    /**
+     * 한도 초과를 만나면 이번 실행을 멈춘다.
+     *
+     * 한도가 마른 상태에서 다음 기준일로 넘어가도 똑같이 실패한다. 실제로 그렇게
+     * 630회를 헛되이 썼다.
+     */
+    @Test
+    void 한도초과를만나면이번실행을멈춘다() {
+        givenClaims(
+                date(FIRST_DATE, 1),
+                date(FIRST_DATE.plusDays(1), 1)
+        );
+
+        given(collectUseCase.collect(any()))
+                .willThrow(new OverallRankingCollectionException(
+                        OverallRankingCollectionFailure
+                                .EXTERNAL_API_RATE_LIMITED
+                ));
+
+        int processed = runner.run(JOB_ID);
+
+        assertThat(processed).isEqualTo(1);
+
+        // 두 번째 기준일은 건드리지 않는다.
+        verify(collectUseCase, org.mockito.Mockito.times(1)).collect(any());
+    }
+
+    /**
+     * 한도 초과는 그 기준일의 시도 횟수를 쓰지 않는다.
+     *
+     * 점유할 때마다 시도가 오르는데, 한도가 이어지는 동안 같은 기준일을 다시 잡으면
+     * 몇 초 만에 한도를 다 써 영구 실패가 된다. 한도 초과는 그 기준일을 시험한 적이
+     * 없으므로 세지 않는다.
+     */
+    @Test
+    void 한도초과는시도한도와무관하게재시도가능하다() {
+        // 이미 시도 한도에 닿은 기준일이다.
+        givenClaims(date(FIRST_DATE, 3));
+
+        given(collectUseCase.collect(any()))
+                .willThrow(new OverallRankingCollectionException(
+                        OverallRankingCollectionFailure
+                                .EXTERNAL_API_RATE_LIMITED
+                ));
+
+        runner.run(JOB_ID);
+
+        verify(backfillStateService).failDate(
+                any(),
+                org.mockito.ArgumentMatchers
+                        .eq(BackfillErrorType.EXTERNAL_RATE_LIMITED),
+                org.mockito.ArgumentMatchers.eq(true)
+        );
+    }
+
     @Test
     void 시도횟수가한도에닿으면재시도가능한오류도멈춘다() {
         givenClaims(date(FIRST_DATE, MAX_ATTEMPTS));
