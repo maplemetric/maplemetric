@@ -253,10 +253,9 @@ public class OverallRankingBackfillRunner {
                     date.attemptCount()
             );
 
-            backfillStateService.failDate(
+            backfillStateService.releaseDate(
                     date.id(),
-                    BackfillErrorType.EXTERNAL_RATE_LIMITED,
-                    true
+                    BackfillErrorType.EXTERNAL_RATE_LIMITED
             );
 
             return true;

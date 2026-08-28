@@ -161,6 +161,29 @@ public class OverallRankingBackfillDateEntity {
         return true;
     }
 
+    /**
+     * 점유를 되돌린다.
+     *
+     * 점유할 때 오른 시도를 함께 되돌린다. 이 기준일을 시험한 적이 없기 때문이다.
+     * 되돌리지 않으면 기준일과 무관한 사정이 반복될수록 시도가 쌓이고, 나중에 진짜
+     * 일시 오류가 왔을 때 이미 소진돼 영구 실패한다.
+     */
+    public boolean release(BackfillErrorType errorType) {
+        if (status != BackfillStatus.RUNNING) {
+            return false;
+        }
+
+        lastErrorType = errorType;
+        status = BackfillStatus.PENDING;
+        finishedAt = null;
+
+        if (attemptCount > 0) {
+            attemptCount--;
+        }
+
+        return true;
+    }
+
     public void cancel() {
         if (isTerminal()) {
             return;

@@ -253,14 +253,6 @@ class OverallRankingBackfillRunnerTest {
                         BackfillErrorType.EXTERNAL_TIMEOUT,
                         true
                 ),
-                // 한도 초과는 요청이 잘못된 것이 아니라 지금 받을 수 없는 것이다.
-                // 영구 실패로 닫으면 한도가 풀려도 그 기준일이 다시 잡히지 않는다.
-                Arguments.of(
-                        OverallRankingCollectionFailure
-                                .EXTERNAL_API_RATE_LIMITED,
-                        BackfillErrorType.EXTERNAL_RATE_LIMITED,
-                        true
-                ),
                 Arguments.of(
                         OverallRankingCollectionFailure
                                 .EXTERNAL_API_CLIENT_ERROR,
@@ -343,12 +335,19 @@ class OverallRankingBackfillRunnerTest {
 
         runner.run(JOB_ID);
 
-        verify(backfillStateService).failDate(
+        // 실패로 기록하면 점유할 때 오른 시도가 남는다. 되돌려야 한다.
+        verify(backfillStateService).releaseDate(
                 any(),
                 org.mockito.ArgumentMatchers
-                        .eq(BackfillErrorType.EXTERNAL_RATE_LIMITED),
-                org.mockito.ArgumentMatchers.eq(true)
+                        .eq(BackfillErrorType.EXTERNAL_RATE_LIMITED)
         );
+
+        verify(backfillStateService, org.mockito.Mockito.never())
+                .failDate(
+                        any(),
+                        any(),
+                        org.mockito.ArgumentMatchers.anyBoolean()
+                );
     }
 
     @Test

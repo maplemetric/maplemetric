@@ -182,6 +182,40 @@ class OverallRankingBackfillStatePersistenceTest {
         assertThat(claim(job.id()).attemptCount()).isEqualTo(2);
     }
 
+    /**
+     * 점유를 되돌리면 시도 횟수도 함께 되돌린다.
+     *
+     * 한도 초과처럼 기준일과 무관한 사정으로 못 받았을 때 쓴다. 시도가 남으면 그
+     * 사정이 반복될수록 쌓이고, 나중에 진짜 일시 오류가 왔을 때 이미 소진돼 영구
+     * 실패한다.
+     */
+    @Test
+    void 점유를되돌리면시도횟수도되돌린다() {
+        BackfillJob job = service.createJob(FROM, FROM);
+
+        BackfillDate claimed = claim(job.id());
+
+        assertThat(claimed.attemptCount()).isEqualTo(1);
+
+        service.releaseDate(
+                claimed.id(),
+                BackfillErrorType.EXTERNAL_RATE_LIMITED
+        );
+
+        BackfillDate released = onlyDate(job.id());
+
+        assertThat(released.status()).isEqualTo(BackfillStatus.PENDING);
+        assertThat(released.attemptCount()).isZero();
+        assertThat(released.lastErrorType())
+                .isEqualTo(BackfillErrorType.EXTERNAL_RATE_LIMITED);
+        assertThat(released.finishedAt()).isNull();
+
+        assertThat(findJob(job.id()).failedDateCount()).isZero();
+
+        // 되돌렸으므로 다시 점유해도 첫 시도다.
+        assertThat(claim(job.id()).attemptCount()).isEqualTo(1);
+    }
+
     @Test
     void 재시도불가능한실패는기준일과Job을실패로닫는다() {
         BackfillJob job = service.createJob(FROM, FROM);

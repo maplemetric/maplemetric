@@ -63,6 +63,20 @@ public interface OverallRankingBackfillStatePort {
             boolean retryable
     );
 
+    /**
+     * 점유를 되돌린다.
+     *
+     * 시도로 세지 않는다. 이 기준일을 시험한 적이 없기 때문이다. 한도 초과처럼
+     * 기준일과 무관한 사정으로 못 받았을 때 쓴다.
+     *
+     * 실패로 기록하면 점유할 때 오른 시도가 남는다. 그러면 그 사정이 반복될수록
+     * 시도가 쌓이고, 나중에 진짜 일시 오류가 왔을 때 이미 소진돼 영구 실패한다.
+     */
+    void releaseDate(
+            UUID backfillDateId,
+            BackfillErrorType errorType
+    );
+
     void cancelJob(UUID backfillJobId);
 
     record BackfillJob(
