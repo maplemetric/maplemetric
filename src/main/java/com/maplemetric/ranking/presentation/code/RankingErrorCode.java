@@ -64,7 +64,9 @@ public enum RankingErrorCode implements ErrorCode {
                     NEXON_API_CLIENT_ERROR;
             case SERVER_ERROR ->
                     NEXON_API_SERVER_ERROR;
-            case TIMEOUT ->
+            // 한도 초과는 소비 측에 시간 초과와 같은 결과다. 공개 코드를 새로
+            // 만들지 않는다.
+            case RATE_LIMITED, TIMEOUT ->
                     NEXON_API_TIMEOUT;
             case RESPONSE_INVALID ->
                     NEXON_API_RESPONSE_INVALID;

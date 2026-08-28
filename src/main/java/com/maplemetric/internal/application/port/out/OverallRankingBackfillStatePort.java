@@ -108,6 +108,10 @@ public interface OverallRankingBackfillStatePort {
      */
     enum BackfillErrorType {
         EXTERNAL_CLIENT,
+
+        /** 한도를 넘겨 지금은 받을 수 없다. 요청 자체는 올바르다. */
+        EXTERNAL_RATE_LIMITED,
+
         EXTERNAL_SERVER,
         EXTERNAL_TIMEOUT,
         RESPONSE_INVALID,

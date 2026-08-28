@@ -125,7 +125,8 @@ class NexonNoticeClient {
                     NoticeFailure.CLIENT_ERROR;
             case SERVER_ERROR ->
                     NoticeFailure.SERVER_ERROR;
-            case TIMEOUT ->
+            // 한도 초과는 소비 측에 시간 초과와 같은 결과다. 지금 받을 수 없다.
+            case RATE_LIMITED, TIMEOUT ->
                     NoticeFailure.TIMEOUT;
             case RESPONSE_INVALID ->
                     NoticeFailure.RESPONSE_INVALID;

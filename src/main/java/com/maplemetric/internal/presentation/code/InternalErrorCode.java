@@ -81,7 +81,9 @@ public enum InternalErrorCode implements ErrorCode {
                     OVERALL_RANKING_COLLECTION_EXTERNAL_CLIENT_ERROR;
             case EXTERNAL_API_SERVER_ERROR ->
                     OVERALL_RANKING_COLLECTION_EXTERNAL_SERVER_ERROR;
-            case EXTERNAL_API_TIMEOUT ->
+            // 한도 초과는 부르는 쪽에 시간 초과와 같은 결과다. 지금 받을 수 없고
+            // 나중에 다시 부르면 된다. 응답 코드를 새로 만들지 않는다.
+            case EXTERNAL_API_RATE_LIMITED, EXTERNAL_API_TIMEOUT ->
                     OVERALL_RANKING_COLLECTION_EXTERNAL_TIMEOUT;
             case EXTERNAL_API_RESPONSE_INVALID ->
                     OVERALL_RANKING_COLLECTION_EXTERNAL_RESPONSE_INVALID;

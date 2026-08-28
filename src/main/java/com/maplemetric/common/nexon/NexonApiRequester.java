@@ -269,6 +269,22 @@ public final class NexonApiRequester {
                         identifierValue
                 );
 
+        // 재시도를 다 쓴 한도 초과다. 일반 Client 오류로 뭉개면 요청 자체가 잘못된
+        // 것과 구별되지 않아, 잠시 뒤면 성공할 요청이 영구 실패로 닫힌다.
+        if (isRateLimited(exception, nexonErrorCode)) {
+            log.warn(
+                    "넥슨 API 요청 제한이 재시도 뒤에도 풀리지 않았습니다. "
+                            + "api={}, status={}, nexonErrorCode={}, {}={}",
+                    apiName,
+                    exception.getStatusCode(),
+                    nexonErrorCode,
+                    identifierName,
+                    logIdentifierValue
+            );
+
+            return createException(NexonApiFailure.RATE_LIMITED);
+        }
+
         if (notFoundPredicate.test(
                 apiName,
                 nexonErrorCode
@@ -316,10 +332,21 @@ public final class NexonApiRequester {
             return false;
         }
 
+        return isRateLimited(exception, getNexonErrorCode(nexonError));
+    }
+
+    /**
+     * 한도 초과 응답인지 본다.
+     *
+     * 재시도할지 판단할 때와 재시도를 다 쓴 뒤 실패를 분류할 때 같은 기준을 써야
+     * 한다. 한쪽만 바뀌면 재시도하던 응답이 다른 의미로 나가게 된다.
+     */
+    private boolean isRateLimited(
+            HttpClientErrorException exception,
+            String nexonErrorCode
+    ) {
         return exception.getStatusCode().value() == 429
-                && RATE_LIMIT_ERROR_CODE.equals(
-                getNexonErrorCode(nexonError)
-        );
+                && RATE_LIMIT_ERROR_CODE.equals(nexonErrorCode);
     }
 
     private long getRateLimitRetryDelayMillis(

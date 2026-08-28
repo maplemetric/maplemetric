@@ -377,8 +377,14 @@ class RankingClientImplTest {
         mockServer.verify();
     }
 
+    /**
+     * 재시도를 다 써도 한도 초과라는 사실이 남는다.
+     *
+     * 일반 Client 오류로 뭉개면 요청 자체가 잘못된 것과 구별되지 않는다. 그러면
+     * Backfill이 영구 실패로 판정해, 한도가 풀려도 그 기준일을 다시 잡지 않는다.
+     */
     @Test
-    void 캐릭터랭킹요청제한재시도횟수를소진하면클라이언트오류다(
+    void 캐릭터랭킹요청제한재시도횟수를소진하면한도초과오류다(
             CapturedOutput output
     ) {
         Map<String, String> queryParameters = Map.of(
@@ -407,7 +413,7 @@ class RankingClientImplTest {
         );
 
         assertThat(exception.getFailure())
-                .isEqualTo(NexonApiFailure.CLIENT_ERROR);
+                .isEqualTo(NexonApiFailure.RATE_LIMITED);
 
         assertThat(output)
                 .contains("retryCount=1")

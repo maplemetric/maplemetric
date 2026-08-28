@@ -275,6 +275,8 @@ public class OverallRankingBackfillRunner {
         return switch (failure) {
             case EXTERNAL_API_CLIENT_ERROR ->
                     BackfillErrorType.EXTERNAL_CLIENT;
+            case EXTERNAL_API_RATE_LIMITED ->
+                    BackfillErrorType.EXTERNAL_RATE_LIMITED;
             case EXTERNAL_API_SERVER_ERROR ->
                     BackfillErrorType.EXTERNAL_SERVER;
             case EXTERNAL_API_TIMEOUT -> BackfillErrorType.EXTERNAL_TIMEOUT;
@@ -288,10 +290,16 @@ public class OverallRankingBackfillRunner {
      *
      * 응답 검증 실패는 다시 불러도 같은 응답이 오므로 재시도하지 않는다. Client 오류도
      * 요청 자체가 잘못된 것이라 반복해봐야 Quota만 쓴다.
+     *
+     * 한도 초과는 다르다. 요청은 올바르고 지금 받을 수 없을 뿐이라, 한도가 회복되면
+     * 같은 요청이 성공한다. 영구 실패로 닫으면 그 기준일은 다시 잡히지 않아 한도가
+     * 풀려도 스스로 돌아오지 않는다.
      */
     private boolean isRetryable(OverallRankingCollectionFailure failure) {
         return switch (failure) {
-            case EXTERNAL_API_SERVER_ERROR, EXTERNAL_API_TIMEOUT -> true;
+            case EXTERNAL_API_SERVER_ERROR,
+                 EXTERNAL_API_TIMEOUT,
+                 EXTERNAL_API_RATE_LIMITED -> true;
             case EXTERNAL_API_CLIENT_ERROR, EXTERNAL_API_RESPONSE_INVALID ->
                     false;
         };
