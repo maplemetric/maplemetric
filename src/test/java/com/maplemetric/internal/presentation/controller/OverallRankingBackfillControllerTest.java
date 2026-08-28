@@ -84,6 +84,29 @@ class OverallRankingBackfillControllerTest {
                 );
     }
 
+    /**
+     * 점유 표는 밖으로 내보내지 않는다.
+     *
+     * 표는 결과를 기록할 자격이다. 응답에 실리면 그 기준일을 점유하지 않은 쪽도
+     * 표를 알게 되어, 소유자만 기록한다는 규칙이 무너진다.
+     */
+    @Test
+    void 점유표는응답에실리지않는다() throws Exception {
+        given(backfillRunner.createJob(FROM, TO)).willReturn(job());
+        givenStoredJob();
+
+        mockMvc.perform(
+                        post(BACKFILL_PATH)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"from":"2026-07-01","to":"2026-07-03"}
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.dates[0].claimToken").doesNotExist())
+                .andExpect(jsonPath("$.data.dates[1].claimToken").doesNotExist());
+    }
+
     @ParameterizedTest
     @CsvSource({
             "'{\"from\":\"2026-07-03\",\"to\":\"2026-07-01\"}'",
@@ -210,6 +233,7 @@ class OverallRankingBackfillControllerTest {
                 status,
                 attemptCount,
                 lastErrorType,
+                UUID.randomUUID(),
                 null,
                 null
         );

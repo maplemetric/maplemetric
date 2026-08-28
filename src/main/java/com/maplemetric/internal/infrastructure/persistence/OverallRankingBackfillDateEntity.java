@@ -50,6 +50,16 @@ public class OverallRankingBackfillDateEntity {
     @Column(name = "attempt_count", nullable = false)
     private int attemptCount;
 
+    /**
+     * 지금 점유한 실행기를 가리키는 표다.
+     *
+     * 점유할 때마다 새로 발급한다. 결과를 기록할 때 이 표가 맞아야 상태를 바꾼다.
+     * 기준일 번호만 보면, 오래 걸려 회수된 실행기의 뒤늦은 결과가 그 사이 새로
+     * 점유한 실행기의 점유를 덮어쓴다.
+     */
+    @Column(name = "claim_token")
+    private UUID claimToken;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "last_error_type", length = 30)
     private BackfillErrorType lastErrorType;
@@ -110,6 +120,7 @@ public class OverallRankingBackfillDateEntity {
         attemptCount++;
         startedAt = Instant.now();
         finishedAt = null;
+        claimToken = UUID.randomUUID();
     }
 
     /**
@@ -119,12 +130,32 @@ public class OverallRankingBackfillDateEntity {
      * 취소된 기준일이 되살아나고 Job 집계까지 어긋난다. 이미 끝난 기준일이면 아무것도
      * 바꾸지 않고 {@code false}를 돌려 호출자가 집계를 올리지 않게 한다.
      */
-    public boolean succeed() {
+    public boolean succeed(UUID expectedClaimToken) {
+        if (!ownsClaim(expectedClaimToken)) {
+            return false;
+        }
+
         return finishIfRunning(BackfillStatus.SUCCEEDED, null);
     }
 
-    public boolean skip() {
+    public boolean skip(UUID expectedClaimToken) {
+        if (!ownsClaim(expectedClaimToken)) {
+            return false;
+        }
+
         return finishIfRunning(BackfillStatus.SKIPPED, null);
+    }
+
+    /**
+     * 결과를 기록하려는 쪽이 지금 점유한 실행기인지 본다.
+     *
+     * 표가 없는 기준일은 이 표를 쓰기 전에 점유된 것이다. 그때는 누구도 결과를
+     * 기록하지 못하게 막는다. 잘못 덮어쓰는 것보다 회수 경로가 다시 잡게 두는 편이
+     * 안전하다. 회수는 점유 시각만 보므로 표가 없어도 동작한다.
+     */
+    private boolean ownsClaim(UUID expectedClaimToken) {
+        return claimToken != null
+                && claimToken.equals(expectedClaimToken);
     }
 
     /**
@@ -134,6 +165,7 @@ public class OverallRankingBackfillDateEntity {
      * 않는다. 아직 끝난 기준일이 아니기 때문이다.
      */
     public boolean fail(
+            UUID expectedClaimToken,
             BackfillErrorType errorType,
             boolean retryable
     ) {
@@ -143,20 +175,20 @@ public class OverallRankingBackfillDateEntity {
             );
         }
 
-        if (status != BackfillStatus.RUNNING) {
+        if (status != BackfillStatus.RUNNING
+                || !ownsClaim(expectedClaimToken)) {
             return false;
         }
 
-        lastErrorType = errorType;
-
         if (retryable) {
+            lastErrorType = errorType;
             status = BackfillStatus.PENDING;
             finishedAt = null;
+            claimToken = null;
             return true;
         }
 
-        status = BackfillStatus.FAILED;
-        finishedAt = Instant.now();
+        finishWith(BackfillStatus.FAILED, errorType);
 
         return true;
     }
@@ -168,14 +200,19 @@ public class OverallRankingBackfillDateEntity {
      * 되돌리지 않으면 기준일과 무관한 사정이 반복될수록 시도가 쌓이고, 나중에 진짜
      * 일시 오류가 왔을 때 이미 소진돼 영구 실패한다.
      */
-    public boolean release(BackfillErrorType errorType) {
-        if (status != BackfillStatus.RUNNING) {
+    public boolean release(
+            UUID expectedClaimToken,
+            BackfillErrorType errorType
+    ) {
+        if (status != BackfillStatus.RUNNING
+                || !ownsClaim(expectedClaimToken)) {
             return false;
         }
 
         lastErrorType = errorType;
         status = BackfillStatus.PENDING;
         finishedAt = null;
+        claimToken = null;
 
         if (attemptCount > 0) {
             attemptCount--;
@@ -212,6 +249,12 @@ public class OverallRankingBackfillDateEntity {
         return true;
     }
 
+    /**
+     * 기준일을 끝난 상태로 닫는다.
+     *
+     * 점유 표도 함께 지운다. 표가 남아 있는 것은 지금 누군가 점유 중이라는 뜻이라,
+     * 끝난 기준일에 남겨 두면 표의 의미가 흐려진다.
+     */
     private void finishWith(
             BackfillStatus terminalStatus,
             BackfillErrorType errorType
@@ -219,6 +262,7 @@ public class OverallRankingBackfillDateEntity {
         status = terminalStatus;
         lastErrorType = errorType;
         finishedAt = Instant.now();
+        claimToken = null;
     }
 
     @PrePersist

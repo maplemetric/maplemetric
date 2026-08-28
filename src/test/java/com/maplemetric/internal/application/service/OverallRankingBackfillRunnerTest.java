@@ -126,7 +126,7 @@ class OverallRankingBackfillRunnerTest {
         // 첫 호출 앞에서는 기다리지 않는다.
         assertThat(sleeper.sleeps).containsExactly(Duration.ofSeconds(2));
 
-        verify(backfillStateService, times(2)).succeedDate(any());
+        verify(backfillStateService, times(2)).succeedDate(any(), any());
     }
 
     @Test
@@ -145,6 +145,7 @@ class OverallRankingBackfillRunnerTest {
         // 회수는 재시도 가능한 실패로 기록해 다시 점유되게 한다.
         verify(backfillStateService).failDate(
                 org.mockito.ArgumentMatchers.eq(stale.id()),
+                org.mockito.ArgumentMatchers.eq(stale.claimToken()),
                 org.mockito.ArgumentMatchers.eq(BackfillErrorType.UNKNOWN),
                 org.mockito.ArgumentMatchers.eq(true)
         );
@@ -166,6 +167,7 @@ class OverallRankingBackfillRunnerTest {
         // 매번 죽는 기준일이 무한히 회수되지 않는다.
         verify(backfillStateService).failDate(
                 org.mockito.ArgumentMatchers.eq(stale.id()),
+                org.mockito.ArgumentMatchers.eq(stale.claimToken()),
                 org.mockito.ArgumentMatchers.eq(BackfillErrorType.UNKNOWN),
                 org.mockito.ArgumentMatchers.eq(false)
         );
@@ -184,6 +186,7 @@ class OverallRankingBackfillRunnerTest {
                 .given(backfillStateService)
                 .failDate(
                         org.mockito.ArgumentMatchers.eq(failing.id()),
+                        org.mockito.ArgumentMatchers.eq(failing.claimToken()),
                         any(),
                         org.mockito.ArgumentMatchers.anyBoolean()
                 );
@@ -196,10 +199,11 @@ class OverallRankingBackfillRunnerTest {
         // 실패한 항목에서 끊지 않고 남은 회수와 수집을 모두 진행한다.
         verify(backfillStateService).failDate(
                 org.mockito.ArgumentMatchers.eq(remaining.id()),
+                org.mockito.ArgumentMatchers.eq(remaining.claimToken()),
                 org.mockito.ArgumentMatchers.eq(BackfillErrorType.UNKNOWN),
                 org.mockito.ArgumentMatchers.eq(true)
         );
-        verify(backfillStateService).succeedDate(any());
+        verify(backfillStateService).succeedDate(any(), any());
     }
 
     @Test
@@ -237,8 +241,8 @@ class OverallRankingBackfillRunnerTest {
 
         runner.run(JOB_ID);
 
-        verify(backfillStateService).skipDate(any());
-        verify(backfillStateService, never()).succeedDate(any());
+        verify(backfillStateService).skipDate(any(), any());
+        verify(backfillStateService, never()).succeedDate(any(), any());
     }
 
     @Test
@@ -308,6 +312,7 @@ class OverallRankingBackfillRunnerTest {
 
         verify(backfillStateService).failDate(
                 any(),
+                any(),
                 org.mockito.ArgumentMatchers.eq(expectedErrorType),
                 org.mockito.ArgumentMatchers.eq(expectedRetryable)
         );
@@ -363,12 +368,14 @@ class OverallRankingBackfillRunnerTest {
         // 실패로 기록하면 점유할 때 오른 시도가 남는다. 되돌려야 한다.
         verify(backfillStateService).releaseDate(
                 any(),
+                any(),
                 org.mockito.ArgumentMatchers
                         .eq(BackfillErrorType.EXTERNAL_RATE_LIMITED)
         );
 
         verify(backfillStateService, org.mockito.Mockito.never())
                 .failDate(
+                        any(),
                         any(),
                         any(),
                         org.mockito.ArgumentMatchers.anyBoolean()
@@ -387,6 +394,7 @@ class OverallRankingBackfillRunnerTest {
         runner.run(JOB_ID);
 
         verify(backfillStateService).failDate(
+                any(),
                 any(),
                 org.mockito.ArgumentMatchers.eq(
                         BackfillErrorType.EXTERNAL_TIMEOUT
@@ -407,6 +415,7 @@ class OverallRankingBackfillRunnerTest {
 
         verify(backfillStateService).failDate(
                 any(),
+                any(),
                 org.mockito.ArgumentMatchers.eq(
                         BackfillErrorType.EXTERNAL_SERVER
                 ),
@@ -423,6 +432,7 @@ class OverallRankingBackfillRunnerTest {
         runner.run(JOB_ID);
 
         verify(backfillStateService).failDate(
+                any(),
                 any(),
                 org.mockito.ArgumentMatchers.eq(
                         BackfillErrorType.STORE_FAILED
@@ -445,8 +455,8 @@ class OverallRankingBackfillRunnerTest {
 
         assertThat(runner.run(JOB_ID)).isEqualTo(2);
 
-        verify(backfillStateService).failDate(any(), any(), any(Boolean.class));
-        verify(backfillStateService).succeedDate(any());
+        verify(backfillStateService).failDate(any(), any(), any(), any(Boolean.class));
+        verify(backfillStateService).succeedDate(any(), any());
     }
 
     @Test
@@ -467,6 +477,7 @@ class OverallRankingBackfillRunnerTest {
             // 두 번째 기준일을 점유한 뒤 중단됐다. RUNNING으로 남기면 다시 잡히지 않는다.
             verify(backfillStateService).failDate(
                     org.mockito.ArgumentMatchers.eq(secondDate.id()),
+                    org.mockito.ArgumentMatchers.eq(secondDate.claimToken()),
                     org.mockito.ArgumentMatchers.eq(
                             BackfillErrorType.UNKNOWN
                     ),
@@ -476,7 +487,9 @@ class OverallRankingBackfillRunnerTest {
             // 첫 기준일은 정상 처리됐다.
             verify(backfillStateService)
                     .succeedDate(
-                            org.mockito.ArgumentMatchers.eq(firstDate.id())
+                            org.mockito.ArgumentMatchers.eq(firstDate.id()),
+                            org.mockito.ArgumentMatchers
+                                    .eq(firstDate.claimToken())
                     );
             verify(collectUseCase, times(1)).collect(any());
         } finally {
@@ -543,6 +556,7 @@ class OverallRankingBackfillRunnerTest {
                 BackfillStatus.RUNNING,
                 attemptCount,
                 null,
+                UUID.randomUUID(),
                 null,
                 null
         );

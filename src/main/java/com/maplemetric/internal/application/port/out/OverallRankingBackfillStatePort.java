@@ -47,9 +47,17 @@ public interface OverallRankingBackfillStatePort {
      */
     Optional<BackfillDate> claimNextPendingDate(UUID backfillJobId);
 
-    void succeedDate(UUID backfillDateId);
+    /**
+     * 결과는 지금 점유한 실행기만 기록한다.
+     *
+     * {@code claimToken}은 점유할 때 받은 표다. 그 사이 점유가 회수되고 다른
+     * 실행기가 다시 잡았으면 표가 달라 아무것도 바꾸지 않는다. 기준일 번호만 보면
+     * 뒤늦게 도착한 결과가 새 점유를 덮어써 같은 기준일을 둘이 수집하고 시도
+     * 한도도 무너진다.
+     */
+    void succeedDate(UUID backfillDateId, UUID claimToken);
 
-    void skipDate(UUID backfillDateId);
+    void skipDate(UUID backfillDateId, UUID claimToken);
 
     /**
      * 기준일 시도를 실패로 기록한다.
@@ -59,6 +67,7 @@ public interface OverallRankingBackfillStatePort {
      */
     void failDate(
             UUID backfillDateId,
+            UUID claimToken,
             BackfillErrorType errorType,
             boolean retryable
     );
@@ -74,6 +83,7 @@ public interface OverallRankingBackfillStatePort {
      */
     void releaseDate(
             UUID backfillDateId,
+            UUID claimToken,
             BackfillErrorType errorType
     );
 
@@ -93,6 +103,11 @@ public interface OverallRankingBackfillStatePort {
     ) {
     }
 
+    /**
+     * {@code claimToken}은 이 기준일을 점유한 실행기를 가리키는 표다.
+     *
+     * 점유 중이 아니면 비어 있다. 결과를 기록할 때 이 값을 그대로 넘겨야 한다.
+     */
     record BackfillDate(
             UUID id,
             UUID backfillJobId,
@@ -100,6 +115,7 @@ public interface OverallRankingBackfillStatePort {
             BackfillStatus status,
             int attemptCount,
             BackfillErrorType lastErrorType,
+            UUID claimToken,
             Instant startedAt,
             Instant finishedAt
     ) {

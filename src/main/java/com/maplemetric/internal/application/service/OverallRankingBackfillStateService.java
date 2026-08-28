@@ -70,30 +70,41 @@ public class OverallRankingBackfillStateService {
     }
 
     @Transactional
-    public void succeedDate(UUID backfillDateId) {
-        backfillStatePort.succeedDate(backfillDateId);
+    public void succeedDate(UUID backfillDateId, UUID claimToken) {
+        backfillStatePort.succeedDate(backfillDateId, claimToken);
     }
 
     @Transactional
-    public void skipDate(UUID backfillDateId) {
-        backfillStatePort.skipDate(backfillDateId);
+    public void skipDate(UUID backfillDateId, UUID claimToken) {
+        backfillStatePort.skipDate(backfillDateId, claimToken);
     }
 
     @Transactional
     public void failDate(
             UUID backfillDateId,
+            UUID claimToken,
             BackfillErrorType errorType,
             boolean retryable
     ) {
-        backfillStatePort.failDate(backfillDateId, errorType, retryable);
+        backfillStatePort.failDate(
+                backfillDateId,
+                claimToken,
+                errorType,
+                retryable
+        );
     }
 
     @Transactional
     public void releaseDate(
             UUID backfillDateId,
+            UUID claimToken,
             BackfillErrorType errorType
     ) {
-        backfillStatePort.releaseDate(backfillDateId, errorType);
+        backfillStatePort.releaseDate(
+                backfillDateId,
+                claimToken,
+                errorType
+        );
     }
 
     @Transactional
