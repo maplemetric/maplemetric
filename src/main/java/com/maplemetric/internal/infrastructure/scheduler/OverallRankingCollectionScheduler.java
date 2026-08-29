@@ -2,6 +2,7 @@ package com.maplemetric.internal.infrastructure.scheduler;
 
 import com.maplemetric.internal.application.properties.OverallRankingCollectionProperties;
 import com.maplemetric.internal.application.service.OverallRankingGapRecoveryRunner;
+import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
@@ -34,6 +35,12 @@ public class OverallRankingCollectionScheduler {
 
     /** 사유가 없는 결과에도 같은 Tag를 붙인다. Tag가 빠지면 계열이 갈린다. */
     private static final String NO_REASON = "none";
+
+    /** 같은 기준일을 이미 받아 두어 건너뛴 것이다. */
+    private static final String ALREADY_COLLECTED_REASON = "ALREADY_COLLECTED";
+
+    /** 다른 수집이 도는 중이라 건너뛴 것이다. */
+    private static final String ALREADY_RUNNING_REASON = "ALREADY_RUNNING";
 
     private static final Logger log =
             LoggerFactory.getLogger(
@@ -70,18 +77,22 @@ public class OverallRankingCollectionScheduler {
     )
     public void collectOverallRanking() {
         try {
-            collectOverallRankingSnapshotUseCase.collect(
-                    new CollectOverallRankingSnapshotRequest(
-                            null,
-                            properties.maxPages()
-                    )
-            );
+            CollectOverallRankingSnapshotOutcome outcome =
+                    collectOverallRankingSnapshotUseCase.collect(
+                            new CollectOverallRankingSnapshotRequest(
+                                    null,
+                                    properties.maxPages()
+                            )
+                    );
 
-            count(SUCCEEDED_RESULT, NO_REASON);
+            // 이미 받아 둔 기준일이면 예외 없이 건너뛴 결과가 돌아온다. 이것을
+            // 성공으로 세면 새로 받은 날과 구별되지 않아, 며칠째 같은 자리에
+            // 머물러 있어도 매일 성공한 것처럼 보인다.
+            countOutcome(outcome);
         } catch (OverallRankingCollectionAlreadyRunningException exception) {
             // 중복 실행 차단은 정상 동작이므로 Scheduler 기본 Handler로
             // 전파해 ERROR로 기록되지 않게 한다. 로그는 UseCase Bridge가 남긴다.
-            count(SKIPPED_RESULT, NO_REASON);
+            count(SKIPPED_RESULT, ALREADY_RUNNING_REASON);
         } catch (OverallRankingCollectionException exception) {
             count(FAILED_RESULT, exception.getFailure().name());
 
@@ -93,6 +104,19 @@ public class OverallRankingCollectionScheduler {
         }
 
         recoverGaps();
+    }
+
+    private void countOutcome(CollectOverallRankingSnapshotOutcome outcome) {
+        if (outcome != null
+                && outcome.status()
+                        == com.maplemetric.ranking.api
+                                .OverallRankingCollectionStatus.SKIPPED) {
+            count(SKIPPED_RESULT, ALREADY_COLLECTED_REASON);
+
+            return;
+        }
+
+        count(SUCCEEDED_RESULT, NO_REASON);
     }
 
     /**

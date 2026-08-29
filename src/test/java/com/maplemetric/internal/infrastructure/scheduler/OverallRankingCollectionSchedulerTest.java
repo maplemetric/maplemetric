@@ -117,7 +117,31 @@ class OverallRankingCollectionSchedulerTest {
 
         scheduler(useCase).collectOverallRanking();
 
-        assertThat(counterValue("skipped", "none")).isEqualTo(1.0);
+        assertThat(counterValue("skipped", "ALREADY_RUNNING"))
+                .isEqualTo(1.0);
+    }
+
+    /**
+     * 이미 받아 둔 기준일은 건너뜀으로 센다.
+     *
+     * 이때는 예외가 오르지 않고 건너뛴 결과가 돌아온다. 성공으로 세면 새로 받은 날과
+     * 구별되지 않아, 며칠째 같은 자리에 머물러 있어도 매일 성공한 것처럼 보인다.
+     */
+    @Test
+    void 이미받아둔기준일은건너뜀으로센다() {
+        CollectOverallRankingSnapshotUseCase useCase =
+                mock(CollectOverallRankingSnapshotUseCase.class);
+
+        given(useCase.collect(any()))
+                .willReturn(new CollectOverallRankingSnapshotOutcome(
+                        OverallRankingCollectionStatus.SKIPPED,
+                        null, 0, 0, false
+                ));
+
+        scheduler(useCase).collectOverallRanking();
+
+        assertThat(counterValue("skipped", "ALREADY_COLLECTED"))
+                .isEqualTo(1.0);
     }
 
     private OverallRankingCollectionScheduler scheduler(

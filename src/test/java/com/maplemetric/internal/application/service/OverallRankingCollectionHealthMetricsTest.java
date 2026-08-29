@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -42,6 +43,7 @@ class OverallRankingCollectionHealthMetricsTest {
 
     @Test
     void 되짚는기간의빈날수를내보낸다() {
+        givenLatestCollected(YESTERDAY);
         givenMissing(YESTERDAY.minusDays(3), YESTERDAY.minusDays(5));
 
         assertThat(gaugeValue("ranking.collection.missing.days"))
@@ -56,28 +58,63 @@ class OverallRankingCollectionHealthMetricsTest {
      */
     @Test
     void 어제까지받았으면밀린날이없다() {
+        givenLatestCollected(YESTERDAY);
         givenMissing(YESTERDAY.minusDays(5));
 
         assertThat(gaugeValue("ranking.collection.staleness.days"))
                 .isEqualTo(0.0);
     }
 
-    /** 어제부터 거꾸로 이어진 빈 날의 수가 밀린 날이다. */
+    /** 마지막으로 받은 날부터 어제까지가 밀린 날이다. */
     @Test
-    void 어제부터이어진빈날수를밀린날로센다() {
+    void 마지막으로받은날부터어제까지를밀린날로센다() {
+        givenLatestCollected(YESTERDAY.minusDays(3));
         givenMissing(
                 YESTERDAY,
                 YESTERDAY.minusDays(1),
-                YESTERDAY.minusDays(2),
-                YESTERDAY.minusDays(4)
+                YESTERDAY.minusDays(2)
         );
 
         assertThat(gaugeValue("ranking.collection.staleness.days"))
                 .isEqualTo(3.0);
     }
 
+    /**
+     * 되짚는 기간보다 오래 멈춰 있어도 그대로 센다.
+     *
+     * 빈 날 목록에서 거꾸로 세면 그 기간 밖은 보이지 않아, 몇 달을 멈춰 있어도
+     * 되짚는 기간만큼만 밀린 것으로 보인다.
+     */
+    @Test
+    void 되짚는기간보다오래멈춰있어도그대로센다() {
+        givenLatestCollected(YESTERDAY.minusDays(200));
+        givenMissing();
+
+        assertThat(gaugeValue("ranking.collection.staleness.days"))
+                .isEqualTo(200.0);
+    }
+
+    /**
+     * 한 번도 받지 않았으면 모른다고 알린다.
+     *
+     * 빈 날 계산은 받은 적이 없으면 볼 기준이 없어 빈 목록을 준다. 그것을 그대로
+     * 쓰면 "어제까지 잘 받았다"로 읽힌다. 아무것도 없는 것과 빠진 날이 없는 것은
+     * 정반대다.
+     */
+    @Test
+    void 한번도받지않았으면모른다고알린다() {
+        givenLatestCollected(null);
+        givenMissing();
+
+        assertThat(gaugeValue("ranking.collection.staleness.days"))
+                .isEqualTo(-1.0);
+        assertThat(gaugeValue("ranking.collection.missing.days"))
+                .isEqualTo(-1.0);
+    }
+
     @Test
     void 되짚는기간은어제까지다() {
+        givenLatestCollected(YESTERDAY);
         givenMissing();
 
         gaugeValue("ranking.collection.missing.days");
@@ -98,7 +135,7 @@ class OverallRankingCollectionHealthMetricsTest {
     void 셀수없으면모른다는값을내보낸다() {
         willThrow(new IllegalStateException("저장소를 읽지 못했다"))
                 .given(findMissingUseCase)
-                .findMissingDates(any(), any());
+                .findLatestCollectedDate();
 
         assertThat(gaugeValue("ranking.collection.missing.days"))
                 .isEqualTo(-1.0);
@@ -114,6 +151,7 @@ class OverallRankingCollectionHealthMetricsTest {
      */
     @Test
     void 짧은사이에거듭물어도한번만센다() {
+        givenLatestCollected(YESTERDAY);
         givenMissing(YESTERDAY);
 
         OverallRankingCollectionHealthMetrics metrics = createMetrics();
@@ -151,5 +189,10 @@ class OverallRankingCollectionHealthMetricsTest {
     private void givenMissing(LocalDate... dates) {
         given(findMissingUseCase.findMissingDates(any(), any()))
                 .willReturn(List.of(dates));
+    }
+
+    private void givenLatestCollected(LocalDate latest) {
+        given(findMissingUseCase.findLatestCollectedDate())
+                .willReturn(Optional.ofNullable(latest));
     }
 }

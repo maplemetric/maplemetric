@@ -8,9 +8,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.HashSet;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,6 +146,17 @@ public class OverallRankingCollectionHealthMetrics {
         }
 
         try {
+            Optional<LocalDate> latestCollected =
+                    findMissingDatesUseCase.findLatestCollectedDate();
+
+            if (latestCollected.isEmpty()) {
+                // 한 번도 받지 않은 상태다. 빠진 날이 없는 것과 다르다.
+                missingDays.set(UNKNOWN);
+                stalenessDays.set(UNKNOWN);
+
+                return;
+            }
+
             LocalDate today = LocalDate.now(clock);
             LocalDate yesterday = today.minusDays(1);
             LocalDate from =
@@ -156,7 +167,7 @@ public class OverallRankingCollectionHealthMetrics {
 
             missingDays.set(missing.size());
             stalenessDays.set(
-                    stalenessOf(new HashSet<>(missing), yesterday)
+                    stalenessOf(latestCollected.get(), yesterday)
             );
         } catch (RuntimeException exception) {
             missingDays.set(UNKNOWN);
@@ -172,16 +183,17 @@ public class OverallRankingCollectionHealthMetrics {
     /**
      * 마지막으로 수집한 기준일이 어제로부터 며칠 전인지 센다.
      *
-     * 어제부터 거꾸로 이어진 빈 날의 수와 같다. 어제가 채워져 있으면 0이다.
+     * 어제까지 받았으면 0이다. 빈 날 목록에서 거꾸로 세지 않는다. 되짚는 기간 밖은
+     * 그 목록에 없어서, 몇 달을 멈춰 있어도 그 기간만큼만 밀린 것으로 보인다.
      */
-    private long stalenessOf(Set<LocalDate> missing, LocalDate yesterday) {
-        long staleness = 0L;
-
-        for (LocalDate date = yesterday; missing.contains(date);
-                date = date.minusDays(1)) {
-            staleness++;
+    private long stalenessOf(
+            LocalDate latestCollected,
+            LocalDate yesterday
+    ) {
+        if (!latestCollected.isBefore(yesterday)) {
+            return 0L;
         }
 
-        return staleness;
+        return ChronoUnit.DAYS.between(latestCollected, yesterday);
     }
 }

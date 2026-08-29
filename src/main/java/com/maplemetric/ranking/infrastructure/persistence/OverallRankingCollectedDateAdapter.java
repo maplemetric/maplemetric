@@ -30,6 +30,15 @@ class OverallRankingCollectedDateAdapter
     }
 
     @Override
+    public Optional<LocalDate> loadLatestCollectedDate() {
+        return collectionRepository.findLatestCollectedSnapshotDate(
+                OverallRankingCollectionEntity.ALL_WORLD_NAME,
+                OverallRankingCollectionEntity.ALL_WORLD_TYPE,
+                OverallRankingCollectionEntity.ALL_CLASS_NAME
+        );
+    }
+
+    @Override
     public Optional<LocalDate> loadEarliestCollectedDate() {
         return collectionRepository.findEarliestCollectedSnapshotDate(
                 OverallRankingCollectionEntity.ALL_WORLD_NAME,

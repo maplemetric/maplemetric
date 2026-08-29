@@ -127,6 +127,35 @@ class OverallRankingCollectedDatePersistenceTest {
                 .isEmpty();
     }
 
+    @Test
+    void 전체조건으로수집한가장최근기준일을돌려준다() {
+        saveAllCondition(FIRST);
+        saveAllCondition(SECOND);
+
+        assertThat(loadCollectedDatePort.loadLatestCollectedDate())
+                .contains(SECOND);
+    }
+
+    /**
+     * 좁은 조건만 있으면 아직 받은 것이 아니다.
+     *
+     * 이 값이 "마지막으로 언제 받았나"를 답하므로, 좁은 조건을 세면 통계가 비어 있는데도
+     * 어제까지 잘 받은 것으로 보인다.
+     */
+    @Test
+    void 좁은조건만있으면가장최근기준일이없다() {
+        saveWorldCondition(FIRST, "스카니아");
+
+        assertThat(loadCollectedDatePort.loadLatestCollectedDate())
+                .isEmpty();
+    }
+
+    @Test
+    void 수집이없으면가장최근기준일이없다() {
+        assertThat(loadCollectedDatePort.loadLatestCollectedDate())
+                .isEmpty();
+    }
+
     private void saveAllCondition(LocalDate snapshotDate) {
         save(snapshotDate, null, null, null);
     }
