@@ -87,9 +87,16 @@ FROM flyway_schema_history
     }
 }
 
+<#
+    관리용 데이터베이스에 붙어 이름 바꾸기와 삭제를 한다.
+
+    지금 붙어 있는 데이터베이스는 이름을 바꿀 수 없다. 대상이 postgres면 거기에
+    붙은 채로 그것을 바꾸려다 거부당한다. 그때는 다른 곳에 붙는다.
+#>
 function Invoke-Psql([string]$Container, [string]$User, [string]$Sql) {
     docker exec -e PGPASSWORD $Container `
-        psql -U $User -d postgres -v ON_ERROR_STOP=1 -c $Sql | Out-Null
+        psql -U $User -d $script:maintenanceDatabase -v ON_ERROR_STOP=1 -c $Sql |
+        Out-Null
 
     return $LASTEXITCODE
 }
@@ -123,6 +130,13 @@ if (-not $Force) {
     if ($answer -ne $TargetDatabase) {
         Fail '이름이 다르다. 아무것도 하지 않았다.'
     }
+}
+
+# 대상과 같은 곳에 붙으면 그 이름을 바꿀 수 없다.
+$script:maintenanceDatabase = if ($TargetDatabase -eq 'postgres') {
+    'template1'
+} else {
+    'postgres'
 }
 
 $runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -179,12 +193,24 @@ try {
     }
 
     $collectionCount = docker exec -e PGPASSWORD $container `
-        psql -U $user -d $staging -At `
+        psql -U $user -d $staging -At -v ON_ERROR_STOP=1 `
         -c 'SELECT COUNT(*) FROM p_overall_ranking_collection'
 
     if ([int]$collectionCount -lt $MinimumCollectionCount) {
         Fail ("되돌린 것에 수집 기준일이 $collectionCount 개뿐이다. " +
             "$MinimumCollectionCount 개 이상이어야 한다. 대상은 그대로다.")
+    }
+
+    if (-not $Force) {
+        Write-Output ''
+        Write-Output '위 행 수가 되돌리려던 것과 맞는지 본다.'
+        Write-Output "이 뒤로는 $TargetDatabase 의 지금 내용이 사라진다."
+
+        $answer = Read-Host '이대로 바꾸려면 yes 를 입력한다'
+
+        if ($answer -ne 'yes') {
+            Fail '바꾸지 않았다. 대상은 그대로다.'
+        }
     }
 
     Write-Output ''

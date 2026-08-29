@@ -43,6 +43,19 @@ function Read-EnvFile([string]$Path) {
             $name = $trimmed.Substring(0, $separator).Trim()
             $value = $trimmed.Substring($separator + 1).Trim()
 
+            # 따옴표로 감싸지 않은 값은 뒤에 붙은 주석을 뗀다. Compose가 그렇게
+            # 다루므로, 남겨 두면 주석까지 비밀번호로 알고 붙으려 한다.
+            #
+            # 감싼 값 안의 #은 값의 일부다. 건드리지 않는다.
+            $quoted = $value.Length -ge 2 -and (
+                ($value.StartsWith('"') -and $value.EndsWith('"')) -or
+                ($value.StartsWith("'") -and $value.EndsWith("'"))
+            )
+
+            if (-not $quoted -and $value -match '\s+#') {
+                $value = ($value -split '\s+#')[0].TrimEnd()
+            }
+
             # Compose는 값을 감싼 따옴표를 벗겨서 쓴다. 여기서 남겨 두면 컨테이너가
             # 쓰는 비밀번호와 여기서 쓰는 비밀번호가 달라진다.
             if ($value.Length -ge 2) {

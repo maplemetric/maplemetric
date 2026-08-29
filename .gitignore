@@ -45,3 +45,4 @@ out/
 # 파일 하나에 데이터 전체가 들어 있다. 저장소에 올리지 않는다.
 /backup/
 *.dump
+*.dump.partial
