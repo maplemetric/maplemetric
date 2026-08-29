@@ -7,6 +7,7 @@ import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.FindMissingOverallRankingDatesUseCase;
 import com.maplemetric.ranking.api.OverallRankingCollectionAlreadyRunningException;
 import com.maplemetric.ranking.api.OverallRankingCollectionException;
+import com.maplemetric.ranking.api.OverallRankingCollectionFailure;
 import com.maplemetric.ranking.api.OverallRankingCollectionRequestClass;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -115,8 +116,14 @@ public class OverallRankingGapRecoveryRunner {
         int recovered = 0;
 
         for (LocalDate date : targets) {
-            if (recover(date)) {
+            RecoveryOutcome outcome = recover(date);
+
+            if (outcome == RecoveryOutcome.RECOVERED) {
                 recovered++;
+            }
+
+            if (outcome == RecoveryOutcome.STOP) {
+                break;
             }
         }
 
@@ -139,8 +146,11 @@ public class OverallRankingGapRecoveryRunner {
      *
      * 한 기준일에서 실패해도 나머지를 멈추지 않는다. 어제 하루가 안 받아진다고 그 앞의
      * 빈 날들까지 못 메울 이유가 없다.
+     *
+     * 한도 초과는 다르다. 한도는 기준일이 아니라 호출 몫 전체에 걸리므로, 다음 기준일을
+     * 시도해도 같은 벽에 부딪힌다. 재시도까지 되풀이하며 남은 몫만 더 쓴다.
      */
-    private boolean recover(LocalDate date) {
+    private RecoveryOutcome recover(LocalDate date) {
         try {
             collectUseCase.collect(
                     new CollectOverallRankingSnapshotRequest(
@@ -150,7 +160,7 @@ public class OverallRankingGapRecoveryRunner {
                     )
             );
 
-            return true;
+            return RecoveryOutcome.RECOVERED;
         } catch (OverallRankingCollectionAlreadyRunningException exception) {
             // 다른 수집과 겹쳤다. 이 기준일의 문제가 아니므로 다음 실행에서 다시 본다.
             log.info(
@@ -158,15 +168,37 @@ public class OverallRankingGapRecoveryRunner {
                     date
             );
 
-            return false;
+            return RecoveryOutcome.SKIPPED;
         } catch (OverallRankingCollectionException exception) {
+            if (exception.getFailure()
+                    == OverallRankingCollectionFailure
+                            .EXTERNAL_API_RATE_LIMITED) {
+                log.warn(
+                        "한도 초과로 메우기를 멈춥니다. 기준일={}",
+                        date
+                );
+
+                return RecoveryOutcome.STOP;
+            }
+
             log.warn(
                     "비어 있는 기준일을 메우지 못했습니다. 기준일={}, 원인={}",
                     date,
                     exception.getFailure()
             );
 
-            return false;
+            return RecoveryOutcome.SKIPPED;
         }
+    }
+
+    /** 기준일 하나를 시도한 결과다. */
+    private enum RecoveryOutcome {
+
+        RECOVERED,
+
+        SKIPPED,
+
+        /** 이번 실행을 여기서 멈춰야 한다. */
+        STOP
     }
 }

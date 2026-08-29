@@ -178,8 +178,10 @@ maplemetric:
       overall-ranking-gap-recovery:
         enabled: ${RANKING_GAP_RECOVERY_ENABLED:true}
 
-        # Nexon이 랭킹 이력을 주는 기간이 2년이다. 그보다 앞은 찾아도 채울 수 없다.
-        lookback-days: ${RANKING_GAP_RECOVERY_LOOKBACK_DAYS:730}
+        # 앱이 꺼져 있어 빠진 최근 며칠을 메우는 것이 목적이라 짧게 잡는다. 길게 잡으면
+        # 한 번도 받지 않은 과거까지 빈 날로 세어, 정작 최근에 빠진 날이 뒤로 밀린다.
+        # 이 기간을 넘긴 공백은 사람이 수동 수집으로 판단해 채운다.
+        lookback-days: ${RANKING_GAP_RECOVERY_LOOKBACK_DAYS:30}
         max-dates-per-run: ${RANKING_GAP_RECOVERY_MAX_DATES_PER_RUN:30}
 
       # 수집 결과 보존 한도다.

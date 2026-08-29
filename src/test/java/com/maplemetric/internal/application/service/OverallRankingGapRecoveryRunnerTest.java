@@ -42,7 +42,7 @@ class OverallRankingGapRecoveryRunnerTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 8, 29);
 
-    private static final int LOOKBACK_DAYS = 730;
+    private static final int LOOKBACK_DAYS = 30;
 
     private static final int MAX_DATES_PER_RUN = 3;
 
@@ -175,6 +175,55 @@ class OverallRankingGapRecoveryRunnerTest {
         assertThat(runner(true).run()).isEqualTo(1);
 
         verify(collectUseCase).collect(argumentFor(following));
+    }
+
+    /**
+     * 한도 초과를 만나면 이번 실행을 멈춘다.
+     *
+     * 한도는 기준일이 아니라 호출 몫 전체에 걸린다. 다음 기준일을 시도해도 같은 벽에
+     * 부딪히고, 재시도까지 되풀이하며 남은 몫만 더 쓴다.
+     */
+    @Test
+    void 한도초과를만나면남은기준일을시도하지않는다() {
+        LocalDate first = LocalDate.of(2026, 8, 1);
+        LocalDate second = first.plusDays(1);
+        LocalDate third = first.plusDays(2);
+
+        givenMissing(first, second, third);
+
+        willThrow(new OverallRankingCollectionException(
+                OverallRankingCollectionFailure.EXTERNAL_API_RATE_LIMITED
+        ))
+                .given(collectUseCase)
+                .collect(argumentFor(first));
+
+        assertThat(runner(true).run()).isZero();
+
+        verify(collectUseCase).collect(argumentFor(first));
+        verify(collectUseCase, never()).collect(argumentFor(second));
+        verify(collectUseCase, never()).collect(argumentFor(third));
+    }
+
+    /**
+     * 한도 초과 앞에서 이미 메운 것은 그대로 센다.
+     *
+     * 멈추는 것은 남은 시도이지 이미 받아 저장한 결과가 아니다.
+     */
+    @Test
+    void 한도초과전에메운기준일은그대로센다() {
+        LocalDate first = LocalDate.of(2026, 8, 1);
+        LocalDate second = first.plusDays(1);
+
+        givenMissing(first, second);
+        givenCollected();
+
+        willThrow(new OverallRankingCollectionException(
+                OverallRankingCollectionFailure.EXTERNAL_API_RATE_LIMITED
+        ))
+                .given(collectUseCase)
+                .collect(argumentFor(second));
+
+        assertThat(runner(true).run()).isEqualTo(1);
     }
 
     /**
