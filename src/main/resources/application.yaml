@@ -166,6 +166,22 @@ maplemetric:
         # 한 기준일의 정상 수집 소요보다 넉넉해야 실행 중인 기준일을 뺏지 않는다.
         stale-claim-timeout: ${RANKING_BACKFILL_STALE_CLAIM_TIMEOUT:10m}
 
+      # 정기 수집 뒤에 비어 있는 지난 기준일을 메운다.
+      #
+      # 정기 수집은 앱이 떠 있는 동안에만 돈다. 꺼져 있던 날은 그대로 비고, 사람이
+      # 기억해 메우는 절차는 잊힌다. 잊힌 사이 Nexon이 주는 2년이 지나면 그 기준일은
+      # 영영 받을 수 없다.
+      #
+      # 임의 기간을 자동으로 받아 오는 경로가 아니다. 비어 있는 기준일만, 한 번에
+      # max-dates-per-run까지, 대량 요청 몫의 Key로만 메운다. 30일이면 300회 호출로
+      # 그 몫의 하루 한도 안에 든다.
+      overall-ranking-gap-recovery:
+        enabled: ${RANKING_GAP_RECOVERY_ENABLED:true}
+
+        # Nexon이 랭킹 이력을 주는 기간이 2년이다. 그보다 앞은 찾아도 채울 수 없다.
+        lookback-days: ${RANKING_GAP_RECOVERY_LOOKBACK_DAYS:730}
+        max-dates-per-run: ${RANKING_GAP_RECOVERY_MAX_DATES_PER_RUN:30}
+
       # 수집 결과 보존 한도다.
       #
       # 자동 삭제는 하지 않는다. enabled는 꺼진 채로 둔다. 기준일 1개가 약 0.63 MB라

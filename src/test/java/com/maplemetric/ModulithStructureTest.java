@@ -19,6 +19,7 @@ import com.maplemetric.ranking.api.CharacterRankingQueryFailure;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
+import com.maplemetric.ranking.api.FindMissingOverallRankingDatesUseCase;
 import com.maplemetric.ranking.api.ExpireOverallRankingSnapshotUseCase;
 import com.maplemetric.ranking.api.JobCatalogQuery;
 import com.maplemetric.ranking.api.OverallRankingRetentionPlan;
@@ -394,6 +395,7 @@ class ModulithStructureTest {
                 OverallRankingComparisonQueryException.class.getName(),
                 OverallRankingComparisonQueryFailure.class.getName(),
                 CollectOverallRankingSnapshotUseCase.class.getName(),
+                FindMissingOverallRankingDatesUseCase.class.getName(),
                 CollectOverallRankingSnapshotRequest.class.getName(),
                 OverallRankingCollectionRequestClass.class.getName(),
                 CollectOverallRankingSnapshotOutcome.class.getName(),
