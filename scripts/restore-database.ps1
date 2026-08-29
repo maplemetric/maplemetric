@@ -303,12 +303,19 @@ finally {
     # 자리를 바꾸는 도중에 끊겼을 수 있다. 원래 것을 옆으로 치워 둔 채로 멈추면
     # 대상 이름을 가진 데이터베이스가 없어져 앱이 뜨지 못한다. 실패한 되돌리기가
     # 장애가 되지 않도록, 그 이름이 비어 있으면 치워 둔 것을 제자리로 돌려놓는다.
-    if ($retiredActive) {
-        $targetNow = docker exec -e PGPASSWORD $container `
-            psql -U $user -d $script:maintenanceDatabase -At `
-            -c "SELECT 1 FROM pg_database WHERE datname = '$TargetDatabase'"
+    #
+    # 치워 두었다는 표시를 믿지 않고 실제 상태를 본다. 이름은 바뀌었는데 그 결과를
+    # 받기 전에 끊기면 표시가 서지 않는다. 표시만 보면 그때를 놓친다.
+    $targetNow = docker exec -e PGPASSWORD $container `
+        psql -U $user -d $script:maintenanceDatabase -At `
+        -c "SELECT 1 FROM pg_database WHERE datname = '$TargetDatabase'"
 
-        if ($targetNow -ne '1') {
+    if ($targetNow -ne '1') {
+        $retiredNow = docker exec -e PGPASSWORD $container `
+            psql -U $user -d $script:maintenanceDatabase -At `
+            -c "SELECT 1 FROM pg_database WHERE datname = '$retired'"
+
+        if ($retiredNow -eq '1') {
             Write-Output "대상 이름이 비어 있다. 치워 둔 것을 되돌린다: $retired"
 
             Invoke-Psql $container $user `
