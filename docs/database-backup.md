@@ -49,6 +49,10 @@ volume을 잘못 지우거나 디스크가 죽으면 그대로 잃는다.
 넣은 것도 온전하지 않은 상태가 된다. 백업이 깨졌다는 것은 대개 되돌려 보고 나서야
 알게 되므로, 그 순간에 원본이 남아 있어야 한다.
 
+**되돌리기 전에 애플리케이션을 멈춘다.** 붙어 있는 연결이 있으면 이름을 바꿀 수 없다.
+스크립트가 남은 연결을 끊기는 하지만, 그것은 안전장치이지 앱을 멈추는 것을 대신하는
+방법이 아니다. 앱이 도는 중에 되돌리면 되돌아간 데이터 위에 그 사이의 쓰기가 섞인다.
+
 먼저 시험용 이름으로 되돌려 확인하는 것을 권한다.
 
 ```powershell
@@ -82,10 +86,23 @@ volume을 잘못 지우거나 디스크가 죽으면 그대로 잃는다.
 5. 시험용 데이터베이스를 지운다.
 
 ```powershell
-docker exec -e PGPASSWORD=<비밀번호> maplemetric-postgres `
-    psql -U postgres -d postgres `
-    -c "DROP DATABASE IF EXISTS maplemetric_restore_test WITH (FORCE)"
+. .\scripts\database-common.ps1
+
+$settings = Read-EnvFile '.env'
+Set-DatabasePassword (Require-Value $settings 'DB_PASSWORD')
+
+try {
+    docker exec -e PGPASSWORD (Get-DatabaseContainerName) `
+        psql -U (Require-Value $settings 'DB_USERNAME') -d postgres `
+        -c "DROP DATABASE IF EXISTS maplemetric_restore_test WITH (FORCE)"
+}
+finally {
+    Clear-DatabasePassword
+}
 ```
+
+사용자 이름과 비밀번호를 명령에 직접 적지 않는다. 이름은 설정에 따라 다를 수 있고,
+비밀번호를 적으면 PowerShell 기록과 프로세스 목록에 남는다.
 
 ### 마지막 시험 기록
 
@@ -103,6 +120,9 @@ docker exec -e PGPASSWORD=<비밀번호> maplemetric-postgres `
 | `flyway_schema_history` | 21 | 21 |
 
 이미 있는 데이터베이스에 덮어쓰기 — 같은 행 수로 바뀌었고 치워 둔 이전 것도 지워졌다.
+
+연결이 붙어 있는 데이터베이스에 덮어쓰기 — 세션 2개를 붙잡아 둔 채로 되돌렸다.
+남은 연결을 끊고 이름 바꾸기까지 마쳤다.
 
 깨진 백업으로 되돌리기 — 앞부분만 잘라 낸 파일로 시도했다. 임시 자리에서 멈췄고
 대상은 739행 그대로 남았다. 임시 자리도 남지 않았다.

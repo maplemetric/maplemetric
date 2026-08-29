@@ -54,10 +54,12 @@ if (-not (Test-Path $OutputDirectory)) {
     New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 }
 
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 
-$target = Join-Path $OutputDirectory "maplemetric-$stamp.dump"
+# 실행 식별자를 파일 이름에도 넣는다. 예약 실행과 사람이 누른 실행이 같은 초에
+# 시작하면 시각만으로는 이름이 겹쳐, 한쪽이 다른 쪽의 파일을 덮거나 지운다.
+$target = Join-Path $OutputDirectory "maplemetric-$stamp-$runId.dump"
 
 # 받는 도중의 파일에는 다른 이름을 준다. 중간에 멈추면 온전한 백업과 같은 이름의
 # 반쪽짜리가 남고, 나중에 그것을 꺼내 쓰려다 안 된다는 것을 그때 알게 된다.

@@ -124,6 +124,16 @@ try {
 
     Write-Output '되돌리기가 끝났다. 대상을 바꾼다.'
 
+    # 붙어 있는 연결이 하나라도 있으면 이름을 바꾸지 못한다. 뒤의 강제 삭제와 달리
+    # 이름 바꾸기는 연결을 알아서 끊지 않는다. 앱을 켜 둔 채로 되돌리면 여기서
+    # 멈추므로, 남은 연결을 먼저 끊는다.
+    #
+    # 앱을 미리 멈추는 편이 낫다. 이것은 안전장치이지 대신하는 방법이 아니다.
+    Invoke-Psql $container $user (
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity " +
+        "WHERE datname = '$TargetDatabase' AND pid <> pg_backend_pid()"
+    ) | Out-Null
+
     # 이름만 바꿔 자리를 옮긴다. 원래 대상은 곧바로 지우지 않고 옆으로 치워 둔다.
     # 바꾸는 도중에 무슨 일이 생겨도 되돌아갈 곳이 남아야 한다.
     $targetExists = docker exec -e PGPASSWORD $container `
