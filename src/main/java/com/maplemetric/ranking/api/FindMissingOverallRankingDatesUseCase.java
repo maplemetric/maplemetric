@@ -2,6 +2,7 @@ package com.maplemetric.ranking.api;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 아직 수집하지 못한 기준일을 찾는다.
@@ -21,4 +22,12 @@ public interface FindMissingOverallRankingDatesUseCase {
      * 오래된 것부터 메워야 먼저 사라질 날을 먼저 건진다.
      */
     List<LocalDate> findMissingDates(LocalDate from, LocalDate to);
+
+    /**
+     * 마지막으로 수집한 기준일이다. 한 번도 수집하지 않았으면 비어 있다.
+     *
+     * 빈 날 목록에서 거꾸로 세는 것으로는 이 값을 얻을 수 없다. 되짚는 기간 밖은
+     * 목록에 없어서, 아주 오래 멈춰 있어도 그 기간만큼만 밀린 것으로 보인다.
+     */
+    Optional<LocalDate> findLatestCollectedDate();
 }

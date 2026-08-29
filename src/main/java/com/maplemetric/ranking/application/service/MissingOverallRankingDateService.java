@@ -87,4 +87,10 @@ public class MissingOverallRankingDateService
 
         return List.copyOf(missing);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<LocalDate> findLatestCollectedDate() {
+        return loadCollectedSnapshotDatePort.loadLatestCollectedDate();
+    }
 }

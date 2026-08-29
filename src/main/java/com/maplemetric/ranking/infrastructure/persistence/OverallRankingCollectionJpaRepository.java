@@ -55,6 +55,25 @@ public interface OverallRankingCollectionJpaRepository
     );
 
     /**
+     * 전체 조건으로 수집한 가장 최근 기준일이다.
+     *
+     * 마지막으로 언제 받았는지를 여기서만 답한다. 빈 날 목록에서 거꾸로 세면 되짚는
+     * 기간 밖은 보이지 않아, 아주 오래 멈춰 있어도 그 기간만큼만 밀린 것으로 보인다.
+     */
+    @Query("""
+            select max(collection.snapshotDate)
+              from OverallRankingCollectionEntity collection
+             where collection.worldName = :allWorldName
+               and collection.worldType = :allWorldType
+               and collection.className = :allClassName
+            """)
+    Optional<LocalDate> findLatestCollectedSnapshotDate(
+            @Param("allWorldName") String allWorldName,
+            @Param("allWorldType") int allWorldType,
+            @Param("allClassName") String allClassName
+    );
+
+    /**
      * 전체 조건으로 수집한 가장 오래된 기준일이다.
      *
      * 이 날 이전은 수집을 시작하기 전이라 비어 있는 것이 정상이다. 그 기간까지 메우기

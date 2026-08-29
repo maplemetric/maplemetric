@@ -21,4 +21,11 @@ public interface LoadCollectedSnapshotDatePort {
      * 이 날 이전은 수집을 시작하기 전이라 비어 있는 것이 정상이다.
      */
     Optional<LocalDate> loadEarliestCollectedDate();
+
+    /**
+     * 수집한 가장 최근 기준일이다. 한 번도 수집하지 않았으면 비어 있다.
+     *
+     * 마지막으로 언제 받았는지를 이 값으로 답한다.
+     */
+    Optional<LocalDate> loadLatestCollectedDate();
 }
