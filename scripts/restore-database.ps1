@@ -141,8 +141,21 @@ $script:maintenanceDatabase = if ($TargetDatabase -eq 'postgres') {
 
 $runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
 
-$staging = "${TargetDatabase}_restoring_$runId"
-$retired = "${TargetDatabase}_replaced_$runId"
+# PostgreSQL은 이름을 63바이트에서 자른다. 대상 이름이 길면 붙인 꼬리표가 잘려
+# 임시 자리와 대상이 같은 이름이 되고, 그러면 만들지도 못한다. 잘릴 만큼 길면
+# 앞부분을 줄여 꼬리표와 실행 식별자를 남긴다.
+$maximumNameLength = 63
+$longestSuffixLength = "_restoring_$runId".Length
+$maximumPrefixLength = $maximumNameLength - $longestSuffixLength
+
+$namePrefix = if ($TargetDatabase.Length -gt $maximumPrefixLength) {
+    $TargetDatabase.Substring(0, $maximumPrefixLength)
+} else {
+    $TargetDatabase
+}
+
+$staging = "${namePrefix}_restoring_$runId"
+$retired = "${namePrefix}_replaced_$runId"
 
 Assert-DatabaseName $staging
 Assert-DatabaseName $retired
