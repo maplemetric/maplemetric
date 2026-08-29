@@ -9,7 +9,7 @@
     잃는 것의 크기가 문제다. 랭킹 저장본 가운데 외부가 이력을 주는 기간을 넘긴 기준일은
     다시 받을 수 없다. 시간이 지날수록 복구할 수 없는 몫이 늘어난다.
 
-    접속 정보는 .env에서 읽는다. 비밀번호를 명령 인자로 넘기면 프로세스 목록에 남는다.
+    접속 정보는 .env에서 읽는다. 비밀번호는 명령 인자에 싣지 않는다.
 
 .PARAMETER OutputDirectory
     백업 파일을 둘 위치다. 없으면 만든다.
@@ -39,107 +39,86 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Fail([string]$Reason) {
-    Write-Error $Reason
-    exit 1
-}
-
-function Read-EnvFile([string]$Path) {
-    if (-not (Test-Path $Path)) {
-        Fail "접속 정보를 읽을 파일이 없다: $Path"
-    }
-
-    $values = @{}
-
-    foreach ($line in Get-Content $Path -Encoding UTF8) {
-        $trimmed = $line.Trim()
-
-        if ($trimmed -eq '' -or $trimmed.StartsWith('#')) {
-            continue
-        }
-
-        $separator = $trimmed.IndexOf('=')
-
-        if ($separator -gt 0) {
-            $name = $trimmed.Substring(0, $separator).Trim()
-            $value = $trimmed.Substring($separator + 1).Trim()
-
-            $values[$name] = $value
-        }
-    }
-
-    return $values
-}
-
-function Require-Value($Values, [string]$Name) {
-    if (-not $Values.ContainsKey($Name) -or $Values[$Name] -eq '') {
-        Fail "접속 정보에 $Name 이(가) 없다."
-    }
-
-    return $Values[$Name]
-}
+. "$PSScriptRoot\database-common.ps1"
 
 $settings = Read-EnvFile $EnvFile
 
-$container = 'maplemetric-postgres'
+$container = Get-DatabaseContainerName
 $database = Require-Value $settings 'DB_NAME'
 $user = Require-Value $settings 'DB_USERNAME'
 $password = Require-Value $settings 'DB_PASSWORD'
 
-$running = docker ps --filter "name=$container" --format '{{.Names}}'
-
-if ($running -ne $container) {
-    Fail "데이터베이스 컨테이너가 떠 있지 않다: $container"
-}
+Assert-ContainerRunning $container
 
 if (-not (Test-Path $OutputDirectory)) {
     New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$runId = [guid]::NewGuid().ToString('N').Substring(0, 8)
+
 $target = Join-Path $OutputDirectory "maplemetric-$stamp.dump"
+
+# 받는 도중의 파일에는 다른 이름을 준다. 중간에 멈추면 온전한 백업과 같은 이름의
+# 반쪽짜리가 남고, 나중에 그것을 꺼내 쓰려다 안 된다는 것을 그때 알게 된다.
+$partial = "$target.partial"
+
+# 실행마다 다른 이름을 쓴다. 예약 실행과 사람이 누른 실행이 겹치면 같은 파일에
+# 두 pg_dump가 쓰고, 한쪽이 쓰는 중에 다른 쪽이 지운다.
+$inContainer = "/tmp/maplemetric-backup-$runId.dump"
 
 Write-Output "백업을 시작한다: $target"
 
-$inContainer = '/tmp/maplemetric-backup.dump'
+Set-DatabasePassword $password
 
 try {
     # custom 형식으로 받는다. 평문 SQL보다 작고, 복원할 때 표를 골라 되돌릴 수 있다.
     #
     # 컨테이너 안에 쓰고 꺼낸다. 표준 출력으로 받아 넘기면 셸이 그 바이트를 글자로
     # 다루면서 내용이 어긋난다. 그렇게 만든 파일은 복원할 때에야 깨진 것을 알게 된다.
-    #
-    # 비밀번호는 인자가 아니라 환경변수로 넘긴다. 인자로 주면 컨테이너 안팎의 프로세스
-    # 목록에 그대로 보인다.
-    docker exec -e PGPASSWORD=$password $container `
+    docker exec -e PGPASSWORD $container `
         pg_dump -U $user -d $database -Fc -f $inContainer
 
     if ($LASTEXITCODE -ne 0) {
         Fail "백업에 실패했다. 종료 코드 $LASTEXITCODE"
     }
 
-    docker cp "${container}:${inContainer}" $target
+    docker cp "${container}:${inContainer}" $partial
 
     if ($LASTEXITCODE -ne 0) {
         Fail "백업 파일을 꺼내지 못했다. 종료 코드 $LASTEXITCODE"
     }
+
+    if (-not (Test-Path $partial)) {
+        Fail '백업 파일이 만들어지지 않았다.'
+    }
+
+    $size = (Get-Item $partial).Length
+
+    if ($size -eq 0) {
+        Fail '백업 파일이 비었다.'
+    }
+
+    # 온전히 받은 뒤에만 제 이름을 준다.
+    Move-Item -Path $partial -Destination $target -Force
+
+    Write-Output ("완료: {0} ({1:N1} MB)" -f $target, ($size / 1MB))
 }
 finally {
+    Clear-DatabasePassword
+
     # 파일 하나에 데이터 전체가 들어 있다. 컨테이너 안에 남겨 두지 않는다.
-    docker exec $container rm -f $inContainer | Out-Null
+    docker exec $container rm -f $inContainer 2>$null | Out-Null
+
+    if (Test-Path $partial) {
+        Write-Output '받다 만 파일을 지운다.'
+        Remove-Item $partial -Force
+    }
 }
-
-$size = (Get-Item $target).Length
-
-if ($size -eq 0) {
-    Remove-Item $target -Force
-    Fail '백업 파일이 비었다. 지우고 멈춘다.'
-}
-
-Write-Output ("완료: {0} ({1:N1} MB)" -f $target, ($size / 1MB))
 
 # 오래된 것부터 지운다. 무한히 쌓이면 디스크를 채우고, 그러면 백업 자체가 실패한다.
 $stale = Get-ChildItem -Path $OutputDirectory -Filter 'maplemetric-*.dump' |
+    Where-Object { -not $_.Name.EndsWith('.partial') } |
     Sort-Object LastWriteTime -Descending |
     Select-Object -Skip $KeepCount
 
