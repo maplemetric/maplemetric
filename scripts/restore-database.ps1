@@ -37,7 +37,17 @@ param(
 
     [string]$EnvFile = '.env',
 
-    [switch]$Force
+    [switch]$Force,
+
+    <#
+        되돌린 것에 이만큼은 들어 있어야 한다.
+
+        표만 있고 비어 있는 백업은 되돌리기가 성공한다. 그대로 자리를 바꾸면 쓰던
+        것을 빈 것으로 갈아치운다. 시험용으로 만든 백업이나 수집 전에 뜬 백업이
+        그렇다.
+    #>
+    [ValidateRange(0, [int]::MaxValue)]
+    [int]$MinimumCollectionCount = 1
 )
 
 Set-StrictMode -Version Latest
@@ -168,6 +178,15 @@ try {
         Fail '되돌린 것이 쓸 만하지 않다. 대상은 그대로다.'
     }
 
+    $collectionCount = docker exec -e PGPASSWORD $container `
+        psql -U $user -d $staging -At `
+        -c 'SELECT COUNT(*) FROM p_overall_ranking_collection'
+
+    if ([int]$collectionCount -lt $MinimumCollectionCount) {
+        Fail ("되돌린 것에 수집 기준일이 $collectionCount 개뿐이다. " +
+            "$MinimumCollectionCount 개 이상이어야 한다. 대상은 그대로다.")
+    }
+
     Write-Output ''
     Write-Output '대상을 바꾼다.'
 
@@ -201,6 +220,12 @@ try {
         # 여기서 그냥 멈추면 대상 이름을 가진 데이터베이스가 없어진다. 원래 것은
         # 치워 둔 이름에만 있고, 앱은 뜨지 못한다. 실패한 복원이 장애가 된다.
         # 치워 둔 것을 제자리로 되돌려 놓고 멈춘다.
+        # 치워 둔 것이 없으면 되살릴 것도 없다. 처음부터 없던 이름으로 되돌리는
+        # 경우다. 임시 자리는 그대로 두어 뒷정리가 지우게 한다.
+        if (-not $retiredActive) {
+            Fail '되돌린 것을 제자리에 놓지 못했다. 원래 없던 이름이라 바뀐 것은 없다.'
+        }
+
         Write-Output '제자리에 놓지 못했다. 치워 둔 것을 되돌린다.'
 
         if ((Invoke-Psql $container $user `

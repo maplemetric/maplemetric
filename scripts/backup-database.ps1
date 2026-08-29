@@ -126,5 +126,8 @@ $stale = Get-ChildItem -Path $OutputDirectory -Filter 'maplemetric-*.dump' |
 
 foreach ($file in $stale) {
     Write-Output "오래된 백업을 지운다: $($file.Name)"
-    Remove-Item $file.FullName -Force
+
+    # 다른 실행이 먼저 지웠을 수 있다. 그것 때문에 이미 받아 둔 백업이 실패로
+    # 기록되면, 정작 파일은 멀쩡한데 사람이 실패한 줄 알고 다시 돌린다.
+    Remove-Item $file.FullName -Force -ErrorAction SilentlyContinue
 }

@@ -40,8 +40,26 @@ function Read-EnvFile([string]$Path) {
         $separator = $trimmed.IndexOf('=')
 
         if ($separator -gt 0) {
-            $values[$trimmed.Substring(0, $separator).Trim()] =
-                $trimmed.Substring($separator + 1).Trim()
+            $name = $trimmed.Substring(0, $separator).Trim()
+            $value = $trimmed.Substring($separator + 1).Trim()
+
+            # Compose는 값을 감싼 따옴표를 벗겨서 쓴다. 여기서 남겨 두면 컨테이너가
+            # 쓰는 비밀번호와 여기서 쓰는 비밀번호가 달라진다.
+            if ($value.Length -ge 2) {
+                if (($value.StartsWith('"') -and $value.EndsWith('"')) -or
+                    ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                }
+            }
+
+            # 다른 값을 끌어다 쓰는 표기는 풀지 않는다. 반쯤 아는 채로 넘기면 틀린
+            # 값으로 붙으려다 실패하고, 왜 그런지도 알기 어렵다.
+            if ($value -match '\$\{[^}]*\}') {
+                Fail ("$name 의 값이 다른 값을 끌어다 쓰는 표기다. " +
+                    "이 스크립트는 그것을 풀지 않는다. 실제 값을 적는다.")
+            }
+
+            $values[$name] = $value
         }
     }
 
