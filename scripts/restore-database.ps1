@@ -229,7 +229,7 @@ try {
     # 이름만 바꿔 자리를 옮긴다. 원래 대상은 곧바로 지우지 않고 옆으로 치워 둔다.
     # 바꾸는 도중에 무슨 일이 생겨도 되돌아갈 곳이 남아야 한다.
     $targetExists = docker exec -e PGPASSWORD $container `
-        psql -U $user -d postgres -At `
+        psql -U $user -d $script:maintenanceDatabase -At `
         -c "SELECT 1 FROM pg_database WHERE datname = '$TargetDatabase'"
 
     if ($targetExists -eq '1') {
@@ -287,6 +287,23 @@ try {
     }
 }
 finally {
+    # 자리를 바꾸는 도중에 끊겼을 수 있다. 원래 것을 옆으로 치워 둔 채로 멈추면
+    # 대상 이름을 가진 데이터베이스가 없어져 앱이 뜨지 못한다. 실패한 되돌리기가
+    # 장애가 되지 않도록, 그 이름이 비어 있으면 치워 둔 것을 제자리로 돌려놓는다.
+    if ($retiredActive) {
+        $targetNow = docker exec -e PGPASSWORD $container `
+            psql -U $user -d $script:maintenanceDatabase -At `
+            -c "SELECT 1 FROM pg_database WHERE datname = '$TargetDatabase'"
+
+        if ($targetNow -ne '1') {
+            Write-Output "대상 이름이 비어 있다. 치워 둔 것을 되돌린다: $retired"
+
+            Invoke-Psql $container $user `
+                "ALTER DATABASE `"$retired`" RENAME TO `"$TargetDatabase`"" |
+                Out-Null
+        }
+    }
+
     # 되돌리다 멈췄으면 임시 자리를 치운다. 남겨 두면 다음 사람이 무엇인지 모른다.
     if ($stagingActive) {
         Write-Output '임시 자리를 치운다.'
