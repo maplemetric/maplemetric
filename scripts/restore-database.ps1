@@ -98,6 +98,9 @@ Set-DatabasePassword $password
 # 임시 자리가 아직 남아 있는지다. 제자리로 옮기고 나면 더 지울 것이 없다.
 $stagingActive = $false
 
+# 원래 대상을 옆으로 치워 두었는지다.
+$retiredActive = $false
+
 try {
     Write-Output '백업 파일을 컨테이너로 옮긴다.'
     docker cp $BackupFile "${container}:${inContainer}"
@@ -145,19 +148,42 @@ try {
                     "ALTER DATABASE `"$TargetDatabase`" RENAME TO `"$retired`"") -ne 0) {
             Fail '대상을 옆으로 치우지 못했다. 아무것도 바뀌지 않았다.'
         }
+
+        $retiredActive = $true
     }
 
     if ((Invoke-Psql $container $user `
                 "ALTER DATABASE `"$staging`" RENAME TO `"$TargetDatabase`"") -ne 0) {
-        Fail "되돌린 것을 제자리에 놓지 못했다. 원래 것은 $retired 에 있다."
+        # 여기서 그냥 멈추면 대상 이름을 가진 데이터베이스가 없어진다. 원래 것은
+        # 치워 둔 이름에만 있고, 앱은 뜨지 못한다. 실패한 복원이 장애가 된다.
+        # 치워 둔 것을 제자리로 되돌려 놓고 멈춘다.
+        Write-Output '제자리에 놓지 못했다. 치워 둔 것을 되돌린다.'
+
+        if ((Invoke-Psql $container $user `
+                    "ALTER DATABASE `"$retired`" RENAME TO `"$TargetDatabase`"") -eq 0) {
+            $retiredActive = $false
+
+            Fail '되돌린 것을 제자리에 놓지 못했다. 원래 것을 되살렸다.'
+        }
+
+        # 둘 다 남겨 둔다. 사람이 골라 제자리에 놓아야 하는데, 여기서 되돌린 것을
+        # 지우면 고를 것이 하나만 남는다.
+        $stagingActive = $false
+
+        Fail ("되돌린 것을 제자리에 놓지 못했고 원래 것도 되살리지 못했다. " +
+            "원래 것은 $retired 에, 되돌린 것은 $staging 에 있다. " +
+            "둘 중 하나를 $TargetDatabase 로 직접 바꿔야 한다.")
     }
 
     $stagingActive = $false
 
-    if ($targetExists -eq '1') {
+    if ($retiredActive) {
         Write-Output "치워 둔 이전 데이터베이스를 지운다: $retired"
+
         Invoke-Psql $container $user `
             "DROP DATABASE IF EXISTS `"$retired`" WITH (FORCE)" | Out-Null
+
+        $retiredActive = $false
     }
 }
 finally {
