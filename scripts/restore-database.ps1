@@ -43,7 +43,39 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# 확인 질의의 종료 코드다. 결과 줄과 섞이지 않게 따로 둔다.
+$script:verifyExitCode = 0
+
 . "$PSScriptRoot\database-common.ps1"
+
+<#
+    되돌린 것이 쓸 만한지 본다.
+
+    pg_restore가 성공했다는 것은 파일을 읽었다는 뜻이지 그것이 맞는 백업이라는 뜻이
+    아니다. 다른 데이터베이스를 받아 둔 파일이거나 표가 빠져 있어도 되돌리기 자체는
+    끝난다. 그래서 자리를 바꾸기 전에 여기서 본다.
+#>
+function Invoke-Verify([string]$Container, [string]$User, [string]$Database) {
+    # 결과 줄과 종료 코드를 함께 돌려주지 않는다. 함수 안에서 출력한 줄도 반환값에
+    # 섞이므로, 그대로 0과 견주면 줄이 하나라도 있는 한 다르다고 나온다.
+    $rows = docker exec -e PGPASSWORD $Container `
+        psql -U $User -d $Database -At -F'|' -v ON_ERROR_STOP=1 -c @'
+SELECT 'p_overall_ranking_collection', COUNT(*)
+FROM p_overall_ranking_collection
+UNION ALL
+SELECT 'p_overall_ranking_snapshot', COUNT(*)
+FROM p_overall_ranking_snapshot
+UNION ALL
+SELECT 'flyway_schema_history', COUNT(*)
+FROM flyway_schema_history
+'@
+
+    $script:verifyExitCode = $LASTEXITCODE
+
+    foreach ($row in $rows) {
+        Write-Output $row
+    }
+}
 
 function Invoke-Psql([string]$Container, [string]$User, [string]$Sql) {
     docker exec -e PGPASSWORD $Container `
@@ -125,7 +157,19 @@ try {
         Fail "되돌리지 못했다. 대상은 그대로다. 종료 코드 $LASTEXITCODE"
     }
 
-    Write-Output '되돌리기가 끝났다. 대상을 바꾼다.'
+    Write-Output ''
+    Write-Output '되돌린 것을 확인한다.'
+
+    # 확인이 끝나기 전에는 대상을 건드리지 않는다. 여기서 실패하면 임시 자리만
+    # 지우고 멈추므로, 잘못된 백업을 들고 와도 쓰던 것을 잃지 않는다.
+    Invoke-Verify $container $user $staging
+
+    if ($script:verifyExitCode -ne 0) {
+        Fail '되돌린 것이 쓸 만하지 않다. 대상은 그대로다.'
+    }
+
+    Write-Output ''
+    Write-Output '대상을 바꾼다.'
 
     # 붙어 있는 연결이 하나라도 있으면 이름을 바꾸지 못한다. 뒤의 강제 삭제와 달리
     # 이름 바꾸기는 연결을 알아서 끊지 않는다. 앱을 켜 둔 채로 되돌리면 여기서
@@ -210,24 +254,13 @@ Set-DatabasePassword $password
 
 try {
     Write-Output ''
-    Write-Output '되돌렸다. 행 수를 확인한다.'
+    Write-Output '제자리에서 다시 확인한다.'
 
-    docker exec -e PGPASSWORD $container `
-        psql -U $user -d $TargetDatabase -At -F'|' -v ON_ERROR_STOP=1 -c @'
-SELECT 'p_overall_ranking_collection', COUNT(*)
-FROM p_overall_ranking_collection
-UNION ALL
-SELECT 'p_overall_ranking_snapshot', COUNT(*)
-FROM p_overall_ranking_snapshot
-UNION ALL
-SELECT 'flyway_schema_history', COUNT(*)
-FROM flyway_schema_history
-'@
+    # 자리를 바꾼 뒤에도 한 번 더 본다. 바꾸는 도중에 어긋났다면 여기서 드러난다.
+    Invoke-Verify $container $user $TargetDatabase
 
-    # 확인이 실패했는데 성공으로 끝내면, 사람이 없는 곳에서 돌린 되돌리기가 무엇을
-    # 되돌렸는지 아무도 보지 않은 채 성공으로 기록된다.
-    if ($LASTEXITCODE -ne 0) {
-        Fail "되돌린 것을 확인하지 못했다. 종료 코드 $LASTEXITCODE"
+    if ($script:verifyExitCode -ne 0) {
+        Fail '제자리에 놓인 것을 확인하지 못했다.'
     }
 }
 finally {
