@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.maplemetric.internal.application.properties.OverallRankingCollectionProperties;
+import com.maplemetric.internal.application.service.OverallRankingGapRecoveryRunner;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotOutcome;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotRequest;
 import com.maplemetric.ranking.api.CollectOverallRankingSnapshotUseCase;
@@ -23,6 +24,10 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class OverallRankingCollectionSchedulerTest {
 
+    /** 메우기는 이 테스트의 대상이 아니다. 아무것도 하지 않게 둔다. */
+    private final OverallRankingGapRecoveryRunner gapRecoveryRunner =
+            mock(OverallRankingGapRecoveryRunner.class);
+
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withBean(
@@ -34,6 +39,10 @@ class OverallRankingCollectionSchedulerTest {
                     .withBean(
                             OverallRankingCollectionProperties.class,
                             () -> new OverallRankingCollectionProperties(10)
+                    )
+                    .withBean(
+                            OverallRankingGapRecoveryRunner.class,
+                            () -> gapRecoveryRunner
                     )
                     .withUserConfiguration(
                             OverallRankingCollectionScheduler.class
@@ -83,7 +92,11 @@ class OverallRankingCollectionSchedulerTest {
                 ));
 
         OverallRankingCollectionScheduler scheduler =
-                new OverallRankingCollectionScheduler(useCase, properties);
+                new OverallRankingCollectionScheduler(
+                        useCase,
+                        properties,
+                        gapRecoveryRunner
+                );
 
         scheduler.collectOverallRanking();
 
@@ -106,7 +119,8 @@ class OverallRankingCollectionSchedulerTest {
         OverallRankingCollectionScheduler scheduler =
                 new OverallRankingCollectionScheduler(
                         useCase,
-                        new OverallRankingCollectionProperties(10)
+                        new OverallRankingCollectionProperties(10),
+                        gapRecoveryRunner
                 );
 
         assertThatCode(scheduler::collectOverallRanking)
@@ -133,7 +147,8 @@ class OverallRankingCollectionSchedulerTest {
         OverallRankingCollectionScheduler scheduler =
                 new OverallRankingCollectionScheduler(
                         useCase,
-                        new OverallRankingCollectionProperties(10)
+                        new OverallRankingCollectionProperties(10),
+                        gapRecoveryRunner
                 );
 
         assertThatThrownBy(scheduler::collectOverallRanking)
