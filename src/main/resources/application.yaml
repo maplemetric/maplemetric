@@ -167,9 +167,16 @@ maplemetric:
         stale-claim-timeout: ${RANKING_BACKFILL_STALE_CLAIM_TIMEOUT:10m}
 
       # 수집 결과 보존 한도다.
-      # enabled는 기본이 꺼짐이다. 삭제는 되돌릴 수 없고 보존 일수도 아직 운영
-      # 데이터를 측정해 확정하지 않았다. 켜기 전에 retention-days를 다시 정한다.
+      #
+      # 자동 삭제는 하지 않는다. enabled는 꺼진 채로 둔다. 기준일 1개가 약 0.63 MB라
+      # 1년에 약 230 MB 늘어나는데, Nexon은 랭킹 이력을 2년만 주므로 2년 밖으로
+      # 나간 기준일은 지우면 다시 받을 수 없다. 통계 이력의 ALL은 남아 있는 전부를
+      # 보므로 지우는 만큼 그 지표의 시작점이 앞으로 밀린다. 아끼는 용량에 비해
+      # 잃는 것이 영구적이다.
+      #
+      # retention-days 3650은 삭제를 시작하겠다는 뜻이 아니라, 10년이 지나 저장
+      # 비용이 실제로 문제가 됐을 때 다시 판단하기 위한 상한이다.
       overall-ranking-retention:
         enabled: ${RANKING_RETENTION_ENABLED:false}
-        retention-days: ${RANKING_RETENTION_DAYS:1095}
+        retention-days: ${RANKING_RETENTION_DAYS:3650}
         max-dates-per-run: ${RANKING_RETENTION_MAX_DATES_PER_RUN:30}
