@@ -114,12 +114,15 @@ public class OverallRankingGapRecoveryRunner {
         );
 
         int recovered = 0;
+        LocalDate oldestRemaining = null;
 
         for (LocalDate date : targets) {
             RecoveryOutcome outcome = recover(date);
 
             if (outcome == RecoveryOutcome.RECOVERED) {
                 recovered++;
+            } else if (oldestRemaining == null) {
+                oldestRemaining = date;
             }
 
             if (outcome == RecoveryOutcome.STOP) {
@@ -130,11 +133,16 @@ public class OverallRankingGapRecoveryRunner {
         int remaining = missing.size() - recovered;
 
         if (remaining > 0) {
+            // 채운 날을 "남은 것 중 가장 오래된 날"로 적지 않는다. 이 값을 보고
+            // 사람이 무엇이 막혀 있는지 판단하므로, 이미 지나간 날을 가리키면
+            // 실제로 걸려 있는 날을 놓친다.
             log.info(
                     "아직 비어 있는 기준일이 남았습니다. 남은 수={}, "
                             + "가장 오래된 날={}",
                     remaining,
-                    missing.get(0)
+                    oldestRemaining != null
+                            ? oldestRemaining
+                            : missing.get(targets.size())
             );
         }
 
