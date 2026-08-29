@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     받아 둔 백업 파일로 데이터베이스를 되돌린다.
 
@@ -180,8 +180,13 @@ try {
     if ($retiredActive) {
         Write-Output "치워 둔 이전 데이터베이스를 지운다: $retired"
 
-        Invoke-Psql $container $user `
-            "DROP DATABASE IF EXISTS `"$retired`" WITH (FORCE)" | Out-Null
+        # 지우지 못했는데 성공으로 알리면, 되돌릴 때마다 통째로 남은 데이터베이스가
+        # 하나씩 쌓인다. 그것 하나가 원본만 한 크기다.
+        if ((Invoke-Psql $container $user `
+                    "DROP DATABASE IF EXISTS `"$retired`" WITH (FORCE)") -ne 0) {
+            Fail ("되돌리기는 끝냈지만 치워 둔 것을 지우지 못했다. " +
+                "$retired 이(가) 남아 있다. 확인한 뒤 직접 지운다.")
+        }
 
         $retiredActive = $false
     }
@@ -208,7 +213,7 @@ try {
     Write-Output '되돌렸다. 행 수를 확인한다.'
 
     docker exec -e PGPASSWORD $container `
-        psql -U $user -d $TargetDatabase -At -F'|' -c @'
+        psql -U $user -d $TargetDatabase -At -F'|' -v ON_ERROR_STOP=1 -c @'
 SELECT 'p_overall_ranking_collection', COUNT(*)
 FROM p_overall_ranking_collection
 UNION ALL
@@ -218,6 +223,12 @@ UNION ALL
 SELECT 'flyway_schema_history', COUNT(*)
 FROM flyway_schema_history
 '@
+
+    # 확인이 실패했는데 성공으로 끝내면, 사람이 없는 곳에서 돌린 되돌리기가 무엇을
+    # 되돌렸는지 아무도 보지 않은 채 성공으로 기록된다.
+    if ($LASTEXITCODE -ne 0) {
+        Fail "되돌린 것을 확인하지 못했다. 종료 코드 $LASTEXITCODE"
+    }
 }
 finally {
     Clear-DatabasePassword
