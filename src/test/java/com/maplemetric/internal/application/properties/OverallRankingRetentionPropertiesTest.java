@@ -3,7 +3,6 @@ package com.maplemetric.internal.application.properties;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.MutablePropertySources;
@@ -37,6 +36,10 @@ class OverallRankingRetentionPropertiesTest {
      *
      * 2년보다 짧게 잡으면 켜는 순간 다시 받을 수 없는 기준일부터 지운다. 3650은
      * 삭제를 시작하겠다는 뜻이 아니라 10년 뒤에 다시 판단하기 위한 상한이다.
+     *
+     * 오늘 날짜로 "지금은 지울 대상이 없다"를 확인하지 않는다. 그것은 언젠가 거짓이
+     * 되는 것이 정상인 사실이라, 검사로 두면 정책이 그대로인데도 어느 날 빌드가
+     * 깨진다. 시간이 지나도 변하지 않아야 하는 것은 2년 창과의 관계다.
      */
     @Test
     void 보존일수는다시받을수없는구간을지우지않는다() throws IOException {
@@ -46,25 +49,6 @@ class OverallRankingRetentionPropertiesTest {
         assertThat(declared).isEqualTo("3650");
         assertThat(Integer.parseInt(declared))
                 .isGreaterThan(NEXON_HISTORY_DAYS);
-    }
-
-    /**
-     * 지금 보존 일수로는 지울 대상이 없다.
-     *
-     * 수집을 시작한 것이 2024년이므로 3650일 전은 그보다 한참 앞이다. 실수로 켜도
-     * 아무것도 사라지지 않는다는 것을 값으로 확인한다.
-     */
-    @Test
-    void 지금보존일수로는지울대상이없다() throws IOException {
-        int retentionDays = Integer.parseInt(
-                declaredSettings().getProperty(PREFIX + ".retention-days")
-        );
-
-        LocalDate expiredBefore =
-                LocalDate.now().minusDays(retentionDays);
-
-        // 랭킹 수집을 시작하기 전이다.
-        assertThat(expiredBefore).isBefore(LocalDate.of(2024, 1, 1));
     }
 
     /**
